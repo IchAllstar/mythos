@@ -30,43 +30,54 @@
 #include <cstring>
 
 namespace mythos {
-  namespace protocol {
-    
-    struct Example {
-      constexpr static uint8_t proto = EXAMPLE;
+namespace protocol {
 
-      enum Methods : uint8_t {
-        PRINT_MESSAGE,
-      };
-      
-      struct PrintMessage : public InvocationBase {
-        typedef InvocationBase response_type;
-        constexpr static uint16_t label = (proto<<8) + PRINT_MESSAGE;
-        PrintMessage(char const* str, size_t bytes)
-          : InvocationBase(label,getLength(this))
-        {
-          if (bytes>InvocationBase::maxBytes) bytes = InvocationBase::maxBytes;
-          this->bytes = uint16_t(bytes);
-          this->tag.length = uint8_t((bytes+3)/4);
-          memcpy(message, str, bytes);
-        }
-        uint16_t bytes;
-        char message[InvocationBase::maxBytes-2];
-      };
+struct Example {
+	constexpr static uint8_t proto = EXAMPLE;
 
-      struct Create : public UntypedMemory::CreateBase {
-        Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
-      };
-      
-      template<class IMPL, class... ARGS>
-      static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
-	switch(Methods(m)) {
-	case PRINT_MESSAGE: return obj->printMessage(args...);
-	default: return Error::NOT_IMPLEMENTED;
+	enum Methods : uint8_t {
+		PRINT_MESSAGE,
+		PING,
+	};
+
+	struct PrintMessage : public InvocationBase {
+		typedef InvocationBase response_type;
+
+		constexpr static uint16_t label = (proto<<8) + PRINT_MESSAGE;
+
+		PrintMessage(char const* str, size_t bytes) : InvocationBase(label,getLength(this))
+		{
+			if (bytes > InvocationBase::maxBytes) bytes = InvocationBase::maxBytes;
+			this->bytes = uint16_t(bytes);
+			this->tag.length = uint8_t((bytes+3)/4);
+			memcpy(message, str, bytes);
+		}
+
+		uint16_t bytes;
+		char message[InvocationBase::maxBytes-2];
+	};
+
+	struct Create : public UntypedMemory::CreateBase {
+		Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
+	};
+
+
+	struct Ping : public InvocationBase {
+		typedef InvocationBase response_type;
+		constexpr static uint16_t label = (proto<<8) + PING;
+		constexpr static uint16_t x = 0;
+	};
+
+	template<class IMPL, class... ARGS>
+	static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
+		switch(Methods(m)) {
+		case PRINT_MESSAGE: return obj->printMessage(args...);
+		case PING: return obj->ping(args...);
+		default: return Error::NOT_IMPLEMENTED;
+		}
 	}
-      }
 
-    };   
-  
-  } // namespace protocol
+};
+
+} // namespace protocol
 } // namespace mythos

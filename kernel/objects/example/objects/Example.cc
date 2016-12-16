@@ -65,6 +65,7 @@ namespace mythos {
 
   void ExampleObj::invoke(Tasklet* t, Cap self, IInvocation* msg)
   {
+	mlogex.info("invoke", DVAR(this), DVAR(self), DVAR(msg), DVAR(msg->getProtocol()), DVAR(msg->getLabel()), DVAR(msg->getMethod()) );
     monitor.request(t, [=](Tasklet* t){
         Error err = Error::NOT_IMPLEMENTED;
         switch (msg->getProtocol()) {
@@ -72,6 +73,7 @@ namespace mythos {
           err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
           break;
         case protocol::Example::proto:
+        	mlogex.info("Example Protocol");
           err = protocol::Example::dispatchRequest(this, msg->getMethod(), t, self, msg);
           break;
         }
@@ -95,6 +97,13 @@ namespace mythos {
     mlogex.error(mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
   }
+
+
+  Error ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
+  {
+      mlogex.info("invoke ping", DVAR(this), DVAR(self), DVAR(msg));
+      return Error::SUCCESS;
+    }
 
   optional<ExampleObj*>
   ExampleFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,

@@ -43,6 +43,10 @@ namespace mythos {
     PortalFutureRef<void> printMessage(PortalRef pr, char const* str, size_t bytes) {
       return pr.tryInvoke<protocol::Example::PrintMessage>(_cap, str, bytes);
     }
+
+    PortalFutureRef<void> ping(PortalRef pr) {
+      return pr.tryInvoke<protocol::Example::Ping>(_cap);
+    }
   };
 
 } // namespace mythos

@@ -36,6 +36,8 @@
 #include <cstdint>
 #include "util/optional.hh"
 
+#include <math.h>
+
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
@@ -54,46 +56,60 @@ char* thread2stack_top = threadstack+stacksize;
 
 void* thread_main(void* ctx)
 {
-  char const str[] = "hello thread!";
-  mythos::syscall_debug(str, sizeof(str)-1);
-  return 0;
+	char const str[] = "hello thread!";
+	char const ready[] = "ready";
+	char buffer[8];
+	mythos::syscall_debug(str, sizeof(str)-1);
+	int result = (int) pow (2.0,3.0);
+	buffer[0] = (char)(result + 48);
+	mythos::syscall_debug(buffer, sizeof(buffer)-1);
+	result = (int) sqrt(9.0);
+	buffer[0] = (char)(result + 48);
+	mythos::syscall_debug(buffer, sizeof(buffer)-1);
+	return 0;
 }
 
 int main()
 {
-  char const str[] = "hello world!";
-  char const obj[] = "hello object!";
-  char const end[] = "bye, cruel world!";
-  mythos::syscall_debug(str, sizeof(str)-1);
+	char const str[] = "hello world!";
+	char const obj[] = "hello object!";
+	char const end[] = "bye, cruel world!";
+	mythos::syscall_debug(str, sizeof(str)-1);
 
-  {
-    mythos::Example example(mythos::init::APP_CAP_START);
-    auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_FACTORY);
-    res1.wait();
-    ASSERT(res1.state() == mythos::Error::SUCCESS);
-    auto res2 = example.printMessage(res1.reuse(), obj, sizeof(obj)-1);
-    res2.wait();
-    ASSERT(res2.state() == mythos::Error::SUCCESS);
-    auto res3 = myCS.deleteCap(res2.reuse(), example);
-    res3.wait();
-    ASSERT(res3.state() == mythos::Error::SUCCESS);
-  }
+	{
+		mythos::Example example(mythos::init::APP_CAP_START);
+		auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_FACTORY);
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
-  mythos::ExecutionContext ec1(mythos::init::APP_CAP_START);
-  auto res1 = ec1.create(portal, kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
-                         myAS, myCS, mythos::init::SCHEDULERS_START,
-                         thread1stack_top, &thread_main, nullptr);
-  res1.wait();
-  ASSERT(res1.state() == mythos::Error::SUCCESS);
+		auto res2 = example.printMessage(res1.reuse(), obj, sizeof(obj)-1);
+		res2.wait();
+		ASSERT(res2.state() == mythos::Error::SUCCESS);
 
-  mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+1);
-  auto res2 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
-                         myAS, myCS, mythos::init::SCHEDULERS_START+1,
-                         thread2stack_top, &thread_main, nullptr);
-  res2.wait();
-  ASSERT(res2.state() == mythos::Error::SUCCESS);
+		auto res3 = example.ping(res2.reuse());
+		res3.wait();
+		ASSERT(res3.state() == mythos::Error::SUCCESS);
 
-  mythos::syscall_debug(end, sizeof(end)-1);
+		auto res4 = myCS.deleteCap(res3.reuse(), example);
+		res4.wait();
+		ASSERT(res4.state() == mythos::Error::SUCCESS);
+	}
 
-  return 0;
+	mythos::ExecutionContext ec1(mythos::init::APP_CAP_START);
+	auto res1 = ec1.create(portal, kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
+			myAS, myCS, mythos::init::SCHEDULERS_START,
+			thread1stack_top, &thread_main, nullptr);
+	res1.wait();
+	ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+	mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+1);
+	auto res2 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
+			myAS, myCS, mythos::init::SCHEDULERS_START+1,
+			thread2stack_top, &thread_main, nullptr);
+	res2.wait();
+	ASSERT(res2.state() == mythos::Error::SUCCESS);
+
+	mythos::syscall_debug(end, sizeof(end)-1);
+
+	return 0;
 }
