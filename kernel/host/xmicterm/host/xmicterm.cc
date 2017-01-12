@@ -32,6 +32,7 @@
 #include <string>
 #include <cstring>
 #include <unistd.h>
+#include <unordered_map>
 
 using namespace mythos;
 
@@ -89,15 +90,37 @@ int main(int argc, char** argv)
   auto debugOutChannel = micmem.access(PhysPtr<HostInfoTable::DebugChannel>(info->debugOut));
   PCIeRingConsumer<HostInfoTable::DebugChannel> debugOut(debugOutChannel.addr());
 
+  std::unordered_map<uint16_t, std::string> messages;
+
   while (true) {
     //typedef HostInfoTable::DebugChannel::handle_t handle_t;
     /// @todo merge multi-package messages per vchannel before printing
     /// @todo log messages into a file
     auto handle = debugOut.acquireRecv();
     auto& msg = debugOut.get<DebugMsg>(handle);
-    std::cout << msg.vchannel << "(" << msg.msgbytes << "): ";
-    std::cout.write(msg.data, msg.msgbytes>DebugMsg::PAYLOAD?DebugMsg::PAYLOAD:msg.msgbytes);
-    std::cout << std::endl;
+    
+    auto found = messages.find(msg.vchannel);
+    if (found != messages.end()) {
+        if (msg.msgbytes < DebugMsg::PAYLOAD) {
+            std::string out(found->second + std::string(msg.data, msg.msgbytes));
+            std::cout << found->first << "(" << out.length() << "): ";
+            std::cout.write(out.c_str(), out.length());
+            std::cout << std::endl;
+            messages.erase(msg.vchannel);
+        } else {
+            std::string append(found->second + std::string(msg.data, msg.msgbytes));
+            messages.insert({msg.vchannel, append});
+        }
+    } else {
+        if (msg.msgbytes < DebugMsg::PAYLOAD) {
+            std::cout << msg.vchannel << "(" << msg.msgbytes << "): ";
+            std::cout.write(msg.data, msg.msgbytes);
+            std::cout << std::endl;
+        } else {
+            messages.insert({msg.vchannel, std::string(msg.data)});
+        }
+
+    }
     debugOut.finishRecv(handle);
   }
   
