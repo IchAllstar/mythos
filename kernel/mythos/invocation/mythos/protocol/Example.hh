@@ -65,7 +65,7 @@ struct Example {
 	struct Ping : public InvocationBase {
 		typedef InvocationBase response_type;
 		constexpr static uint16_t label = (proto<<8) + PING;
-		constexpr static uint16_t x = 0;
+		Ping(): InvocationBase(label,getLength(this)){};
 	};
 
 	template<class IMPL, class... ARGS>

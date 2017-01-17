@@ -36,8 +36,6 @@
 #include <cstdint>
 #include "util/optional.hh"
 
-#include <math.h>
-
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
@@ -58,14 +56,7 @@ void* thread_main(void* ctx)
 {
 	char const str[] = "hello thread!";
 	char const ready[] = "ready";
-	char buffer[8];
 	mythos::syscall_debug(str, sizeof(str)-1);
-	int result = (int) pow (2.0,3.0);
-	buffer[0] = (char)(result + 48);
-	mythos::syscall_debug(buffer, sizeof(buffer)-1);
-	result = (int) sqrt(9.0);
-	buffer[0] = (char)(result + 48);
-	mythos::syscall_debug(buffer, sizeof(buffer)-1);
 	return 0;
 }
 
