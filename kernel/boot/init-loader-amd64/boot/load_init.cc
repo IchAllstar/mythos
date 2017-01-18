@@ -41,6 +41,7 @@
 #include "objects/SchedulingContext.hh"
 #include "objects/Portal.hh"
 #include "objects/Example.hh"
+#include "objects/ExampleHome.hh"
 #include "boot/mlog.hh"
 #include "boot/memory-root.hh"
 
@@ -108,6 +109,7 @@ namespace factory {
   CapMapFactory capmap;
   PageMapFactory pagemap;
   UntypedMemoryFactory untypedMemory;
+  ExampleHomeFactory exampleHome;
 } // namespace example
 
 template<class Object, class Factory, class... ARGS>
@@ -167,6 +169,7 @@ optional<void> InitLoader::initCSpace()
   if (res) res = csSet(CAPMAP_FACTORY, factory::capmap);
   if (res) res = csSet(PAGEMAP_FACTORY, factory::pagemap);
   if (res) res = csSet(UNTYPED_MEMORY_FACTORY, factory::untypedMemory);
+  if (res) res = csSet(EXAMPLE_HOME_FACTORY, factory::exampleHome);
   if (!res) return res;
 
   mlog::boot.info("... create memory regions in caps", STATIC_MEM_START, "till", STATIC_MEM_START+STATIC_MEMORY_REGIONS-1);

@@ -60,6 +60,7 @@ protected:
   friend struct protocol::Example;
   Error printMessage(Tasklet* t, Cap self, IInvocation* msg);
   Error ping(Tasklet* t, Cap self, IInvocation* msg);
+  Error moveHome(Tasklet* t, Cap self, IInvocation* msg);
 
 protected:
   async::NestedMonitorDelegating monitor;

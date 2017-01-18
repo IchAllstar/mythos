@@ -38,6 +38,7 @@ struct Example {
 	enum Methods : uint8_t {
 		PRINT_MESSAGE,
 		PING,
+		MOVE_HOME,
 	};
 
 	struct PrintMessage : public InvocationBase {
@@ -68,11 +69,22 @@ struct Example {
 		Ping(): InvocationBase(label,getLength(this)){};
 	};
 
+	struct MoveHome : public InvocationBase {
+		typedef InvocationBase response_type;
+		constexpr static uint16_t label = (proto<<8) + MOVE_HOME;
+		MoveHome(size_t location): InvocationBase(label,getLength(this)){
+			this->location = uint16_t(location);
+		};
+
+		uint16_t location;
+	};
+
 	template<class IMPL, class... ARGS>
 	static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
 		switch(Methods(m)) {
 		case PRINT_MESSAGE: return obj->printMessage(args...);
 		case PING: return obj->ping(args...);
+		case MOVE_HOME: return obj->moveHome(args...);
 		default: return Error::NOT_IMPLEMENTED;
 		}
 	}

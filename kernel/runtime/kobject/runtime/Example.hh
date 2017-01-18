@@ -47,6 +47,10 @@ namespace mythos {
     PortalFutureRef<void> ping(PortalRef pr) {
       return pr.tryInvoke<protocol::Example::Ping>(_cap);
     }
+
+    PortalFutureRef<void> moveHome(PortalRef pr, size_t new_location) {
+          return pr.tryInvoke<protocol::Example::MoveHome>(_cap, new_location);
+        }
   };
 
 } // namespace mythos

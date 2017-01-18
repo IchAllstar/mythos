@@ -103,7 +103,11 @@ namespace mythos {
   {
       mlogex.info("invoke ping", DVAR(this), DVAR(self), DVAR(msg));
       return Error::SUCCESS;
-    }
+  }
+
+  Error ExampleObj::moveHome(Tasklet*, Cap, IInvocation*){
+	  return Error::NOT_IMPLEMENTED;
+  }
 
   optional<ExampleObj*>
   ExampleFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
