@@ -179,6 +179,11 @@ _start_ap64:
         mov %ecx, %gs
         cld // for gcc code
 
+        //Make the time stamp counter accessible by the application for benchmarks
+		mov %cr4, %rdx
+        and $0xFFFFFFFFFFFFFFFB, %rdx
+        mov %rdx, %cr4
+
         // get initial LAPIC ID from bits(cpuid(1).ebx,31,24)
         mov $1, %rax
         mov $0, %rcx

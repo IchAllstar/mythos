@@ -235,9 +235,7 @@ namespace mythos {
       PAE = 1<<5, // Physical Address Extension: translate to extended 36-bit or 48-bit physical addresses
       PSE = 1<<4, // Page Size Extension: page size is increased to 4 MiB (or 2 MiB with PAE set)
       DE = 1<<3,  // Debugging Extensions: enables debug register based breaks on I/O space access
-	  //Stefan Bonfert
-      TSD = 0<<2, // Time Stamp Enable: RDTSC can be used at any privilege level
-//      TSD = 1<<2, // Time Stamp Disable: RDTSC instruction can only be executed when in ring 0, otherwise RDTSC can be used at any privilege level
+      TSD = 1<<2, // Time Stamp Disable: RDTSC instruction can only be executed when in ring 0, otherwise RDTSC can be used at any privilege level
       PVI = 1<<1, // Protected-mode Virtual Interrupts: enables support for the virtual interrupt flag (VIF) in protected mode
       VME = 1<<0  // Virtual 8086 Mode Extensions: enables support for the virtual interrupt flag (VIF) in virtual-8086 mode
     };
