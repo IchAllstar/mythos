@@ -129,7 +129,7 @@ _setup_ap:
         wrmsr
         mov %cr4, %edx
         or $0x20, %edx // enable PAE mode (bit5), XXX enable SMAP,SMEP,PCE later?
-        and $0xFFFFFFFFFFFFFFFB, %rdx   // TSD=0: time stamp counter for user mode
+        and $0xFFFFFFFFFFFFFFFB, %edx   // TSD=0: time stamp counter for user mode
         mov %edx, %cr4
         mov $(BOOT_PML4-VIRT_ADDR), %edx
         mov %edx, %cr3 // load phys pointer of the PML4 table
