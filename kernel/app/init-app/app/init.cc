@@ -70,7 +70,7 @@ void itoa(uint64_t value, char* buffer){
 void benchmarks(){
 
 	//Number of iterations per benchmark
-	size_t num_runs = 100;
+	size_t num_runs = 10000;
 
 	//invocation latency to local kernel object
 	{
@@ -82,24 +82,27 @@ void benchmarks(){
 		uint64_t start, end;
 		char str[] = "01234567890123456"; //Dummy String
 
-		for (size_t i = 0; i < num_runs; i++){
-			asm volatile("rdtsc":"=A"(start));
-			res1 = example.ping(res1.reuse());
+		for(size_t place = 0; place < 240; place++){
+
+			res1 = example.moveHome(res1.reuse(), place);
 			res1.wait();
 			ASSERT(res1.state() == mythos::Error::SUCCESS);
-			asm volatile("rdtsc":"=A"(end));
-			itoa(end - start, str);
-			mythos::syscall_debug(str, sizeof(str));
+
+			for (size_t i = 0; i < num_runs; i++){
+				asm volatile("rdtsc":"=A"(start));
+				res1 = example.ping(res1.reuse());
+				res1.wait();
+				ASSERT(res1.state() == mythos::Error::SUCCESS);
+				asm volatile("rdtsc":"=A"(end));
+        if (end < start){
+          i--;
+          continue;
+        }
+				itoa(end - start, str);
+				mythos::syscall_debug(str, sizeof(str));
+			}
 		}
 
-		res1 = example.moveHome(res1.reuse(), 5);
-		asm volatile("rdtsc":"=A"(start));
-		res1 = example.ping(res1.reuse());
-		res1.wait();
-		ASSERT(res1.state() == mythos::Error::SUCCESS);
-		asm volatile("rdtsc":"=A"(end));
-		itoa(end - start, str);
-		mythos::syscall_debug(str, sizeof(str));
 
 	}
 
