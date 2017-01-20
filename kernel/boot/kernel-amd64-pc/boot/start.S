@@ -97,6 +97,7 @@ _start_bsp:
         wrmsr                           // write EFER
         mov     %cr4, %edx
         or      $0x20, %edx             // enable PAE mode (bit5), XXX enable SMAP,SMEP,PCE later?
+        and $0xFFFFFFFB, %edx           // TSD=0: time stamp counter for user mode
         mov     %edx, %cr4
         mov     $(BOOT_PML4-VIRT_ADDR), %edx             // pointer to the Page Directory
         mov     %edx, %cr3
@@ -138,6 +139,7 @@ _setup_ap:
         wrmsr
         mov %cr4, %edx
         or $0x20, %edx // enable PAE mode (bit5), XXX enable SMAP,SMEP,PCE later?
+        and $0xFFFFFFFB, %edx   // TSD=0: time stamp counter for user mode
         mov %edx, %cr4
         mov $BOOT_PML4-VIRT_ADDR, %edx
         mov %edx, %cr3 // load phys pointer of the PML4 table
@@ -178,11 +180,6 @@ _start_ap64:
         mov %ecx, %fs
         mov %ecx, %gs
         cld // for gcc code
-
-        //Make the time stamp counter accessible by the application for benchmarks
-		mov %cr4, %rdx
-        and $0xFFFFFFFFFFFFFFFB, %rdx
-        mov %rdx, %cr4
 
         // get initial LAPIC ID from bits(cpuid(1).ebx,31,24)
         mov $1, %rax

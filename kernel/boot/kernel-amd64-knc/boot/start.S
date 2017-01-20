@@ -84,12 +84,14 @@ _start_bsp:
         wrmsr                           // write EFER
         mov     %cr4, %rdx
         or      $0x20, %rdx             // enable PAE mode (bit5), XXX enable SMAP,SMEP,PCE later?
+        and $0xFFFFFFFFFFFFFFFB, %rdx   // TSD=0: time stamp counter for user mode
         mov     %rdx, %cr4
         mov     $(BOOT_PML4-VIRT_ADDR), %rdx             // pointer to the Page Directory
         mov     %rdx, %cr3
         mov     %cr0, %rdx
         or     $0x80010001, %edx        // enable PE (bit0), WP (bit16), PG (bit31)
         mov     %rdx, %cr0              // switch to protected mode, with paging enabled and write protect
+
         // load our own segment descriptor table
         lgdt    _boot_gdt
         // switch code segment to 0x10 instead of whatever was left from fboot1
@@ -127,6 +129,7 @@ _setup_ap:
         wrmsr
         mov %cr4, %edx
         or $0x20, %edx // enable PAE mode (bit5), XXX enable SMAP,SMEP,PCE later?
+        and $0xFFFFFFFFFFFFFFFB, %rdx   // TSD=0: time stamp counter for user mode
         mov %edx, %cr4
         mov $(BOOT_PML4-VIRT_ADDR), %edx
         mov %edx, %cr3 // load phys pointer of the PML4 table
