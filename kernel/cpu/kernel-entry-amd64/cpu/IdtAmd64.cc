@@ -44,6 +44,7 @@ namespace mythos {
     // mark interrupts that shall be executed on the nmi stack
     table[2].setIST(1); // NMI Non-Maskable Interrupt
     table[8].setIST(1); // DF Double Fault
+    table[0xe].setIST(1);
   }
 
 } // namespace mythos

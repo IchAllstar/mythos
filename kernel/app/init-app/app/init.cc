@@ -52,13 +52,6 @@ char threadstack[stacksize];
 char* thread1stack_top = threadstack+stacksize/2;
 char* thread2stack_top = threadstack+stacksize;
 
-void* thread_main(void* ctx)
-{
-  char const str[] = "hello thread!";
-  mythos::syscall_debug(str, sizeof(str)-1);
-  return 0;
-}
-
 void itoa(uint64_t value, char* buffer){
 	for (size_t i = 0; i < 16; i++){
 		memset(buffer+15-i, value % 10 + 48, 1); //ASCII code of that digit
@@ -67,15 +60,150 @@ void itoa(uint64_t value, char* buffer){
 	memset(buffer+16, 0, 1);
 }
 
+void* thread_main(void* ctx)
+{
+	char dbg[] = "01234567890123456"; //Dummy String
+
+	size_t num_runs = 10000;
+//	mythos::Frame msg_ptr2(mythos::init::APP_CAP_START);
+////	mythos::Portal portal2(mythos::init::APP_CAP_START+1, &msg_ptr2);
+//
+//	auto res2 = msg_ptr2.info(portal2);
+//	res2.wait();
+//	itoa(uint64_t(res2.state()), dbg);
+//	mythos::syscall_debug(dbg, sizeof(dbg));
+//	ASSERT(res2.state() == mythos::Error::SUCCESS);
+//	if (msg_ptr->read<mythos::protocol::Frame::Info>().size)
+//		itoa(msg_ptr->read<mythos::protocol::Frame::Info>().addr, dbg);
+//	else
+//		itoa(2, dbg);
+//	mythos::syscall_debug(dbg, sizeof(dbg));
+
+
+	size_t ownid = (size_t)ctx;
+//	itoa(ownid, dbg);
+//	mythos::syscall_debug(dbg, sizeof(dbg));
+
+	mythos::InvocationBuf* ib2 = (mythos::InvocationBuf*)(((11+ownid)<<21));//(mythos::InvocationBuf*)(msg_ptr->read<mythos::protocol::Frame::Info>().addr);
+	mythos::Portal portal2(mythos::init::APP_CAP_START+2+ownid*3, ib2);
+
+	mythos::Example example(mythos::init::APP_CAP_START);
+
+	auto res1 = example.ping(portal2);
+	res1.wait();
+	ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+	//Invocation latency to mobile kernel obejct
+	{
+		uint64_t start, end;
+		char str[] = "01234567890123456"; //Dummy String
+
+
+		for (size_t i = 0; i < num_runs; i++){
+			asm volatile("rdtsc":"=A"(start));
+			res1 = example.ping(res1.reuse());
+			res1.wait();
+			ASSERT(res1.state() == mythos::Error::SUCCESS);
+			asm volatile("rdtsc":"=A"(end));
+			if (end < start){
+				i--;
+				continue;
+			}
+			itoa(end - start, str);
+			mythos::syscall_debug(str, sizeof(str));
+		}
+
+	}
+
+
+  char const str[] = "hello thread!";
+  mythos::syscall_debug(str, sizeof(str)-1);
+  return 0;
+}
+
 void benchmarks(){
+	char dbg[] = "01234567890123456"; //Dummy String
 
 	//Number of iterations per benchmark
 	size_t num_runs = 10000;
+	size_t parallel_ecs = 10;
+
+	//Create a mobile kernel object
+	mythos::Example example(mythos::init::APP_CAP_START);
+	auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_FACTORY);
+	res1.wait();
+	ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+	res1 = example.ping(res1.reuse());
+	res1.wait();
+	ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+
+	//Create (parallel_ecs - 1) additional ECs
+	for (size_t worker = 0; worker < parallel_ecs - 1; worker++){
+		//Create a second invocation buffer
+		mythos::Frame msg_ptr2(mythos::init::APP_CAP_START+1+worker*3);
+		res1 = msg_ptr2.create(res1.reuse(), kmem, mythos::init::MEMORY_REGION_FACTORY, 1<<21, 1<<21);
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+		mythos::InvocationBuf* ib2 = (mythos::InvocationBuf*)(((11+worker)<<21));
+
+		auto res3 = myAS.mmap(res1.reuse(), msg_ptr2, (uintptr_t)ib2, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
+		res3.wait();
+		ASSERT(res3.state() == mythos::Error::SUCCESS);
+
+		//Create a second portal
+		mythos::Portal portal2(mythos::init::APP_CAP_START+2+worker*3, ib2);
+		res1 = portal2.create(res3.reuse(), kmem, mythos::init::PORTAL_FACTORY);
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+		//Create a second EC on HWT 1
+		mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+3+worker*3);
+		res1 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
+				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
+				thread2stack_top+stacksize*worker, &thread_main, (void*)worker);
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+		//Bind the new portal to the new EC
+		res1 = portal2.bind(res1.reuse(), mythos::init::APP_CAP_START+1+worker*3, 0, mythos::init::APP_CAP_START+3+worker*3, 0);
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+	}
+
+
+	//Invocation latency to mobile kernel obejct
+	{
+		uint64_t start, end;
+		char str[] = "01234567890123456"; //Dummy String
+
+
+		for (size_t i = 0; i < num_runs; i++){
+			asm volatile("rdtsc":"=A"(start));
+			res1 = example.ping(res1.reuse());
+			res1.wait();
+			ASSERT(res1.state() == mythos::Error::SUCCESS);
+			asm volatile("rdtsc":"=A"(end));
+			if (end < start){
+				i--;
+				continue;
+			}
+			itoa(end - start, str);
+			mythos::syscall_debug(str, sizeof(str));
+		}
+
+	}
+	while(true);
+
+
+
 
 	//invocation latency to local kernel object
 	{
-		mythos::Example example(mythos::init::APP_CAP_START);
-		auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_HOME_FACTORY);
+		mythos::Example example(mythos::init::APP_CAP_START+3);
+		res1 = example.create(res1.reuse(), kmem, mythos::init::EXAMPLE_HOME_FACTORY);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
@@ -94,10 +222,10 @@ void benchmarks(){
 				res1.wait();
 				ASSERT(res1.state() == mythos::Error::SUCCESS);
 				asm volatile("rdtsc":"=A"(end));
-        if (end < start){
-          i--;
-          continue;
-        }
+				if (end < start){
+					i--;
+					continue;
+				}
 				itoa(end - start, str);
 				mythos::syscall_debug(str, sizeof(str));
 			}

@@ -209,7 +209,7 @@ optional<void> InitLoader::mapDirectory(size_t target, size_t entry, size_t inde
 {
   TypedCap<IPageMap> pm(_cspace->get(target));
   auto tableEntry = _cspace->get(entry);
-  auto req = protocol::PageMap::MapFlags().writable(true);
+  auto req = protocol::PageMap::MapFlags().writable(true).configurable(true);
   if (!pm) return pm;
   return pm->mapTable(tableEntry, req, index);
 }

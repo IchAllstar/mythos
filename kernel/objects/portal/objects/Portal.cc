@@ -189,13 +189,13 @@ namespace mythos {
 
     if (data.ib() == delete_cap) { unsetInvocationBuf(); }
     else if (data.ib() != null_cap) {
-      auto err = setInvocationBuf(msg->lookupEntry(data.ib(), false), data.offset);
+      auto err = setInvocationBuf(msg->lookupEntry(data.ib()), data.offset);
       if (!err) return err.state();
     }
 
     if (data.owner() == delete_cap) { unsetOwner(); }
     else if (data.owner() != null_cap) {
-      auto err = setOwner(msg->lookupEntry(data.owner(), false), data.uctx);
+      auto err = setOwner(msg->lookupEntry(data.owner()), data.uctx);
       if (!err) return err.state();
     }
     return Error::SUCCESS;
