@@ -36,14 +36,14 @@ namespace mythos {
   public:
     Portal(CapPtr cap, void* ib) : PortalBase(cap, ib) {}
 
-    // PortalFutureRef<void> create(PortalRef pr, UntypedMemory kmem, CapPtr factory) {
-    //   return pr.tryInvoke<protocol::Portal::Create>(kmem.cap(), _cap, factory);
-    // }
+    PortalFutureRef<void> create(PortalRef pr, UntypedMemory kmem, CapPtr factory) {
+      return pr.tryInvoke<protocol::Portal::Create>(kmem.cap(), _cap, factory);
+    }
 
-    // PortalFutureRef<void>
-    // bind(PortalRef pr, CapPtr ib, size_t offset, CapPtr owner, uintptr_t uctx) {
-    //   return pr.tryInvoke<protocol::Portal::Bind>(_cap, ...);
-    // }
+    PortalFutureRef<void>
+    bind(PortalRef pr, CapPtr ib, size_t offset, CapPtr owner, uintptr_t uctx) {
+      return pr.tryInvoke<protocol::Portal::Bind>(_cap, ib, offset, owner, uctx);
+    }
 
   };
 

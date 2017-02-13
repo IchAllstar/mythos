@@ -37,7 +37,7 @@
 
 namespace mythos {
 
-  static mlog::Logger<mlog::FilterAny> mlogex("ExampleObj");
+  static mlog::Logger<mlog::FilterError> mlogex("ExampleObj");
 
   optional<void const*> ExampleObj::vcast(TypeId id) const
   {

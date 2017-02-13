@@ -25,6 +25,7 @@
  */
 #pragma once
 
+#include "mythos/protocol/UntypedMemory.hh"
 #include "mythos/protocol/common.hh"
 
 namespace mythos {
@@ -36,6 +37,10 @@ namespace mythos {
       enum Methods : uint8_t {
         BIND
       };
+
+      struct Create : public UntypedMemory::CreateBase {
+      		Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
+      	};
 
       struct Bind : public InvocationBase {
         constexpr static uint16_t label = (proto<<8) + BIND;
