@@ -32,14 +32,9 @@ namespace mlog {
 
 namespace mythos {
 
-  Portal::Portal(IAsyncFree* memory)
-    : ib(nullptr), ibNew(nullptr), uctx(0), portalState(OPEN), memory(memory)
-  {
-  }
-
   optional<void> Portal::setInvocationBuf(optional<CapEntry*> fe, uint32_t offset)
   {
-    mlog::portal.info("Portal::setInvocationBuf", DVAR(fe), DVAR(offset));
+    MLOG_INFO(mlog::portal, "Portal::setInvocationBuf", DVAR(fe), DVAR(offset));
     TypedCap<IFrame> frame(fe);
     if (!frame) return frame;
     auto info = frame.getFrameInfo();
@@ -51,19 +46,19 @@ namespace mythos {
 
   void Portal::bind(optional<IFrame*> obj)
   {
-    mlog::portal.info("Portal::setInvocationBuf bind");
+    MLOG_INFO(mlog::portal, "Portal::setInvocationBuf bind");
     if (obj) ib = ibNew;
   }
 
   void Portal::unbind(optional<IFrame*>)
   {
-    mlog::portal.info("Portal::setInvocationBuf unbind");
+    MLOG_INFO(mlog::portal, "Portal::setInvocationBuf unbind");
     ib = nullptr; // but do not overwrite ibNew before the bind() method!
   }
 
-  optional<void> Portal::setOwner(optional<CapEntry*> ece, uintptr_t uctx)
+  optional<void> Portal::setOwner(optional<CapEntry*> ece)
   {
-    mlog::portal.info("Portal::setOwner", DVAR(ece), DVARhex(uctx));
+    MLOG_INFO(mlog::portal, "Portal::setOwner", DVAR(ece));
     TypedCap<IPortalUser> ec(ece);
     if (!ec) return ec;
     return _owner.set(this, *ece, ec.cap());
@@ -71,7 +66,7 @@ namespace mythos {
 
   void Portal::unbind(optional<IPortalUser*> obj)
   {
-    mlog::portal.info("Portal::setOwner unbind");
+    MLOG_INFO(mlog::portal, "Portal::setOwner unbind");
     if (obj) obj->denotify(&notificationHandle);
   }
 
@@ -89,9 +84,9 @@ namespace mythos {
     return ref->entry;
   }
 
-  optional<void> Portal::sendInvocation(Cap self, CapPtr dest, uint64_t user)
+  optional<void> Portal::sendInvocation(Cap self, CapPtr dest, uint64_t uctx)
   {
-    mlog::portal.info("Portal::sendInvocation", DVAR(self), DVAR(dest));
+    MLOG_INFO(mlog::portal, "Portal::sendInvocation", DVAR(self), DVAR(dest));
     TypedCap<IPortalUser> owner(_owner.cap());
     if (!owner) return owner.state();
     auto dref = owner->lookupRef(dest, 32, false);
@@ -104,14 +99,14 @@ namespace mythos {
     if (!portalState.compare_exchange_strong(expected, INVOKING)) return Error::PORTAL_NOT_OPEN;
 
     currentDest.acquire();
-    this->uctx = user;
+    this->uctx = uctx;
     destCap.getPtr()->invoke(&mytask, destCap, this);
     return Error::SUCCESS;
   }
 
   void Portal::replyResponse(optional<void> error)
   {
-    mlog::portal.info("Portal::replyResponse", DVAR(error.state()));
+    MLOG_INFO(mlog::portal, "Portal::replyResponse", DVAR(error.state()));
     ASSERT(portalState == INVOKING);
     currentDest.release();
     portalState = REPLYING;
@@ -124,7 +119,7 @@ namespace mythos {
 
   void Portal::deletionResponse(CapEntry* entry, bool delRoot)
   {
-    mlog::portal.info("Portal::deletionResponse", DVAR(delRoot));
+    MLOG_INFO(mlog::portal, "Portal::deletionResponse", DVAR(delRoot));
     ASSERT(portalState == INVOKING);
     currentDest.release();
     if (delRoot) {
@@ -136,7 +131,7 @@ namespace mythos {
 
   void Portal::response(Tasklet*, optional<void> res)
   {
-    mlog::portal.info("Portal::deletion response:", res.state());
+    MLOG_INFO(mlog::portal, "Portal::deletion response:", res.state());
     ASSERT(portalState == INVOKING);
     portalState = REPLYING;
     auto owner = _owner.get();
@@ -148,7 +143,7 @@ namespace mythos {
 
   optional<void> Portal::deleteCap(Cap self, IDeleter& del)
   {
-    mlog::portal.detail("delete cap", self);
+    MLOG_DETAIL(mlog::portal, "delete cap", self);
     if (self.isOriginal()) {
       if (!revokeOp.acquire()) {
         // we are currently deleting, so abort in order to prevent a deadlock
@@ -165,7 +160,7 @@ namespace mythos {
 
   void Portal::invoke(Tasklet* t, Cap self, IInvocation* msg)
   {
-    mlog::portal.info("Portal::invoke", DVAR(t), DVAR(self), DVAR(msg));
+    MLOG_INFO(mlog::portal, "Portal::invoke", DVAR(t), DVAR(self), DVAR(msg));
     monitor.request(t, [=](Tasklet* t){
         Error err = Error::NOT_IMPLEMENTED;
         switch (msg->getProtocol()) {
@@ -195,12 +190,12 @@ namespace mythos {
 
     if (data.owner() == delete_cap) { unsetOwner(); }
     else if (data.owner() != null_cap) {
-      auto err = setOwner(msg->lookupEntry(data.owner()), data.uctx);
+      auto err = setOwner(msg->lookupEntry(data.owner()));
       if (!err) return err.state();
     }
     return Error::SUCCESS;
   }
-  
+
   optional<Portal*>
   PortalFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap, IAllocator* mem)
   {
@@ -209,7 +204,7 @@ namespace mythos {
     Cap cap(*obj); /// @todo should have Portal specific rights
     auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
     if (!res) {
-      mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
+      mem->free(*obj); // mem->release(obj) goes through IKernelObject deletion mechanism
       return res.state();
     }
     return *obj;

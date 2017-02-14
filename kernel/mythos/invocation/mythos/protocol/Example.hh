@@ -30,7 +30,7 @@
 #include <cstring>
 
 namespace mythos {
-namespace protocol {
+  namespace protocol {
 
 struct Example {
 	constexpr static uint8_t proto = EXAMPLE;
@@ -89,7 +89,7 @@ struct Example {
 		}
 	}
 
-};
+    };
 
-} // namespace protocol
+  } // namespace protocol
 } // namespace mythos
