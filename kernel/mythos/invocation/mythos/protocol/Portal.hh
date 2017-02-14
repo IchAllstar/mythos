@@ -59,10 +59,6 @@ namespace mythos {
         uint32_t offset;
       };
 
-      struct Create : public UntypedMemory::CreateBase {
-        Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
-      };
-
       template<class IMPL, class... ARGS>
       static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
         switch(Methods(m)) {

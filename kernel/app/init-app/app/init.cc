@@ -168,7 +168,7 @@ void benchmarks(){
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
 		//Bind the new portal to the new EC
-		res1 = portal2.bind(res1.reuse(), mythos::init::APP_CAP_START+1+worker*3, 0, mythos::init::APP_CAP_START+3+worker*3, 0);
+		res1 = portal2.bind(res1.reuse(), msg_ptr2, 0, mythos::init::APP_CAP_START+3+worker*3);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 	}
