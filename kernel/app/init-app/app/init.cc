@@ -39,7 +39,7 @@
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = 4*4096;
+constexpr uint64_t stacksize = 240*4096;
 char initstack[stacksize];
 char* initstack_top = initstack+stacksize;
 
@@ -163,7 +163,7 @@ void benchmarks(){
 		mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+3+worker*3);
 		res1 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
-				thread2stack_top+stacksize*worker, &thread_main, (void*)worker);
+				thread2stack_top+4096*worker, &thread_main, (void*)worker);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
