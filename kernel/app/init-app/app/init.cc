@@ -159,7 +159,7 @@ void benchmarks(){
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
-		//Create a second EC on HWT 1
+		//Create a second EC on HWT x
 		mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+3+worker*3);
 		res1 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
@@ -170,6 +170,11 @@ void benchmarks(){
 		//Bind the new portal to the new EC
 		res1 = portal2.bind(res1.reuse(), msg_ptr2, 0, mythos::init::APP_CAP_START+3+worker*3);
 		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+		//Start the new EC
+		res1 = ec2.run(res1.reuse());
+		mythos::syscall_debug(dbg, sizeof(dbg));
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 	}
 

@@ -117,7 +117,7 @@ namespace mythos {
   {
     MLOG_INFO(mlog::ec, "EC setEntryPoint", DVARhex(rip));
     threadState.rip = rip;
-    clearFlagResume(IS_EXITED);
+    //clearFlagResume(IS_EXITED);
   }
 
   optional<CapEntryRef> ExecutionContext::lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writable)
@@ -286,6 +286,21 @@ namespace mythos {
       clearFlagResume(IS_TRAPPED);
     }
     return res.state();
+  }
+
+  void ExecutionContext::run(){
+	  clearFlagResume(IS_EXITED);
+  }
+
+  Error ExecutionContext::invokeRun(Tasklet*, Cap, IInvocation*)
+  {
+	  if (!this->_as.get()) return Error::UNSET;
+	  if (!this->_cs.get()) return Error::UNSET;
+	  if (!this->_sched.get()) return Error::UNSET;
+	  if (!this->threadState.rip) return Error::UNSET;
+
+	  this->run();
+	  return Error::SUCCESS;
   }
 
   void ExecutionContext::notify(INotifiable::handle_t* event)

@@ -85,4 +85,9 @@ namespace mythos {
     return pr.tryInvoke<protocol::ExecutionContext::Suspend>(_cap);
   }
 
+  PortalFutureRef<void> ExecutionContext::run(PortalRef pr)
+  {
+	return pr.tryInvoke<protocol::ExecutionContext::Run>(_cap);
+  }
+
 } // namespace mythos

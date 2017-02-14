@@ -105,6 +105,7 @@ namespace mythos {
     optional<void> deleteCap(Cap self, IDeleter& del) override;
     void deleteObject(Tasklet* t, IResult<void>* r) override;
     void invoke(Tasklet* t, Cap self, IInvocation* msg) override;
+    void run();
 
   protected:
     friend struct protocol::ExecutionContext;
@@ -120,6 +121,7 @@ namespace mythos {
     void suspendThread(Tasklet* t, optional<void>);
     Error getDebugInfo(Cap self, IInvocation* msg);
     Error invokeSetFSGS(Tasklet* t, Cap self, IInvocation* msg);
+    Error invokeRun(Tasklet* t, Cap self, IInvocation* msg);
 
   protected:
     friend class CapRefBind;

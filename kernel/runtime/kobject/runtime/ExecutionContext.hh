@@ -66,6 +66,7 @@ namespace mythos {
     PortalFutureRef<void> setFSGS(PortalRef pr, uintptr_t fs, uintptr_t gs);
     PortalFutureRef<void> resume(PortalRef pr);
     PortalFutureRef<void> suspend(PortalRef pr);
+    PortalFutureRef<void> run(PortalRef pr);
 
   protected:
     static void start(StartFun main, void* userctx);

@@ -40,7 +40,8 @@ namespace mythos {
         WRITE_REGISTERS,
         SET_FSGS,
         RESUME,
-        SUSPEND
+        SUSPEND,
+		RUN
       };
 
       struct Configure : public InvocationBase {
@@ -99,6 +100,11 @@ namespace mythos {
         Suspend() : InvocationBase(label,getLength(this)) {}
       };
 
+      struct Run : public InvocationBase {
+    	constexpr static uint16_t label = (proto<<8) + RUN;
+    	Run() : InvocationBase(label,getLength(this)) {}
+      };
+
       struct Create : public UntypedMemory::CreateBase {
         typedef InvocationBase response_type;
         Create(CapPtr dst, CapPtr factory, CapPtr as, CapPtr cs, CapPtr sched, Amd64Registers regs, bool start)
@@ -131,6 +137,7 @@ namespace mythos {
         case SET_FSGS: return obj->invokeSetFSGS(args...);
         case RESUME: return obj->invokeResume(args...);
         case SUSPEND: return obj->invokeSuspend(args...);
+        case RUN: return obj->invokeRun(args...);
         default: return Error::NOT_IMPLEMENTED;
         }
       }

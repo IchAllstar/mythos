@@ -291,6 +291,7 @@ optional<void> InitLoader::createEC()
   if (!res) return res;
   ec->getThreadState().rdi = ipc_vaddr;
   ec->setEntryPoint(_img.header()->entry);
+  ec->run();
   return Error::SUCCESS;
 }
 
