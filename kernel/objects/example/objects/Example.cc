@@ -98,10 +98,12 @@ namespace mythos {
     return Error::SUCCESS;
   }
 
-
-  Error ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
+  Error __attribute__((optimize("O0")))  ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
   {
       mlogex.info("invoke ping", DVAR(this), DVAR(self), DVAR(msg));
+      auto data = msg->getMessage()->cast<protocol::Example::Ping>();
+      data->place = cpu::hwThreadID();
+      for (size_t i = 0; i < 100000; i++);
       return Error::SUCCESS;
   }
 

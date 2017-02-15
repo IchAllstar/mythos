@@ -64,7 +64,7 @@ void* thread_main(void* ctx)
 {
 	char dbg[] = "01234567890123456"; //Dummy String
 
-	size_t num_runs = 10000;
+	size_t num_runs = 1000;
 //	mythos::Frame msg_ptr2(mythos::init::APP_CAP_START);
 ////	mythos::Portal portal2(mythos::init::APP_CAP_START+1, &msg_ptr2);
 //
@@ -95,13 +95,14 @@ void* thread_main(void* ctx)
 
 	//Invocation latency to mobile kernel obejct
 	{
-		uint64_t start, end;
+		uint64_t start, mid, end;
 		char str[] = "01234567890123456"; //Dummy String
 
 
 		for (size_t i = 0; i < num_runs; i++){
 			asm volatile("rdtsc":"=A"(start));
 			res1 = example.ping(res1.reuse());
+			asm volatile("rdtsc":"=A"(mid));
 			res1.wait();
 			ASSERT(res1.state() == mythos::Error::SUCCESS);
 			asm volatile("rdtsc":"=A"(end));
@@ -109,8 +110,9 @@ void* thread_main(void* ctx)
 				i--;
 				continue;
 			}
-			itoa(end - start, str);
-			mythos::syscall_debug(str, sizeof(str));
+			MLOG_ERROR(mlog::app, "object location:", ib2->cast<mythos::protocol::Example::Ping>()->place);
+			MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
+			MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
 		}
 
 	}
@@ -125,9 +127,8 @@ void benchmarks(){
 	char dbg[] = "01234567890123456"; //Dummy String
 
 	//Number of iterations per benchmark
-	size_t num_runs = 10000;
-	size_t parallel_ecs = 10;
-
+	size_t num_runs = 1000;
+	size_t parallel_ecs = 200;
 	//Create a mobile kernel object
 	mythos::Example example(mythos::init::APP_CAP_START);
 	auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_FACTORY);
@@ -163,7 +164,7 @@ void benchmarks(){
 		mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+3+worker*3);
 		res1 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
-				thread2stack_top+4096*worker, &thread_main, (void*)worker);
+				initstack_top+stacksize-4096*worker, &thread_main, (void*)worker);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
@@ -174,10 +175,10 @@ void benchmarks(){
 
 		//Start the new EC
 		res1 = ec2.run(res1.reuse());
-		mythos::syscall_debug(dbg, sizeof(dbg));
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 	}
 
+	//while (true);
 
 	//Invocation latency to mobile kernel obejct
 	{
