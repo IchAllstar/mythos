@@ -36,6 +36,9 @@
 #include <cstdint>
 #include "util/optional.hh"
 
+#define NUM_RUNS 10
+#define PARALLEL_ECS 4
+
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
@@ -43,7 +46,7 @@ constexpr uint64_t stacksize = 240*4096;
 char initstack[stacksize];
 char* initstack_top = initstack+stacksize;
 
-mythos::Portal portal(mythos::init::PORTAL, msg_ptr);
+mythos::Portal myPortal(mythos::init::PORTAL, msg_ptr);
 mythos::CapMap myCS(mythos::init::CSPACE);
 mythos::PageMap myAS(mythos::init::PML4);
 mythos::UntypedMemory kmem(mythos::init::UM);
@@ -52,86 +55,49 @@ char threadstack[stacksize];
 char* thread1stack_top = threadstack+stacksize/2;
 char* thread2stack_top = threadstack+stacksize;
 
-void itoa(uint64_t value, char* buffer){
-	for (size_t i = 0; i < 16; i++){
-		memset(buffer+15-i, value % 10 + 48, 1); //ASCII code of that digit
-		value /= 10;
+void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::InvocationBuf* ib, mythos::CapPtr exampleCap){
+	mythos::Example example(exampleCap);
+
+	mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(std::move(portal));
+
+	//Invocation latency to mobile kernel obejct
+	uint64_t start, mid, end;
+	char str[] = "01234567890123456"; //Dummy String
+
+
+	for (size_t i = 0; i < NUM_RUNS; i++){
+		asm volatile("rdtsc":"=A"(start));
+		res1 = example.ping(res1.reuse());
+		asm volatile("rdtsc":"=A"(mid));
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+		asm volatile("rdtsc":"=A"(end));
+		if (end < start){
+			i--;
+			continue;
+		}
+		MLOG_ERROR(mlog::app, "object location:", ib->cast<mythos::protocol::Example::Ping>()->place);
+		MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
+		MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
 	}
-	memset(buffer+16, 0, 1);
 }
 
 void* thread_main(void* ctx)
 {
-	char dbg[] = "01234567890123456"; //Dummy String
-
-	size_t num_runs = 1000;
-//	mythos::Frame msg_ptr2(mythos::init::APP_CAP_START);
-////	mythos::Portal portal2(mythos::init::APP_CAP_START+1, &msg_ptr2);
-//
-//	auto res2 = msg_ptr2.info(portal2);
-//	res2.wait();
-//	itoa(uint64_t(res2.state()), dbg);
-//	mythos::syscall_debug(dbg, sizeof(dbg));
-//	ASSERT(res2.state() == mythos::Error::SUCCESS);
-//	if (msg_ptr->read<mythos::protocol::Frame::Info>().size)
-//		itoa(msg_ptr->read<mythos::protocol::Frame::Info>().addr, dbg);
-//	else
-//		itoa(2, dbg);
-//	mythos::syscall_debug(dbg, sizeof(dbg));
-
-
 	size_t ownid = (size_t)ctx;
-//	itoa(ownid, dbg);
-//	mythos::syscall_debug(dbg, sizeof(dbg));
 
-	mythos::InvocationBuf* ib2 = (mythos::InvocationBuf*)(((11+ownid)<<21));//(mythos::InvocationBuf*)(msg_ptr->read<mythos::protocol::Frame::Info>().addr);
-	mythos::Portal portal2(mythos::init::APP_CAP_START+2+ownid*3, ib2);
+	mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+ownid)<<21));
+	mythos::Portal portal(mythos::init::APP_CAP_START+2+ownid*3, ib);
 
-	mythos::Example example(mythos::init::APP_CAP_START);
+	thread_mobileKernelObjectLatency(portal, ib, mythos::init::APP_CAP_START);
 
-	auto res1 = example.ping(portal2);
-	res1.wait();
-	ASSERT(res1.state() == mythos::Error::SUCCESS);
-
-	//Invocation latency to mobile kernel obejct
-	{
-		uint64_t start, mid, end;
-		char str[] = "01234567890123456"; //Dummy String
-
-
-		for (size_t i = 0; i < num_runs; i++){
-			asm volatile("rdtsc":"=A"(start));
-			res1 = example.ping(res1.reuse());
-			asm volatile("rdtsc":"=A"(mid));
-			res1.wait();
-			ASSERT(res1.state() == mythos::Error::SUCCESS);
-			asm volatile("rdtsc":"=A"(end));
-			if (end < start){
-				i--;
-				continue;
-			}
-			MLOG_ERROR(mlog::app, "object location:", ib2->cast<mythos::protocol::Example::Ping>()->place);
-			MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
-			MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
-		}
-
-	}
-
-
-  char const str[] = "hello thread!";
-  mythos::syscall_debug(str, sizeof(str)-1);
-  return 0;
+	return 0;
 }
 
-void benchmarks(){
-	char dbg[] = "01234567890123456"; //Dummy String
-
-	//Number of iterations per benchmark
-	size_t num_runs = 1000;
-	size_t parallel_ecs = 200;
+void mobileKernelObjectLatency(){
 	//Create a mobile kernel object
 	mythos::Example example(mythos::init::APP_CAP_START);
-	auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_FACTORY);
+	auto res1 = example.create(myPortal, kmem, mythos::init::EXAMPLE_FACTORY);
 	res1.wait();
 	ASSERT(res1.state() == mythos::Error::SUCCESS);
 
@@ -141,52 +107,69 @@ void benchmarks(){
 
 
 	//Create (parallel_ecs - 1) additional ECs
-	for (size_t worker = 0; worker < parallel_ecs - 1; worker++){
-		//Create a second invocation buffer
-		mythos::Frame msg_ptr2(mythos::init::APP_CAP_START+1+worker*3);
-		res1 = msg_ptr2.create(res1.reuse(), kmem, mythos::init::MEMORY_REGION_FACTORY, 1<<21, 1<<21);
+	for (size_t worker = 0; worker < PARALLEL_ECS - 1; worker++){
+		//Create a new invocation buffer
+		mythos::Frame new_msg_ptr(mythos::init::APP_CAP_START+1+worker*3);
+		res1 = new_msg_ptr.create(res1.reuse(), kmem, mythos::init::MEMORY_REGION_FACTORY, 1<<21, 1<<21);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
-		mythos::InvocationBuf* ib2 = (mythos::InvocationBuf*)(((11+worker)<<21));
+		//Map the invocation buffer frame into user space memory
+		mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+worker)<<21));
 
-		auto res3 = myAS.mmap(res1.reuse(), msg_ptr2, (uintptr_t)ib2, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
+		auto res3 = myAS.mmap(res1.reuse(), new_msg_ptr, (uintptr_t)ib, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
 		res3.wait();
 		ASSERT(res3.state() == mythos::Error::SUCCESS);
 
 		//Create a second portal
-		mythos::Portal portal2(mythos::init::APP_CAP_START+2+worker*3, ib2);
+		mythos::Portal portal2(mythos::init::APP_CAP_START+2+worker*3, ib);
 		res1 = portal2.create(res3.reuse(), kmem, mythos::init::PORTAL_FACTORY);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
-		//Create a second EC on HWT x
-		mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+3+worker*3);
-		res1 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
+		//Create a second EC on its own HWT
+		mythos::ExecutionContext ec(mythos::init::APP_CAP_START+3+worker*3);
+		res1 = ec.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
 				initstack_top+stacksize-4096*worker, &thread_main, (void*)worker);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
 		//Bind the new portal to the new EC
-		res1 = portal2.bind(res1.reuse(), msg_ptr2, 0, mythos::init::APP_CAP_START+3+worker*3);
+		res1 = portal2.bind(res1.reuse(), new_msg_ptr, 0, mythos::init::APP_CAP_START+3+worker*3);
 		res1.wait();
-		ASSERT(res1.state() == mythos::Error::SUCCESS);
-
-		//Start the new EC
-		res1 = ec2.run(res1.reuse());
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 	}
 
-	//while (true);
+	//Run all created ECs
+	for (size_t worker = 0; worker < PARALLEL_ECS - 1; worker++){
+		mythos::ExecutionContext ec(mythos::init::APP_CAP_START+3+worker*3);
+		res1 = ec.run(res1.reuse());
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+	}
 
-	//Invocation latency to mobile kernel obejct
-	{
-		uint64_t start, end;
-		char str[] = "01234567890123456"; //Dummy String
+	//participate in calling the object
+	thread_mobileKernelObjectLatency(res1.reuse(), msg_ptr, mythos::init::APP_CAP_START);
+}
 
+void localKernelObjectLatency(){
 
-		for (size_t i = 0; i < num_runs; i++){
+	//Create a "homed" example object
+	mythos::Example example(2048);
+	auto res1 = example.create(myPortal, kmem, mythos::init::EXAMPLE_HOME_FACTORY);
+	res1.wait();
+	ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+	uint64_t start, end;
+
+	//Measure the invocation latency to all available HWTs
+	for(size_t place = 0; place < 240; place++){
+
+		res1 = example.moveHome(res1.reuse(), place);
+		res1.wait();
+		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+		for (size_t i = 0; i < NUM_RUNS; i++){
 			asm volatile("rdtsc":"=A"(start));
 			res1 = example.ping(res1.reuse());
 			res1.wait();
@@ -196,75 +179,31 @@ void benchmarks(){
 				i--;
 				continue;
 			}
-			itoa(end - start, str);
-			mythos::syscall_debug(str, sizeof(str));
+			MLOG_ERROR(mlog::app, "Invocation Latency to HWT ", place, " : ", end-start);
 		}
-
 	}
-	while(true);
 
 
 
+}
+
+void benchmarks(){
+	//invocation latency to mobile kernel object
+	mobileKernelObjectLatency();
 
 	//invocation latency to local kernel object
-	{
-		mythos::Example example(mythos::init::APP_CAP_START+3);
-		res1 = example.create(res1.reuse(), kmem, mythos::init::EXAMPLE_HOME_FACTORY);
-		res1.wait();
-		ASSERT(res1.state() == mythos::Error::SUCCESS);
-
-		uint64_t start, end;
-		char str[] = "01234567890123456"; //Dummy String
-
-		for(size_t place = 0; place < 240; place++){
-
-			res1 = example.moveHome(res1.reuse(), place);
-			res1.wait();
-			ASSERT(res1.state() == mythos::Error::SUCCESS);
-
-			for (size_t i = 0; i < num_runs; i++){
-				asm volatile("rdtsc":"=A"(start));
-				res1 = example.ping(res1.reuse());
-				res1.wait();
-				ASSERT(res1.state() == mythos::Error::SUCCESS);
-				asm volatile("rdtsc":"=A"(end));
-				if (end < start){
-					i--;
-					continue;
-				}
-				itoa(end - start, str);
-				mythos::syscall_debug(str, sizeof(str));
-			}
-		}
-
-
-	}
-
-//	mythos::ExecutionContext ec1(mythos::init::APP_CAP_START);
-//	auto res1 = ec1.create(portal, kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
-//			myAS, myCS, mythos::init::SCHEDULERS_START,
-//			thread1stack_top, &thread_main, nullptr);
-//	res1.wait();
-//	ASSERT(res1.state() == mythos::Error::SUCCESS);
-//
-//	mythos::ExecutionContext ec2(mythos::init::APP_CAP_START+1);
-//	auto res2 = ec2.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
-//			myAS, myCS, mythos::init::SCHEDULERS_START+1,
-//			thread2stack_top, &thread_main, nullptr);
-//	res2.wait();
-//	ASSERT(res2.state() == mythos::Error::SUCCESS);
+	localKernelObjectLatency();
 }
 
 int main()
 {
-  char const begin[] = "Starting the benchmarks";
-  char const obj[] = "hello object!";
-  char const end[] = "Benchmarks are done";
-  mythos::syscall_debug(begin, sizeof(begin)-1);
+	char const begin[] = "Starting the benchmarks";
+	char const end[] = "Benchmarks are done";
+	mythos::syscall_debug(begin, sizeof(begin)-1);
 
-  benchmarks();
+	benchmarks();
 
-  mythos::syscall_debug(end, sizeof(end)-1);
+	mythos::syscall_debug(end, sizeof(end)-1);
 
-  return 0;
+	return 0;
 }
