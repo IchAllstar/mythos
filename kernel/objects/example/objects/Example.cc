@@ -103,7 +103,7 @@ namespace mythos {
       mlogex.info("invoke ping", DVAR(this), DVAR(self), DVAR(msg));
       auto data = msg->getMessage()->cast<protocol::Example::Ping>();
       data->place = cpu::hwThreadID();
-      for (size_t i = 0; i < 100000; i++);
+      for (size_t i = 0; i < data->delay; i++);
       return Error::SUCCESS;
   }
 

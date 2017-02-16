@@ -74,7 +74,7 @@ void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::Invocati
 
 	for (size_t i = 0; i < NUM_RUNS; i++){
 		start = getTime();
-		res1 = example.ping(res1.reuse());
+		res1 = example.ping(res1.reuse(),1e6);
 		mid = getTime();
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
@@ -112,7 +112,7 @@ void mobileKernelObjectLatency(){
 	res1.wait();
 	ASSERT(res1.state() == mythos::Error::SUCCESS);
 
-	res1 = example.ping(res1.reuse());
+	res1 = example.ping(res1.reuse(),0);
 	res1.wait();
 	ASSERT(res1.state() == mythos::Error::SUCCESS);
 
@@ -183,7 +183,7 @@ void localKernelObjectLatency(){
 
 		for (size_t i = 0; i < NUM_RUNS; i++){
 			start = getTime();
-			res1 = example.ping(res1.reuse());
+			res1 = example.ping(res1.reuse(),0);
 			res1.wait();
 			ASSERT(res1.state() == mythos::Error::SUCCESS);
 			end = getTime();

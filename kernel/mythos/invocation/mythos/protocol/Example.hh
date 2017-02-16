@@ -66,11 +66,13 @@ struct Example {
 	struct Ping : public InvocationBase {
 		typedef InvocationBase response_type;
 		constexpr static uint16_t label = (proto<<8) + PING;
-		Ping(): InvocationBase(label,getLength(this)){
+		Ping(size_t delay): InvocationBase(label,getLength(this)){
 			place = 0xFFFF;
+			this->delay = delay;
 		};
 
 		uint16_t place;
+		size_t delay;
 	};
 
 	struct MoveHome : public InvocationBase {
