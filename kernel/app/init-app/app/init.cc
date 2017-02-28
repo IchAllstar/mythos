@@ -36,9 +36,9 @@
 #include <cstdint>
 #include "util/optional.hh"
 
-#define NUM_RUNS 10
-#define PARALLEL_ECS 4
-#define AVAILABLE_HWTS 4
+#define NUM_RUNS 1000 
+#define PARALLEL_ECS 240
+#define AVAILABLE_HWTS 240
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -74,7 +74,7 @@ void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::Invocati
 
 	for (size_t i = 0; i < NUM_RUNS; i++){
 		start = getTime();
-		res1 = example.ping(res1.reuse(),1e6);
+		res1 = example.ping(res1.reuse(),1e5);
 		mid = getTime();
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
@@ -83,9 +83,10 @@ void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::Invocati
 			i--;
 			continue;
 		}
-		MLOG_ERROR(mlog::app, "object location:", ib->cast<mythos::protocol::Example::Ping>()->place);
-		MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
-		MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
+		//MLOG_ERROR(mlog::app, "object location:", ib->cast<mythos::protocol::Example::Ping>()->place);
+		MLOG_ERROR(mlog::app, "ECs: ", PARALLEL_ECS, " t_return: ", mid - start, " t_reply: ", end - start, " obj: ", ib->cast<mythos::protocol::Example::Ping>()->place);
+		//MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
+		//MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
 	}
 }
 
@@ -243,6 +244,7 @@ void executionContextCreationLatencyBundled(){
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 	}
+	end = getTime();
 	MLOG_ERROR(mlog::app, "Create+Run of ", AVAILABLE_HWTS-1, "HWTs: ", end - start);
 }
 
@@ -303,13 +305,13 @@ void executionContextCreationLatencySeparate(){
 
 void benchmarks(){
 	//invocation latency to mobile kernel object
-	//mobileKernelObjectLatency();
+	mobileKernelObjectLatency();
 
 	//invocation latency to local kernel object
 	//localKernelObjectLatency();
 
 	//latency of creating and starting up execution contexts
-	executionContextCreationLatencyBundled();
+	//executionContextCreationLatencyBundled();
 	//executionContextCreationLatencySeparate();
 }
 
