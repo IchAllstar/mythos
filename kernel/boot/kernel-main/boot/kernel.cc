@@ -120,8 +120,7 @@ void mythos::cpu::sleeping_failed()
 void mythos::cpu::syscall_entry_cxx(mythos::cpu::ThreadState* ctx)
 {
   mythos::async::getLocalPlace().enterKernel();
-  MLOG_DETAIL(mlog::boot, "user system call", DVAR(ctx->rdi), DVAR(ctx->rsi),
-      DVARhex(ctx->rip), DVARhex(ctx->rsp));
+  MLOG_ERROR(mlog::boot, "user system call", DVAR(ctx), DVAR(ctx->rdi));
   mythos::handle_syscall(ctx);
   runUser();
 }

@@ -345,7 +345,7 @@ namespace mythos {
 
       case SYSCALL_WAIT: {
         auto prevState = setFlag(IN_WAIT | IS_WAITING);
-        MLOG_INFO(mlog::syscall, "wait", DVARhex(prevState));
+        MLOG_ERROR(mlog::syscall, "wait", DVARhex(prevState));
         if (!notificationQueue.empty() || (prevState & IS_NOTIFIED))
           clearFlag(IS_WAITING); // because of race with notifier
         break;

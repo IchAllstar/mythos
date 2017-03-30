@@ -140,7 +140,7 @@ namespace mythos {
     writeIPI(0, edgeIPI(ICR_DESTSHORT_NOTSELF, MODE_SIPI, uint8_t(startIP >> 12)));
     write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     uint32_t esr = read(REG_ESR).value & 0xEF;
-    MLOG_DETAIL(mlog::boot, "SIPI broadcast result", DVARhex(esr));
+    MLOG_ERROR(mlog::boot, "SIPI broadcast result", DVARhex(esr));
     return true;
   }
 
