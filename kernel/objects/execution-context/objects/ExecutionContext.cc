@@ -87,7 +87,7 @@ namespace mythos {
 
   optional<void> ExecutionContext::setSchedulingContext(optional<CapEntry*> sce)
   {
-    MLOG_INFO(mlog::ec, "setScheduler", DVAR(this), DVAR(sce));
+    MLOG_ERROR(mlog::ec, "setScheduler", DVAR(this), DVAR(sce));
     TypedCap<IScheduler> obj(sce);
     if (!obj) RETHROW(obj);
     RETURN(_sched.set(this, *sce, obj.cap()));

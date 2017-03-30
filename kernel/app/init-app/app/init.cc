@@ -40,18 +40,27 @@
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = 4*4096;
-char initstack[stacksize];
-char* initstack_top = initstack+stacksize;
+
+constexpr uint64_t MAX_NUMBER_HWT = 200;
+constexpr uint64_t STACKSIZE = 4*4096;
+
+// init stack
+char initstack[STACKSIZE];
+char* initstack_top = initstack+STACKSIZE;
+
+// benchmark thread stack
+char thread_stack[STACKSIZE * MAX_NUMBER_HWT];
+char *thread_stack_top = thread_stack + STACKSIZE * MAX_NUMBER_HWT;
+
 
 mythos::Portal portal(mythos::init::PORTAL, msg_ptr);
 mythos::CapMap myCS(mythos::init::CSPACE);
 mythos::PageMap myAS(mythos::init::PML4);
 mythos::UntypedMemory kmem(mythos::init::UM);
 
-char threadstack[stacksize];
-char* thread1stack_top = threadstack+stacksize;
-char* thread2stack_top = threadstack+stacksize / 2;
+char threadstack[STACKSIZE];
+char* thread1stack_top = threadstack+STACKSIZE;
+char* thread2stack_top = threadstack+STACKSIZE / 2;
 
 uint64_t get_time(){
   uint64_t hi, lo;
@@ -61,27 +70,44 @@ uint64_t get_time(){
 
 void* thread_main(void* ctx)
 {
-  MLOG_ERROR(mlog::app, "hello thread wait!", DVAR(ctx), DVAR(get_time()));
-  mythos::ISysretHandler::handle(mythos::syscall_wait());
-  MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx), DVAR(get_time()));
+  uint64_t id = (uint64_t) ctx;
+  MLOG_ERROR(mlog::app, "hello thread wait!", DVAR(id));
+  //mythos::ISysretHandler::handle(mythos::syscall_wait());
+  //MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx), DVAR(get_time()));
   return 0;
+}
+
+void create_run_n_threads(uint64_t threads){
+  mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(portal);
+  for (uint64_t i = 0; i < threads; i++) {
+
+    mythos::ExecutionContext ec(mythos::init::APP_CAP_START + 1 + i);
+    res1 = ec.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
+                         myAS, myCS, mythos::init::SCHEDULERS_START + 1 + i,
+                         thread_stack_top - STACKSIZE * i, &thread_main, (void*)i);
+    res1.wait();
+    ASSERT(res1.state() == mythos::Error::SUCCESS);
+    MLOG_ERROR(mlog::app, "Created Thread", i);
+  }
+}
+
+
+void benchmark_wakeup_ecs() {
+  create_run_n_threads(100);
 }
 
 
 int main()
 {
-  char const str[] = "hello world!";
-  char const end[] = "bye, cruel world!";
-  mythos::syscall_debug(str, sizeof(str)-1);
-  MLOG_ERROR(mlog::app, "application has started", DVARhex(msg_ptr), DVARhex(initstack_top));
   MLOG_ERROR(mlog::app, "Start time", DVAR(get_time()));
+  benchmark_wakeup_ecs();
 /*
   for (int run=1; run<=100; run++) {
     MLOG_ERROR(mlog::app, "beginning test run", run);
     test_Example();
     test_Portal();
   }
-  */
+  
   mythos::ExecutionContext ec1(mythos::init::APP_CAP_START);
   auto res1 = ec1.create(portal, kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
                          myAS, myCS, mythos::init::SCHEDULERS_START,
@@ -99,7 +125,7 @@ int main()
   MLOG_ERROR(mlog::app, "notify");
   mythos::ISysretHandler::handle(mythos::syscall_notify(ec1.cap()));
   mythos::ISysretHandler::handle(mythos::syscall_notify(ec2.cap()));
-
+*/
   MLOG_ERROR(mlog::app, "Finished time", DVAR(get_time()));
 
   for (volatile int i=0; i<100000; i++) {
