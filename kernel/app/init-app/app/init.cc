@@ -36,14 +36,15 @@
 #include <cstdint>
 #include "util/optional.hh"
 
-#define NUM_RUNS 1000 
-#define PARALLEL_ECS 240
-#define AVAILABLE_HWTS 240
+#define NUM_RUNS        1000 
+#define PARALLEL_ECS    240
+#define AVAILABLE_HWTS  240
+#define STACKSIZE       4096
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = AVAILABLE_HWTS*4096;
+constexpr uint64_t stacksize = AVAILABLE_HWTS*STACKSIZE;
 char initstack[stacksize];
 char* initstack_top = initstack+stacksize;
 
@@ -117,6 +118,7 @@ void mobileKernelObjectLatency(){
 	res1.wait();
 	ASSERT(res1.state() == mythos::Error::SUCCESS);
 
+  MLOG_ERROR(mlog::app, "Creating EC's");
 
 	//Create (parallel_ecs - 1) additional ECs
 	for (size_t worker = 0; worker < PARALLEL_ECS - 1; worker++){
@@ -126,6 +128,8 @@ void mobileKernelObjectLatency(){
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
+    MLOG_ERROR(mlog::app, "Created IB");
+
 		//Map the invocation buffer frame into user space memory
 		mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+worker)<<21));
 
@@ -133,25 +137,35 @@ void mobileKernelObjectLatency(){
 		res3.wait();
 		ASSERT(res3.state() == mythos::Error::SUCCESS);
 
+    MLOG_ERROR(mlog::app, "Created mmap");
+
 		//Create a second portal
 		mythos::Portal portal2(mythos::init::APP_CAP_START+2+worker*3, ib);
 		res1 = portal2.create(res3.reuse(), kmem, mythos::init::PORTAL_FACTORY);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
+    MLOG_ERROR(mlog::app, "Created portal");
+
 		//Create a second EC on its own HWT
 		mythos::ExecutionContext ec(mythos::init::APP_CAP_START+3+worker*3);
 		res1 = ec.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
-				initstack_top+stacksize-4096*worker, &thread_invocationLatencyMain, (void*)worker);
+				initstack_top-STACKSIZE*worker, &thread_invocationLatencyMain, (void*)worker);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+    MLOG_ERROR(mlog::app, "Created EC");
 
 		//Bind the new portal to the new EC
 		res1 = portal2.bind(res1.reuse(), new_msg_ptr, 0, mythos::init::APP_CAP_START+3+worker*3);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+    MLOG_ERROR(mlog::app, "Created binding");
 	}
+
+  MLOG_ERROR(mlog::app, "Created EC's");
 
 	//Run all created ECs
 	for (size_t worker = 0; worker < PARALLEL_ECS - 1; worker++){
@@ -160,6 +174,8 @@ void mobileKernelObjectLatency(){
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 	}
+
+  MLOG_ERROR(mlog::app, "All EC's are running");
 
 	//participate in calling the object
 	thread_mobileKernelObjectLatency(res1.reuse(), msg_ptr, mythos::init::APP_CAP_START);
@@ -227,7 +243,7 @@ void executionContextCreationLatencyBundled(){
 		mythos::ExecutionContext ec(mythos::init::APP_CAP_START+3+worker*3);
 		res1 = ec.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
-				initstack_top+stacksize-4096*worker, &thread_main, (void*)worker);
+				initstack_top+stacksize-STACKSIZE*worker, &thread_main, (void*)worker);
 		res1.wait();
 		ASSERT(res1.state() == mythos::Error::SUCCESS);
 
