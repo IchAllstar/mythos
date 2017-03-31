@@ -37,10 +37,8 @@
 #include "util/optional.hh"
 
 #define NUM_RUNS        1000 
-//#define PARALLEL_ECS    240
-//#define AVAILABLE_HWTS  240
-#define PARALLEL_ECS    4
-#define AVAILABLE_HWTS  4
+#define PARALLEL_ECS    240
+#define AVAILABLE_HWTS  240
 #define STACKSIZE       4096
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -65,6 +63,10 @@ uint64_t getTime(){
 	return ((uint64_t)lo)|( ((uint64_t)hi)<<32);
 }
 
+void* thread_main(void *ctx) {
+    MLOG_ERROR(mlog::app, "Hello from Thread ", (uint64_t)ctx);
+}
+/*
 void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::InvocationBuf* ib, mythos::CapPtr exampleCap, size_t id){
 	mythos::Example example(exampleCap);
 
@@ -320,6 +322,60 @@ void executionContextCreationLatencySeparate(){
 	}
 
 }
+*/
+
+void create_ec(uint64_t number, mythos::PortalFutureRef<void> &res1) {
+    //Create a new invocation buffer
+    mythos::Frame new_msg_ptr(mythos::init::APP_CAP_START+1+number*3);
+    res1 = new_msg_ptr.create(res1.reuse(), kmem, mythos::init::MEMORY_REGION_FACTORY, 1<<21, 1<<21);
+    res1.wait();
+    ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+    //Map the invocation buffer frame into user space memory
+    mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+number)<<21));
+
+    auto res3 = myAS.mmap(res1.reuse(), new_msg_ptr, (uintptr_t)ib, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
+    res3.wait();
+    ASSERT(res3.state() == mythos::Error::SUCCESS);
+
+    //Create a second portal
+    mythos::Portal portal2(mythos::init::APP_CAP_START+2+number*3, ib);
+    res1 = portal2.create(res3.reuse(), kmem, mythos::init::PORTAL_FACTORY);
+    res1.wait();
+    ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+    //Create a second EC on its own HWT
+    mythos::ExecutionContext ec(mythos::init::APP_CAP_START+3+number*3);
+    res1 = ec.create(res1.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
+            myAS, myCS, mythos::init::SCHEDULERS_START+1+number,
+            initstack_top+4096*number, &thread_main, (void*)number);
+    res1.wait();
+    ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+    //Bind the new portal to the new EC
+    res1 = portal2.bind(res1.reuse(), new_msg_ptr, 0, mythos::init::APP_CAP_START+3+number*3);
+    res1.wait();
+    ASSERT(res1.state() == mythos::Error::SUCCESS);
+}
+
+uint64_t wakeup_n_threads(uint64_t n) {
+    mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(myPortal);
+    uint64_t start, end;
+    for (uint64_t i = 0; i < n; i++) {
+        create_ec(i, res1);
+    }
+    start = getTime();
+    
+    for (uint64_t i = 0; i < n; i++) {
+        mythos::ExecutionContext ec(mythos::init::APP_CAP_START+3+i*3);
+        res1 = ec.run(res1.reuse());
+        res1.wait();
+        ASSERT(res1.state() == mythos::Error::SUCCESS);
+    }
+    
+    end = getTime();
+    return end - start;
+}
 
 void benchmarks(){
 	//invocation latency to mobile kernel object
@@ -330,10 +386,12 @@ void benchmarks(){
 
 	//latency of creating and starting up execution contexts
 
-  //MLOG_ERROR(mlog::app, "Bundled");
+    //MLOG_ERROR(mlog::app, "Bundled");
 	//executionContextCreationLatencyBundled();
-  MLOG_ERROR(mlog::app, "Seperate");
-	executionContextCreationLatencySeparate();
+    //MLOG_ERROR(mlog::app, "Seperate");
+    //executionContextCreationLatencySeparate();
+    uint64_t time = wakeup_n_threads(1);
+    MLOG_ERROR(mlog::app, "took cycles: ", time);
 }
 
 int main()
