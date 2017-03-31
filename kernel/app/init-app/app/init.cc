@@ -37,8 +37,10 @@
 #include "util/optional.hh"
 
 #define NUM_RUNS        1000 
-#define PARALLEL_ECS    240
-#define AVAILABLE_HWTS  240
+//#define PARALLEL_ECS    240
+//#define AVAILABLE_HWTS  240
+#define PARALLEL_ECS    4
+#define AVAILABLE_HWTS  4
 #define STACKSIZE       4096
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -63,7 +65,7 @@ uint64_t getTime(){
 	return ((uint64_t)lo)|( ((uint64_t)hi)<<32);
 }
 
-void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::InvocationBuf* ib, mythos::CapPtr exampleCap){
+void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::InvocationBuf* ib, mythos::CapPtr exampleCap, size_t id){
 	mythos::Example example(exampleCap);
 
 	mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(std::move(portal));
@@ -85,7 +87,7 @@ void thread_mobileKernelObjectLatency(mythos::PortalRef portal, mythos::Invocati
 			continue;
 		}
 		//MLOG_ERROR(mlog::app, "object location:", ib->cast<mythos::protocol::Example::Ping>()->place);
-		MLOG_ERROR(mlog::app, "ECs: ", PARALLEL_ECS, " t_return: ", mid - start, " t_reply: ", end - start, " obj: ", ib->cast<mythos::protocol::Example::Ping>()->place);
+		MLOG_ERROR(mlog::app, "ECs: ", PARALLEL_ECS, " t_return: ", mid - start, " t_reply: ", end - start, " obj: ", ib->cast<mythos::protocol::Example::Ping>()->place, "id: ", id);
 		//MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
 		//MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
 	}
@@ -98,7 +100,7 @@ void* thread_invocationLatencyMain(void* ctx)
 	mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+ownid)<<21));
 	mythos::Portal portal(mythos::init::APP_CAP_START+2+ownid*3, ib);
 
-	thread_mobileKernelObjectLatency(portal, ib, mythos::init::APP_CAP_START);
+	thread_mobileKernelObjectLatency(portal, ib, mythos::init::APP_CAP_START, ownid);
 
 	return 0;
 }
@@ -178,7 +180,7 @@ void mobileKernelObjectLatency(){
   MLOG_ERROR(mlog::app, "All EC's are running");
 
 	//participate in calling the object
-	thread_mobileKernelObjectLatency(res1.reuse(), msg_ptr, mythos::init::APP_CAP_START);
+	thread_mobileKernelObjectLatency(res1.reuse(), msg_ptr, mythos::init::APP_CAP_START, 0);
 }
 
 void localKernelObjectLatency(){
@@ -321,14 +323,17 @@ void executionContextCreationLatencySeparate(){
 
 void benchmarks(){
 	//invocation latency to mobile kernel object
-	mobileKernelObjectLatency();
+	//mobileKernelObjectLatency();
 
 	//invocation latency to local kernel object
 	//localKernelObjectLatency();
 
 	//latency of creating and starting up execution contexts
+
+  //MLOG_ERROR(mlog::app, "Bundled");
 	//executionContextCreationLatencyBundled();
-	//executionContextCreationLatencySeparate();
+  MLOG_ERROR(mlog::app, "Seperate");
+	executionContextCreationLatencySeparate();
 }
 
 int main()
