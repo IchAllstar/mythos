@@ -223,7 +223,7 @@ void drop_root() {
 
 void signal_handler(int sig_type) {
   if (sig_type == SIGINT) {
-    ctrl->reset_wait();
+    ctrl->reset();
   }
   delete ctrl;
   delete logger;

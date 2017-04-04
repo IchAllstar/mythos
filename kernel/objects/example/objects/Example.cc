@@ -91,9 +91,9 @@ namespace mythos {
 
   Error ExampleObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
   {
-    mlogex.info("invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
+    //mlogex.info("invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
-    mlogex.error(mlog::DebugString(data->message, data->bytes));
+    //mlogex.error(mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
   }
 
