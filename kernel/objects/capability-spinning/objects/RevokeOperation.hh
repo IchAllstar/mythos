@@ -56,14 +56,14 @@ public:
   {
     _deleteQueue.push(&obj);
   }
-  
+
   optional<void> deleteEntry(CapEntry& entry) override;
-  
+
   // @todo use pointer?
   void revokeCap(Tasklet* t, result_t* res, CapEntry& entry, IKernelObject* guarded)
   {
     monitor.request(t, [=, &entry](Tasklet* t) {
-      MLOG_ERROR(mlog::cap, "revoke cap called");
+      MLOG_INFO(mlog::cap, "revoke cap called");
       _revoke(t, res, entry, guarded);
     });
   }
@@ -71,7 +71,7 @@ public:
   void deleteCap(Tasklet* t, result_t* res, CapEntry& entry, IKernelObject* guarded)
   {
     monitor.request(t, [=, &entry](Tasklet* t) {
-      MLOG_ERROR(mlog::cap, "delete cap called");
+      MLOG_INFO(mlog::cap, "delete cap called");
       _delete(t, res, entry, guarded);
     });
   }
