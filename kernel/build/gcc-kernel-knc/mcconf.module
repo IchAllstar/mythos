@@ -46,7 +46,7 @@ KERNEL_CXXFLAGS += -mcmodel=kernel -fno-pic
 
 # use -gdwarf-2 in order to avoid gdb <cant compute CFA for this frame> bug
 # use -gdwarf-2 in order to avoid linker error in gcc4.7
-KERNEL_CXXFLAGS += -O2 -g3 -ggdb -gdwarf-2
+#KERNEL_CXXFLAGS += -O2 -g3 -ggdb -gdwarf-2
 #KERNEL_CXXFLAGS += -O3 -DNDEBUG
 
 KERNEL_LD = $(LD)
@@ -60,7 +60,7 @@ APP_CPPFLAGS += -I.
 APP_CXXFLAGS += $(CXXFLAGS)
 APP_CXXFLAGS += -std=c++11
 #APP_CXXFLAGS += -O2 -g3 -ggdb -gdwarf-2
-APP_CXXFLAGS += -O2 -g
+#APP_CXXFLAGS += -O2 -g
 APP_LD = $(LD)
 APP_LDFLAGS = -g -static
 

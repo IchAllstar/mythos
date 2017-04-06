@@ -97,7 +97,11 @@ protected:
     queue.pushPrivate(msg);
   }
 
-  void wakeup() { mythos::lapic.sendIRQ(apicID, 32); }
+  void wakeup() {
+    #ifndef NOSLEEP
+      mythos::lapic.sendIRQ(apicID, 32);
+    #endif
+  }
 
 protected:
   size_t apicID; //< for wakeup signals

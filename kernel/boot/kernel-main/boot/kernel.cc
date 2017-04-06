@@ -89,11 +89,18 @@ void entry_bsp()
 NORETURN void runUser();
 
 void runUser() {
-  mythos::async::getLocalPlace().processTasks();
-  MLOG_DETAIL(mlog::boot, "trying to execute app");
-  mythos::boot::getLocalScheduler().tryRunUser();
+#ifdef NOSLEEP
+  while (true) {
+#endif
+    mythos::async::getLocalPlace().processTasks();
+    MLOG_DETAIL(mlog::boot, "trying to execute app");
+    mythos::boot::getLocalScheduler().tryRunUser();
+#ifdef NOSLEEP
+  }
+#else
   MLOG_DETAIL(mlog::boot, "going to sleep now");
   mythos::cpu::go_sleeping(); // resets the kernel stack!
+#endif
 }
 
 void entry_ap(size_t id)
