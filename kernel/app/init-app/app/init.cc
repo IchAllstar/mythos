@@ -102,7 +102,7 @@ class thread_manager {
       thread_func = func;
     }
 
-    void create_thread(uint64_t dest_offset, void* data,  mythos::PortalFutureRef<void> &res) {
+    void create_thread_on_sc(uint64_t dest_offset, uint64_t sc, void* data, mythos::PortalFutureRef<void> &res) {
       //Create a new invocation buffer
 
       //MLOG_ERROR(mlog::app, "Create IB", DVAR(dest_offset));
@@ -136,7 +136,7 @@ class thread_manager {
       //MLOG_ERROR(mlog::app, "Create EC", dest_offset);
       mythos::ExecutionContext ec(mythos::init::APP_CAP_START+dest_offset);
       res = ec.create(res.reuse(), kmem, mythos::init::EXECUTION_CONTEXT_FACTORY,
-          myAS, myCS, mythos::init::SCHEDULERS_START+dest_offset,
+          myAS, myCS, mythos::init::SCHEDULERS_START+sc,
           threadstack_top-ONE_STACK*dest_offset, thread_func, data);
       res.wait();
       ASSERT(res.state() == mythos::Error::SUCCESS);
@@ -145,6 +145,10 @@ class thread_manager {
       res = portal.bind(res.reuse(), new_msg_ptr, 0, mythos::init::APP_CAP_START+dest_offset);
       res.wait();
       ASSERT(res.state() == mythos::Error::SUCCESS);
+    }
+
+    void create_thread(uint64_t dest_offset, void* data, mythos::PortalFutureRef<void> &res) {
+      create_thread_on_sc(dest_offset, dest_offset, data, res);
     }
 
     void delete_thread(uint64_t dest_offset, mythos::PortalFutureRef<void> res) {
@@ -199,7 +203,7 @@ void benchmark_wakeup_hwts() {
       while (acknowledges != number) {};
       end = getTime();
       acknowledges = 0;
-      MLOG_ERROR(mlog::app, number, "start middle end diff", start,middle, end, end - start, end - middle);
+      MLOG_ERROR(mlog::app, number,"start - end, middle - end", end - start, end - middle);
     }
   }
 }
@@ -207,6 +211,7 @@ void benchmark_wakeup_hwts() {
 /**
  * Benchmark recursive threads
  */
+/*
 /// message structure to give to thread
 struct thread_msg {
   uint32_t start_id;
@@ -290,6 +295,7 @@ void benchmark_wakeup_recursive() {
   	}
   }
 }
+*/
 
 /**
  *
@@ -303,15 +309,25 @@ void* thread_object_access_func(void* ctx) {
   mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(portal);
   uint64_t start, end;
 
+  uint64_t accesses = 100;
+  uint32_t values[accesses];
+
   while (true) {
     mythos::ISysretHandler::handle(mythos::syscall_wait());
-    start = getTime();
-    for (uint64_t i = 0; i < 5000; i++) {
+
+    for (uint64_t i = 0; i < accesses; i++) {
+      start = getTime();
       res1 = example.printMessage(res1.reuse(), "HELLO", 5);
       res1.wait();
+      end = getTime();
+      values[i] = end - start;
     }
-    end = getTime();
-    MLOG_ERROR(mlog::app, "Time for 5000 accesses", end - start);
+
+    if ((uint64_t) ctx == 2) {
+      for (uint64_t i = 0; i < accesses; i++) {
+        MLOG_ERROR(mlog::app, i, values[i]);
+      }
+    }
     acknowledges.fetch_add(1);
   }
 }
@@ -323,25 +339,26 @@ void benchmark_kernel_object_access() {
   res1.wait();
   ASSERT(res1.state() == mythos::Error::SUCCESS);
 
-  constexpr uint64_t MAX_ACCESSES = 20;
+  constexpr uint64_t MAX_ACCESSES = 50;
+  constexpr uint64_t number_threads = 2;
   thread_manager mng(&thread_object_access_func);
   // init all usable threads
-  for (uint64_t i = 1; i < MAX_ACCESSES; i++) {
+  for (uint64_t i = 0; i < MAX_ACCESSES; i++) {
     mng.create_thread(i, (void*)i, res1);
     res1.wait();
     ASSERT(res1.state() == mythos::Error::SUCCESS);
   }
-  for (uint64_t number = 2; number < MAX_ACCESSES; number++) {
-    MLOG_ERROR(mlog::app,"Testing number", number);
-    for (uint64_t i = 1; i <= number; i++) {
-      mythos::syscall_notify(mythos::init::APP_CAP_START + i);
-    }
-    while (acknowledges != number) {};
-    acknowledges = 0;
+
+  //mythos::syscall_notify(mythos::init::APP_CAP_START + 1);
+  //mythos::syscall_notify(mythos::init::APP_CAP_START + 2);
+
+  for (int i = 1; i <= number_threads; i++) {
+    mythos::syscall_notify(mythos::init::APP_CAP_START + i);
   }
-  res1 = myCS.deleteCap(res1.reuse(), example);
-  res1.wait();
-  ASSERT(res1.state() == mythos::Error::SUCCESS);
+
+  //res1 = myCS.deleteCap(res1.reuse(), example);
+  //res1.wait();
+  //ASSERT(res1.state() == mythos::Error::SUCCESS);
 }
 
 /**
@@ -359,73 +376,103 @@ void* thread_ping_pong(void* ctx) {
   uint64_t other_id = (id == 2) ? 100 : 2;
 
   mythos::ExecutionContext remote_ec(mythos::init::APP_CAP_START + other_id);
+  mythos::ExecutionContext own_ec(mythos::init::APP_CAP_START + id);
 
-  uint64_t values[7];
+  uint64_t values[100];
 
   uint64_t sum = 0;
   uint64_t agregate = 0;
-  uint64_t max_repetitions = 100;
+  uint64_t max_repetitions = 1;
   uint64_t index = 0;
-  auto list = {1,10,100,1000,2000,5000,10000};
+  auto list = {100};
   for (auto number : list) {
     agregate = 0;
     for (auto repetitions = 0; repetitions < max_repetitions; repetitions++) {
       sum = 0;
       for (uint64_t i = 0; i < number; i++) {
         start = getTime();
+        //MLOG_ERROR(mlog::app, "Wait",id);
         mythos::ISysretHandler::handle(mythos::syscall_wait());
+        //MLOG_ERROR(mlog::app, "Notify",id);
         mythos::syscall_notify(mythos::init::APP_CAP_START + other_id);
-
         end = getTime();
         sum += end - start;
+        values[i] = end - start;
       }
       agregate += sum;
       //MLOG_ERROR(mlog::app,number, "time", sum);
     }
-    values[index] = agregate / max_repetitions;
-    MLOG_ERROR(mlog::app, number, agregate / max_repetitions);
+    //MLOG_ERROR(mlog::app, number, agregate / max_repetitions);
     index++;
   }
-
-  //output
-  //index = 0;
-  //for (auto number : list) {
-  //  MLOG_ERROR(mlog::app, number, values[index]);
-  //  index++;
-  //}
-
+  if (id != 2) {
+    return (void*)0;
+  }
+  for (int i = 0; i < 100; i++) {
+    MLOG_ERROR(mlog::app,i, values[i]);
+  }
 }
 
 void benchmark_ping_pong() {
-  mythos::Example example(mythos::init::APP_CAP_START);
-  auto res1 = example.create(portal, kmem, mythos::init::EXAMPLE_FACTORY);
-  res1.wait();
-  ASSERT(res1.state() == mythos::Error::SUCCESS);
-
   thread_manager mng(&thread_ping_pong);
+  mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(portal);
 
   mng.create_thread(2, (void*)2, res1);
-  res1.wait();
-  ASSERT(res1.state() == mythos::Error::SUCCESS);
-
-
   mng.create_thread(100, (void*)100, res1);
-  res1.wait();
-  ASSERT(res1.state() == mythos::Error::SUCCESS);
-
   mythos::syscall_notify(mythos::init::APP_CAP_START + 2);
+}
 
-  res1 = myCS.deleteCap(res1.reuse(), example);
-  res1.wait();
-  ASSERT(res1.state() == mythos::Error::SUCCESS);
+void benchmark_syscall_latencies() {
+  constexpr uint64_t repeat = 1;
+  uint64_t start,middle,end;
+  uint64_t number_of_threads = 100;
+  uint64_t values[repeat * number_of_threads];
 
+  mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(portal);
+
+  auto fun = [](void *data) -> void* {
+    while(true) {
+      acknowledges++;
+      mythos::ISysretHandler::handle(mythos::syscall_wait());
+    }
+  };
+
+  thread_manager mng(fun);
+
+  for (uint64_t i = 1; i <= number_of_threads; i++) {
+    mng.create_thread(i, (void*)i, res1);
+  }
+
+  while(acknowledges != number_of_threads) {}
+  acknowledges = 0;
+
+
+  for (int j = 0; j < repeat; j++) {
+
+    for (uint64_t i = 1; i <= number_of_threads; i++) {
+      start = getTime();
+      // one notify without sleeping ~ 3500 cycles -> 10 notifies 35000
+      // one notify with sleeping ~100000 cycles (because IPI) -> 10 notifies 1000000
+      mythos::syscall_notify(mythos::init::APP_CAP_START + i);
+      while(acknowledges != i) {}
+      end = getTime();
+      values[i-1] = end - start;
+    }
+    acknowledges = 0;
+    //MLOG_ERROR(mlog::app,j, end - start);
+  }
+
+  for (uint64_t i = 0; i < number_of_threads; i++) {
+    MLOG_ERROR(mlog::app, i, values[i]);
+  }
 }
 
 void benchmarks(){
   //benchmark_wakeup_hwts();
   //benchmark_wakeup_recursive();
   //benchmark_kernel_object_access();
-  benchmark_ping_pong();
+  //benchmark_ping_pong();
+  benchmark_syscall_latencies();
 }
 
 int main()
