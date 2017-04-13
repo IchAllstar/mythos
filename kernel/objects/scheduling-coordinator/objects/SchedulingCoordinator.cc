@@ -30,6 +30,10 @@
 
 namespace mythos {
 
+optional<void> SchedulingCoordinator::deleteCap(Cap self, IDeleter& del) {
+  RETURN(Error::SUCCESS);
+}
+
 void SchedulingCoordinator::runSleep() {
   localPlace->processTasks();
   auto *ec = localSchedulingContext->tryRunUser();

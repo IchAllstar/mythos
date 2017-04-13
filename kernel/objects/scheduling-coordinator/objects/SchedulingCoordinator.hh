@@ -27,8 +27,9 @@
 
 
 #include "cpu/CoreLocal.hh"
-#include "boot/mlog.hh"
 #include "objects/ISchedulable.hh"
+#include "objects/IKernelObject.hh"
+#include "boot/mlog.hh"
 
 namespace mythos {
 
@@ -39,13 +40,24 @@ extern CoreLocal<SchedulingCoordinator*> localCoordinator_ KERNEL_CLM_HOT;
  * Class coordinates between Place(kernel task scheduler), SchedulingContext(system thread scheduler),
  * ExecutionContext (system thread) and the decision to go to sleep. Different policies of sleeping can be chosen.
  */
-class SchedulingCoordinator {
+class SchedulingCoordinator
+  : public IKernelObject {
 
   enum Policy {
     SLEEP = 0,
     SPIN  = 1,
   };
 
+// Interface IKernelObject
+public:
+  optional<void> deleteCap(Cap self, IDeleter& del) override;
+  optional<void const*> vcast(TypeId id) const override {
+      if (id == TypeId::id<IKernelObject>()) return static_cast<IKernelObject const*>(this);
+      THROW(Error::TYPE_MISMATCH);
+    }
+
+
+// Actual Methods
 public:
   NORETURN void runUser() {
     switch (policy) {
@@ -64,6 +76,8 @@ public:
   NORETURN void runSpin();
 
   void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
+    ASSERT(p != nullptr);
+    ASSERT(sc != nullptr);
     localPlace = p;
     localSchedulingContext = sc;
   }
@@ -71,6 +85,9 @@ public:
   void setPolicy(Policy p) { policy = p; }
 
 private:
+  LinkedList<IKernelObject*>::Queueable del_handle = {this};
+  async::NestedMonitorDelegating monitor;
+
   mythos::async::Place *localPlace = nullptr;
   mythos::SchedulingContext *localSchedulingContext = nullptr;
 
