@@ -79,10 +79,11 @@ namespace mythos {
     void init(async::Place* home) { this->home = home; }
     virtual ~SchedulingContext() {}
 
-    /** try to switch to the user mode.
-     * Returns only if no ready execution context was available.
+    /**
+     * Returns next runnable item from run queue
+     * SchedulingCoordinator is responsible to actually run the item
      */
-    void tryRunUser();
+    ISchedulable* tryRunUser();
     void preempt();
 
   public: // IScheduler interface

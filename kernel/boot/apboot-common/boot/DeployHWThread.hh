@@ -38,6 +38,7 @@
 #include "async/Place.hh"
 #include "objects/DeleteBroadcast.hh"
 #include "objects/SchedulingContext.hh"
+#include "objects/SchedulingCoordinator.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
 #include "boot/mlog.hh"
@@ -50,8 +51,14 @@ namespace mythos {
     extern SchedulingContext schedulers[BOOT_MAX_THREADS];
     extern CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
 
+    extern SchedulingCoordinator coordinators[BOOT_MAX_THREADS];
+    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM;
+
     SchedulingContext& getScheduler(size_t index) { return schedulers[index]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler; }
+
+    SchedulingCoordinator& getSchedulingCoordinator(size_t index) { return coordinators[index]; }
+    SchedulingCoordinator& getLocalSchedulingCoordinator() { return *localSchedulingCoordinator_; }
 
 struct DeployHWThread
 {
@@ -100,6 +107,10 @@ struct DeployHWThread
     mythos::lapic.init();
     localScheduler.set(&getScheduler(apicID));
     getLocalScheduler().init(&async::places[apicID]);
+
+    localSchedulingCoordinator_.set(&getSchedulingCoordinator(apicID));
+    getLocalSchedulingCoordinator().init(&async::places[apicID], &getLocalScheduler());
+
     Plugin::initPluginsOnThread(apicID);
   }
 

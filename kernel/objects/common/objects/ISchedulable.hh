@@ -53,6 +53,10 @@ namespace mythos {
      */
     virtual void resume() = 0;
 
+    virtual bool prepareResume() = 0;
+
+    virtual void doResume() = 0;
+
     virtual void handleTrap(cpu::ThreadState* ctx) = 0;
 
     virtual void handleSyscall(cpu::ThreadState* ctx) = 0;
