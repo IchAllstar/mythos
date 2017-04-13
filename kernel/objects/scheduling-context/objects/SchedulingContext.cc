@@ -112,7 +112,7 @@ namespace mythos {
     }
   }
 
-  void SchedulingContext::tryRunUser()
+  ISchedulable* SchedulingContext::tryRunUser()
   {
     MLOG_DETAIL(mlog::sched, "tryRunUser");
     ASSERT(&getLocalPlace() == home);
@@ -120,14 +120,15 @@ namespace mythos {
     handle_t* const removed = reinterpret_cast<handle_t*>(REMOVED);
     while (true) {
       if (current != nullptr && current != removed && current->get()->isReady()) {
-        current->get()->resume(); // will not return if successful, otherwise no longer ready
+        //current->get()->resume(); // will not return if successful, otherwise no longer ready
+        return current->get();
         // replace and retry
       } else {
         handle_t* next = readyQueue.pull();
         while (next != nullptr && !next->get()->isReady()) next = readyQueue.pull();
         if (current == nullptr && next == nullptr) {
           // go sleeping because we don't have anything to run
-          return;
+          return nullptr;
         }
         // next line is the only one writing nullptr to current_ec
         if (current_ec.compare_exchange_strong(current, next)) continue; // retry with next

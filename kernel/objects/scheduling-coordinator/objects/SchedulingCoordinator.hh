@@ -25,50 +25,56 @@
  */
 #pragma once
 
+
 #include "cpu/CoreLocal.hh"
-#include <atomic>
+#include "boot/mlog.hh"
+#include "objects/ISchedulable.hh"
 
 namespace mythos {
-  namespace cpu {
-    struct ThreadState;
-  } // namespace cpu;
 
-  class ISchedulable
-  {
-  public:
-    virtual ~ISchedulable() {}
+class SchedulingCoordinator;
+extern CoreLocal<SchedulingCoordinator*> localCoordinator_ KERNEL_CLM_HOT;
 
-    /** Checks if the Execution Context can be loaded and resumed currently.
-     * This can be used to avoid loading ECs that are not executable anyway.
-     * The EC's state can change concurrently but the actual resume() will solve this.
-     */
-    virtual bool isReady() const = 0;
+/**
+ * Class coordinates between Place(kernel task scheduler), SchedulingContext(system thread scheduler),
+ * ExecutionContext (system thread) and the decision to go to sleep. Different policies of sleeping can be chosen.
+ */
+class SchedulingCoordinator {
 
-    /** tries to switch to user-mode execution if there is no reason
-     * to be blocked and return otherwise.
-     *
-     * We do not check if the loaded EC is runnable. Instead just call
-     * resume() and it will run if possible. In that case control does
-     * not return from this function. Otherwise, the call will return.
-     */
-    virtual void resume() = 0;
-
-    virtual bool prepareResume() = 0;
-
-    virtual void doResume() = 0;
-
-    virtual void handleTrap(cpu::ThreadState* ctx) = 0;
-
-    virtual void handleSyscall(cpu::ThreadState* ctx) = 0;
-
-    virtual void unload() = 0;
-
-    virtual void semaphoreNotify() = 0;
+  enum Policy {
+    SLEEP = 0,
+    SPIN  = 1,
   };
 
-  extern CoreLocal<std::atomic<ISchedulable*>> current_ec KERNEL_CLM_HOT;
+public:
+  NORETURN void runUser() {
+    switch (policy) {
+      case SLEEP : runSleep();
+      case SPIN  : runSpin();
+      default    : runSleep();
+    }
+  }
 
-  inline void handle_trap(cpu::ThreadState* ctx) { current_ec->load()->handleTrap(ctx); }
-  inline void handle_syscall(cpu::ThreadState* ctx) { current_ec->load()->handleSyscall(ctx); }
+  NORETURN void sleep() {
+    MLOG_DETAIL(mlog::boot, "going to sleep now");
+    mythos::cpu::go_sleeping(); // resets the kernel stack!
+  }
+
+  NORETURN void runSleep();
+  NORETURN void runSpin();
+
+  void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
+    localPlace = p;
+    localSchedulingContext = sc;
+  }
+
+  void setPolicy(Policy p) { policy = p; }
+
+private:
+  mythos::async::Place *localPlace = nullptr;
+  mythos::SchedulingContext *localSchedulingContext = nullptr;
+
+  Policy policy = {SLEEP};
+};
 
 } // namespace mythos

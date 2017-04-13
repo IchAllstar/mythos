@@ -1,3 +1,4 @@
+/* -*- mode:C++; indent-tabs-mode:nil; -*- */
 /* MyThOS: The Many-Threads Operating System
  *
  * Permission is hereby granted, free of charge, to any person
@@ -22,49 +23,46 @@
  *
  * Copyright 2016 Randolf Rotta, Robert Kuban, and contributors, BTU Cottbus-Senftenberg
  */
-#include "async/Place.hh"
 
-#include "cpu/ctrlregs.hh"
+#include "cpu/hwthreadid.hh"
+#include "objects/SchedulingCoordinator.hh"
+#include "objects/mlog.hh"
 
 namespace mythos {
-namespace async {
 
-  Place places[BOOT_MAX_THREADS];
-  CoreLocal<Place*> localPlace_ KERNEL_CLM_HOT; // for DeployHWThread
-
-  void Place::init(size_t apicID)
-  {
-    MLOG_INFO(mlog::async, "init Place", DVAR(this), DVAR(apicID));
-    this->apicID = apicID;
-    this->nestingMonitor = true;
-    this->_cr3 = PhysPtr<void>(cpu::getPageTable());
-    this->queue.tryAcquire();
-  }
-
-  void Place::processTasks()
-  {
-    Tasklet* msg = queue.pull();
-    while (msg != nullptr) {
-      MLOG_DETAIL(mlog::async, this, "run tasklet", msg);
-      msg->run();
-      msg = queue.pull();
+void SchedulingCoordinator::runSleep() {
+  localPlace->processTasks();
+  auto *ec = localSchedulingContext->tryRunUser();
+  if (ec) {
+    if (ec->prepareResume()) {
+      while (not localPlace->releaseKernel()) {
+        localPlace->processTasks();
+        hwthread_pause(50);
+      }
+      ec->doResume(); //does not return (hopefully)
+      MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
     }
   }
+  localPlace->releaseKernel();
+  sleep();
+}
 
-  void Place::setCR3(PhysPtr<void> value)
-  {
-    ASSERT(isLocal());
-    if (_cr3 != value) {
-      _cr3 = value;
-      cpu::loadPageTable(value.physint());
+void SchedulingCoordinator::runSpin() {
+  while (true) {
+    localPlace->enterKernel();
+    localPlace->processTasks();
+    auto *ec = localSchedulingContext->tryRunUser();
+    if (ec) {
+      if (ec->prepareResume()) {
+        while (not localPlace->releaseKernel()) {
+          localPlace->processTasks();
+          hwthread_pause(300);
+        }
+        ec->doResume(); //does not return (hopefully)
+        MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
+      }
     }
   }
+}
 
-  PhysPtr<void> Place::getCR3()
-  {
-    ASSERT(implies(isLocal(), cpu::getPageTable() == _cr3.physint()));
-    return _cr3;
-  }
-
-} // async
-} // mythos
+} // namespace mythos

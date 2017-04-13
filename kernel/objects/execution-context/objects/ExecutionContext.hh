@@ -82,6 +82,8 @@ namespace mythos {
     optional<void> setRegisters(const mythos::protocol::ExecutionContext::Amd64Registers&);
     optional<void> setBaseRegisters(uint64_t fs_base, uint64_t gs_base);
 
+    
+
   public: // INotifiable interface
     void notify(INotifiable::handle_t* event) override;
     void denotify(INotifiable::handle_t* event) override;
@@ -94,6 +96,8 @@ namespace mythos {
     optional<void> syscallInvoke(CapPtr portal, CapPtr dest, uint64_t user);
     void unload() override;
     void semaphoreNotify() override;
+    bool prepareResume() override;
+    void doResume() override;
 
   public: // IPortalUser interface
     optional<CapEntryRef> lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writeable) override;
