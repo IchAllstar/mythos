@@ -464,48 +464,9 @@ namespace mythos {
   }
 
   void ExecutionContext::resume() {
-    if (!isReady()) return;
-    auto prevState = clearFlag(IN_WAIT);
-    MLOG_DETAIL(mlog::ec, "try to resume", DVARhex(prevState));
-    if (prevState & IN_WAIT) {
-      MLOG_DETAIL(mlog::ec, "try to resume from wait state");
-      clearFlag(IS_NOTIFIED); // this is safe because we wake up anyway
-      auto e = notificationQueue.pull();
-      if (e) {
-        auto ev = e->get()->deliver();
-        threadState.rsi = ev.user;
-        threadState.rdi = ev.state;
-      } else {
-        threadState.rsi = 0;
-        threadState.rdi = uint64_t(Error::NO_MESSAGE);
-      }
-      //MLOG_DETAIL(mlog::ec, DVARhex(threadState.rsi), DVAR(threadState.rdi));
+    if (prepareResume()) {
+      doResume();
     }
-
-    // remove myself from the last place's current_ec if still there
-    std::atomic<ISchedulable*>* thisPlace = current_ec.addr();
-    if (lastPlace != nullptr && thisPlace != lastPlace) {
-      ISchedulable* self = this;
-      lastPlace->compare_exchange_strong(self, nullptr);
-    }
-
-    // load own context stuff if someone else was running on this place
-    ISchedulable* prev = thisPlace->load();
-    if (prev != this) {
-      if (prev) prev->unload();
-      TypedCap<IPageMap> as(_as);
-      if (!as) return (void)setFlag(NO_AS); // might have been revoked concurrently
-      cpu::thread_state = &threadState;
-      lastPlace = thisPlace;
-      thisPlace->store(this);
-      auto info = as->getPageMapInfo(as.cap());
-      MLOG_DETAIL(mlog::ec, "load addrspace", DVAR(this), DVARhex(info.table.physint()));
-      getLocalPlace().setCR3(info.table);
-      /// @todo restore FPU and vector state
-    }
-
-    MLOG_INFO(mlog::ec, "resuming", DVAR(this), DVARhex(threadState.rip), DVARhex(threadState.rsp));
-    cpu::return_to_user();
   }
 
   void ExecutionContext::unload()
