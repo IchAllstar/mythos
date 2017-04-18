@@ -25,10 +25,13 @@
  */
 #pragma once
 
-
 #include "cpu/CoreLocal.hh"
+//#include "async/NestedMonitorHome.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/IKernelObject.hh"
+#include "objects/IFactory.hh"
+#include "mythos/protocol/KernelObject.hh"
+#include "mythos/protocol/SchedulingCoordinator.hh"
 #include "boot/mlog.hh"
 
 namespace mythos {
@@ -48,13 +51,20 @@ class SchedulingCoordinator
     SPIN  = 1,
   };
 
-// Interface IKernelObject
+//IKernelObject interface
 public:
   optional<void> deleteCap(Cap self, IDeleter& del) override;
-  optional<void const*> vcast(TypeId id) const override {
-      if (id == TypeId::id<IKernelObject>()) return static_cast<IKernelObject const*>(this);
-      THROW(Error::TYPE_MISMATCH);
-    }
+  void invoke(Tasklet* t, Cap self, IInvocation* msg) override;
+  optional<void const*> vcast(TypeId id) const override;
+
+//protocol implementations
+protected:
+  friend struct protocol::SchedulingCoordinator;
+  Error printMessage(Tasklet *t, Cap self, IInvocation *msg);
+  Error setPolicy(Tasklet *t, Cap self, IInvocation *msg);
+
+  friend struct protocol::KernelObject;
+  Error getDebugInfo(Cap self, IInvocation* msg);
 
 
 // Actual Methods
@@ -80,14 +90,15 @@ public:
     ASSERT(sc != nullptr);
     localPlace = p;
     localSchedulingContext = sc;
+    monitor.setHome(p);
   }
 
-  void setPolicy(Policy p) { policy = p; }
-
 private:
-  LinkedList<IKernelObject*>::Queueable del_handle = {this};
-  async::NestedMonitorDelegating monitor;
+  // kernel object stuff
+  IDeleter::handle_t del_handle = {this};
+  async::NestedMonitorHome monitor;
 
+  // actual stuff
   mythos::async::Place *localPlace = nullptr;
   mythos::SchedulingContext *localSchedulingContext = nullptr;
 

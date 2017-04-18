@@ -1,5 +1,5 @@
 /* -*- mode:C++; indent-tabs-mode:nil; -*- */
-/* MIT License -- MyThOS: The Many-Threads Operating System
+/* MyThOS: The Many-Threads Operating System
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,33 +25,30 @@
  */
 #pragma once
 
-#include <cstdint>
-#include "mythos/InvocationBuf.hh"
-#include "mythos/Error.hh"
+#include "runtime/PortalBase.hh"
+#include "mythos/protocol/SchedulingCoordinator.hh"
+#include "runtime/UntypedMemory.hh"
+#include "mythos/init.hh"
 
 namespace mythos {
 
-  namespace protocol {
+  enum Policy {
+    SLEEP = 0,
+    SPIN  = 1,
+  };
 
-    enum CoreProtocols : uint8_t {
-      KERNEL_OBJECT = 1,
-      UNTYPED_MEMORY,
-      FRAME,
-      PAGEMAP,
-      CAPMAP,
-      EXECUTION_CONTEXT,
-      PORTAL,
-      EXAMPLE,
-      SCHEDULING_COORDINATOR,
-      CPUDRIVERKNC,
-    };
+  class SchedulingCoordinator : public KObject
+  {
+  public:
+    SchedulingCoordinator(CapPtr cap) : KObject(cap) {}
 
-  } // namespace protocol
+    PortalFuture<void> printMessage(PortalLock pr, char const* str, size_t bytes) {
+      return pr.invoke<protocol::SchedulingCoordinator::PrintMessage>(_cap, str, bytes);
+    }
 
-enum MappingRequest : uint8_t {
-  MAPPING_PROPERTIES,
-  MAP_FRAME,
-  MAP_TABLE,
-};
+    PortalFuture<void> setPolicy(PortalLock pr, size_t policy) {
+      return pr.invoke<protocol::SchedulingCoordinator::SpinPolicy>(_cap, policy);
+    }
+  };
 
 } // namespace mythos
