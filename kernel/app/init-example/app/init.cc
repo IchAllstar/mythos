@@ -35,6 +35,7 @@
 #include "runtime/PageMap.hh"
 #include "runtime/UntypedMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
+#include "runtime/SchedulingCoordinator.hh"
 #include "app/mlog.hh"
 #include <cstdint>
 #include "util/optional.hh"
@@ -78,6 +79,18 @@ void test_Example()
   ASSERT(capAlloc.free(example,pl));
   // pl.release(); // implicit by PortalLock's destructor
   MLOG_ERROR(mlog::app, "test_Example end");
+}
+
+void test_SchedulingCoordinator() {
+  char const obj[] = "hello coordinator";
+  MLOG_ERROR(mlog::app, "test_Coordinator begin");
+
+  mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
+  mythos::SchedulingCoordinator coord(mythos::init::SCHEDULING_COORDINATOR_START);
+  ASSERT(coord.printMessage(pl, obj,sizeof(obj)-1).wait());
+  ASSERT(coord.setPolicy(pl, mythos::SPIN).wait());
+  ASSERT(coord.printMessage(pl, obj,sizeof(obj)-1).wait());
+  MLOG_ERROR(mlog::app, "test_Coordinator end");
 }
 
 void test_Portal()
@@ -146,6 +159,7 @@ int main()
   test_float();
   test_Example();
   test_Portal();
+  test_SchedulingCoordinator();
 
   {
     mythos::PortalLock pl(portal); // future access will fail if the portal is in use already

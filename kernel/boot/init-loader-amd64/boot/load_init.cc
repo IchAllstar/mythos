@@ -40,6 +40,7 @@
 #include "objects/ExecutionContext.hh"
 #include "objects/SchedulingContext.hh"
 #include "objects/Portal.hh"
+#include "objects/SchedulingCoordinator.hh"
 #include "objects/Example.hh"
 #include "boot/mlog.hh"
 #include "boot/memory-root.hh"
@@ -184,7 +185,12 @@ optional<void> InitLoader::initCSpace()
     auto res = csSet(CapPtr(SCHEDULERS_START+i), boot::getScheduler(cpu::enumerateHwThreadID(i)));
     if (!res) RETHROW(res);
   }
-
+  
+  MLOG_INFO(mlog::boot, "... create scheduling coordinator caps in caps", SCHEDULING_COORDINATOR_START, "till", SCHEDULING_COORDINATOR_START+cpu::hwThreadCount()-1);
+  for (size_t i = 0; i < cpu::hwThreadCount(); ++i) {
+    auto res = csSet(CapPtr(SCHEDULING_COORDINATOR_START+i), boot::getSchedulingCoordinator(cpu::enumerateHwThreadID(i)));
+    if (!res) RETHROW(res);
+  }
   initLoaderEvent.trigger_after(*this);
 
   RETURN(Error::SUCCESS);
