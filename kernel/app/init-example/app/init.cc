@@ -30,6 +30,10 @@ mythos::UntypedMemory kmem(mythos::init::UM);
 // Benchmark Parameter
 constexpr uint64_t REPETITIONS = 10;
 
+// WAKEUP HWT BENCHMARKS
+uint64_t hardware_threads = 4;
+uint64_t wakeup_repetitions = 10;
+
 // PING PONG BENCHMARK PARAMETER
 uint64_t thread1   = 1;
 uint64_t thread2   = 3;
@@ -58,21 +62,6 @@ uint64_t getTime() {
   asm volatile("rdtsc":"=a"(lo), "=d"(hi));
   return ((uint64_t)lo) | ( ((uint64_t)hi) << 32);
 }
-
-struct CapAlloc {
-  CapAlloc(mythos::CapPtr cap) : cap(cap) {}
-  mythos::CapPtr alloc() { return cap++; }
-  mythos::CapPtr cap;
-} caps(mythos::init::APP_CAP_START);
-
-typedef struct thread {
-  CapPtr ec_cap;
-  CapPtr sc_cap;
-  CapPtr portal_cap;
-  CapPtr frame_cap;
-  void *tos;
-} thread;
-thread thread_array[MAX_HARDWARE_THREADS];
 
 /**
  *
@@ -163,11 +152,11 @@ void benchmark_wakeup_hwts() {
   };
   thread_manager test(fun);
 
-  for (uint64_t i = 1; i < HARDWARE_THREADS; i++) {
+  for (uint64_t i = 1; i < hardware_threads; i++) {
     test.create_thread(i, (void*)i, portal);
   }
-  for (uint64_t number = 1; number < HARDWARE_THREADS; number++) {
-    for (uint64_t repetitions = 0; repetitions < REPETITIONS; repetitions++) {
+  for (uint64_t number = 1; number < hardware_threads; number++) {
+    for (uint64_t repetitions = 0; repetitions < wakeup_repetitions; repetitions++) {
       start = getTime();
       for (uint64_t i = 1; i <= number; i++) {
         mythos::syscall_notify(mythos::init::APP_CAP_START + i);
@@ -176,99 +165,12 @@ void benchmark_wakeup_hwts() {
       while (acknowledges != number) {};
       end = getTime();
       acknowledges = 0;
-      MLOG_ERROR(mlog::app, number, "start - end, middle - end", end - start, end - middle);
+      //MLOG_ERROR(mlog::app, number, "start - end, middle - end", end - start, end - middle);
+      MLOG_ERROR(mlog::app, number, end - start);
     }
   }
 }
 
-/**
- * Benchmark recursive threads
- */
-/*
-/// message structure to give to thread
-struct thread_msg {
-  uint32_t start_id;
-  uint32_t dest_id;
-
-  thread_msg(uint32_t start_id_, uint32_t dest_id_)
-    :start_id(start_id_), dest_id(dest_id_) {
-  }
-
-  thread_msg(void *data) {
-    start_id = (uint32_t)(((uint64_t)data) >> 32);
-    dest_id = (uint64_t)(data);
-  }
-
-  void* to_void() {
-    uint64_t s = start_id;
-    uint64_t d = dest_id;
-    uint64_t ret = (s << 32) | dest_id;
-    return (void*)ret;
-  }
-};
-
-// defines if a thread splits the creation of its threads or creates them
-// itself
-constexpr uint64_t  NO_RECURSE = 10;
-
-// defines how many  partition the range will be split into
-constexpr uint64_t SPLIT_INTO = 2;
-void* thread_func_recursive(void* ctx) {
-  thread_msg msg(ctx);
-
-  //MLOG_ERROR(mlog::app, "START " , msg.start_id, " END ", msg.dest_id, " HEX ", DVARhex(ctx));
-  thread_manager mng(&thread_func_recursive);
-  mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+(uint64_t)msg.start_id)<<21));
-  mythos::Portal portal(PORTAL_CAP_START + msg.start_id, ib);
-  mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(portal);
-
-  uint64_t thread_count = msg.dest_id - msg.start_id;
-
-  if (thread_count > NO_RECURSE) { //split and recurse
-    MLOG_ERROR(mlog::app, "RECURSE", DVAR(msg.start_id), DVAR(msg.dest_id));
-    uint64_t split_size = thread_count / SPLIT_INTO;
-    uint64_t counter = msg.start_id + 1;
-    while (counter <= msg.dest_id) {
-      uint64_t dest = (counter + split_size > msg.dest_id) ? msg.dest_id : counter + split_size;
-      MLOG_ERROR(mlog::app, "Create thread", counter, " responsible for " , counter, " to " , dest);
-      mng.create_thread(counter, thread_msg(counter, dest).to_void(), res1);
-      counter += split_size + 1;
-    }
-
-  } else { // directly create the thread_count threads
-    //MLOG_ERROR(mlog::app, "NO RECURSE",DVAR(msg.start_id), DVAR(thread_count));
-    for (uint64_t i = 1; i < thread_count + 1; i++) {
-      //MLOG_ERROR(mlog::app, "Create", DVAR(msg.start_id + 1));
-      mng.create_thread(msg.start_id + i, thread_msg(msg.start_id+i, msg.start_id+i).to_void(), res1);
-    }
-  }
-
-  //actual task after creation
-  acknowledges.fetch_add(1);
-}
-
-void benchmark_wakeup_recursive() {
-  uint64_t start, end;
-  thread_manager mng(&thread_func_recursive);
-  mythos::PortalFutureRef<void> res1 = mythos::PortalFutureRef<void>(portal);
-
-  for (uint64_t number = 90; number < HARDWARE_THREADS; number++) {
-    //MLOG_ERROR(mlog::app, "Round", number);
-    for (uint64_t repetitions = 0; repetitions < REPETITIONS; repetitions++) {
-      thread_msg msg(1, number);
-      start = getTime();
-      mng.create_thread(1, msg.to_void(), res1);
-      while(acknowledges != number) {};
-      end = getTime();
-      acknowledges = 0;
-      MLOG_ERROR(mlog::app, "HWT:", number, end - start);
-      for (uint64_t i = 0; i < number; i++) {
-        mng.delete_thread(i+1, res1);
-      }
-    }
-  }
-}
-*/
 
 /**
  *
@@ -381,55 +283,10 @@ void benchmark_ping_pong() {
   mythos::syscall_notify(mythos::init::APP_CAP_START + thread1);
 }
 
-void benchmark_syscall_latencies() {
-  constexpr uint64_t repeat = 1;
-  uint64_t start, middle, end;
-  uint64_t number_of_threads = 3;
-  uint64_t values[repeat * number_of_threads];
-
-  auto fun = [](void *data) -> void* {
-    while (true) {
-      acknowledges++;
-      mythos::ISysretHandler::handle(mythos::syscall_wait());
-    }
-  };
-
-  thread_manager mng(fun);
-
-  for (uint64_t i = 1; i <= number_of_threads; i++) {
-    mng.create_thread(i, (void*)i, portal);
-  }
-
-  while (acknowledges != number_of_threads) {}
-  acknowledges = 0;
-
-
-  for (int j = 0; j < repeat; j++) {
-
-    for (uint64_t i = 1; i <= number_of_threads; i++) {
-      start = getTime();
-      // one notify without sleeping ~ 3500 cycles -> 10 notifies 35000
-      // one notify with sleeping ~100000 cycles (because IPI) -> 10 notifies 1000000
-      mythos::syscall_notify(mythos::init::APP_CAP_START + i);
-      while (acknowledges != i) {}
-      end = getTime();
-      values[i - 1] = end - start;
-    }
-    acknowledges = 0;
-    //MLOG_ERROR(mlog::app,j, end - start);
-  }
-
-  for (uint64_t i = 0; i < number_of_threads; i++) {
-    MLOG_ERROR(mlog::app, i, values[i]);
-  }
-}
-
 void benchmarks() {
-  //benchmark_wakeup_hwts();
-  //benchmark_wakeup_recursive();
+  benchmark_wakeup_hwts();
   //benchmark_kernel_object_access();
-  benchmark_ping_pong();
-  //benchmark_syscall_latencies();
+  //benchmark_ping_pong();
 }
 
 int main()
