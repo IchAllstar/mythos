@@ -52,7 +52,7 @@ namespace mythos {
     extern CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
 
     extern SchedulingCoordinator coordinators[BOOT_MAX_THREADS];
-    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM;
+    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM_HOT;
 
     SchedulingContext& getScheduler(size_t index) { return schedulers[index]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler; }
@@ -109,8 +109,9 @@ struct DeployHWThread
     getLocalScheduler().init(&async::places[apicID]);
 
     localSchedulingCoordinator_.set(&getSchedulingCoordinator(apicID));
-    getLocalSchedulingCoordinator().init(&async::places[apicID], &getLocalScheduler());
+    getLocalSchedulingCoordinator().init(&async::places[apicID], &getScheduler(apicID));
 
+    MLOG_ERROR(mlog::boot, "Finished init");
     Plugin::initPluginsOnThread(apicID);
   }
 

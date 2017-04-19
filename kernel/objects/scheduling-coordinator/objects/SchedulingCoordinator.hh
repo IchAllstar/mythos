@@ -25,8 +25,8 @@
  */
 #pragma once
 
+#include "async/NestedMonitorDelegating.hh"
 #include "cpu/CoreLocal.hh"
-//#include "async/NestedMonitorHome.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/IKernelObject.hh"
 #include "objects/IFactory.hh"
@@ -35,9 +35,6 @@
 #include "boot/mlog.hh"
 
 namespace mythos {
-
-class SchedulingCoordinator;
-extern CoreLocal<SchedulingCoordinator*> localCoordinator_ KERNEL_CLM_HOT;
 
 /**
  * Class coordinates between Place(kernel task scheduler), SchedulingContext(system thread scheduler),
@@ -86,6 +83,7 @@ public:
   NORETURN void runSpin();
 
   void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
+    //mlogsc.error("init", p , sc);
     ASSERT(p != nullptr);
     ASSERT(sc != nullptr);
     localPlace = p;
@@ -96,7 +94,7 @@ public:
 private:
   // kernel object stuff
   IDeleter::handle_t del_handle = {this};
-  async::NestedMonitorHome monitor;
+  async::NestedMonitorDelegating monitor;
 
   // actual stuff
   mythos::async::Place *localPlace = nullptr;

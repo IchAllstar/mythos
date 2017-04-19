@@ -107,21 +107,23 @@ void SchedulingCoordinator::runSleep() {
 }
 
 void SchedulingCoordinator::runSpin() {
-  while (true) {
+  /*while (true) {
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
     if (ec) {
       if (ec->prepareResume()) {
         while (not localPlace->releaseKernel()) {
+          MLOG_DETAIL(mlog::boot, "Could not release kernel");
           localPlace->processTasks();
-          hwthread_pause(300);
+          // pause seems to be very slow on qemu !!
+          //hwthread_pause(1);
         }
         ec->doResume(); //does not return (hopefully)
         MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
       }
     }
-  }
+  }*/
 }
 
 } // namespace mythos
