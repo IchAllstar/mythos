@@ -33,7 +33,7 @@ constexpr uint64_t REPETITIONS = 10;
 // PING PONG BENCHMARK PARAMETER
 uint64_t thread1   = 1;
 uint64_t thread2   = 3;
-Policy   policy    = {Policy::SPIN};
+Policy   policy    = {Policy::SLEEP};
 uint64_t pingPongs = 100;
 
 
@@ -338,7 +338,7 @@ void benchmark_kernel_object_access() {
  *
  */
 void* thread_ping_pong(void* ctx) {
-  //MLOG_ERROR(mlog::app, "started thread", ctx);
+  MLOG_ERROR(mlog::app, "started thread", ctx);
   mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11 + (uint64_t)ctx) << 21));
   mythos::Portal portal(PORTAL_CAP_START + (uint64_t)ctx, ib);
   uint64_t start, end;
@@ -357,6 +357,7 @@ void* thread_ping_pong(void* ctx) {
     end = getTime();
     values[i] = end - start;
   }
+  MLOG_ERROR(mlog::app, "finished", ctx);
 
   if (id != thread1) {
     return (void*)0;

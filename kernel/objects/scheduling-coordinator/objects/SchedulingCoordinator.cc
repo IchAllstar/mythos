@@ -96,7 +96,7 @@ void SchedulingCoordinator::runSleep() {
     if (ec->prepareResume()) {
       while (not localPlace->releaseKernel()) {
         localPlace->processTasks();
-        hwthread_pause(50);
+        //hwthread_pause(1);
       }
       ec->doResume(); //does not return (hopefully)
       MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
@@ -107,7 +107,7 @@ void SchedulingCoordinator::runSleep() {
 }
 
 void SchedulingCoordinator::runSpin() {
-  /*while (true) {
+  while (true) {
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
@@ -123,7 +123,7 @@ void SchedulingCoordinator::runSpin() {
         MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
       }
     }
-  }*/
+  }
 }
 
 } // namespace mythos
