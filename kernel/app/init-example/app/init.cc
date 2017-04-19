@@ -240,7 +240,6 @@ void benchmark_kernel_object_access() {
  *
  */
 void* thread_ping_pong(void* ctx) {
-  MLOG_ERROR(mlog::app, "started thread", ctx);
   mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11 + (uint64_t)ctx) << 21));
   mythos::Portal portal(PORTAL_CAP_START + (uint64_t)ctx, ib);
   uint64_t start, end;
@@ -259,7 +258,6 @@ void* thread_ping_pong(void* ctx) {
     end = getTime();
     values[i] = end - start;
   }
-  MLOG_ERROR(mlog::app, "finished", ctx);
 
   if (id != thread1) {
     return (void*)0;
@@ -284,9 +282,9 @@ void benchmark_ping_pong() {
 }
 
 void benchmarks() {
-  benchmark_wakeup_hwts();
+  //benchmark_wakeup_hwts();
   //benchmark_kernel_object_access();
-  //benchmark_ping_pong();
+  benchmark_ping_pong();
 }
 
 int main()

@@ -25,7 +25,7 @@
  */
 #pragma once
 
-#include "async/NestedMonitorDelegating.hh"
+#include "async/NestedMonitorHome.hh"
 #include "cpu/CoreLocal.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/IKernelObject.hh"
@@ -94,7 +94,7 @@ public:
 private:
   // kernel object stuff
   IDeleter::handle_t del_handle = {this};
-  async::NestedMonitorDelegating monitor;
+  async::NestedMonitorHome monitor;
 
   // actual stuff
   mythos::async::Place *localPlace = nullptr;
