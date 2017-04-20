@@ -27,17 +27,18 @@ mythos::CapMap myCS(mythos::init::CSPACE);
 mythos::PageMap myAS(mythos::init::PML4);
 mythos::UntypedMemory kmem(mythos::init::UM);
 
-// Benchmark Parameter
+// generic Benchmark Parameter
 constexpr uint64_t REPETITIONS = 10;
+Policy   policy    = {Policy::SLEEP};
 
 // WAKEUP HWT BENCHMARKS
-uint64_t hardware_threads = 4;
-uint64_t wakeup_repetitions = 10;
+uint64_t wakeup_repetitions = 100;
+uint64_t wakeup_from = 1;
+uint64_t wakeup_to   = 101;
 
 // PING PONG BENCHMARK PARAMETER
 uint64_t thread1   = 1;
 uint64_t thread2   = 3;
-Policy   policy    = {Policy::SLEEP};
 uint64_t pingPongs = 100;
 
 
@@ -141,7 +142,7 @@ private:
  */
 void benchmark_wakeup_hwts() {
   uint64_t time = 0;
-  uint64_t start, middle, end;
+  uint64_t start, end;
   auto fun = [](void *data) -> void* {
     while (true) {
       //MLOG_ERROR(mlog::app, "WAIT");
@@ -150,24 +151,52 @@ void benchmark_wakeup_hwts() {
       acknowledges.fetch_add(1);
     }
   };
-  thread_manager test(fun);
 
-  for (uint64_t i = 1; i < hardware_threads; i++) {
+  thread_manager test(fun);
+  mythos::PortalLock pl(portal);
+  policy = Policy::SLEEP;
+  for (uint64_t i = wakeup_from; i < wakeup_to; i++) {
+    mythos::SchedulingCoordinator sc(mythos::init::SCHEDULING_COORDINATOR_START + i);
+    sc.setPolicy(pl, policy).wait();
+  }
+  pl.release();
+
+  for (uint64_t i = wakeup_from; i < wakeup_to; i++) {
     test.create_thread(i, (void*)i, portal);
   }
-  for (uint64_t number = 1; number < hardware_threads; number++) {
-    for (uint64_t repetitions = 0; repetitions < wakeup_repetitions; repetitions++) {
-      start = getTime();
-      for (uint64_t i = 1; i <= number; i++) {
-        mythos::syscall_notify(mythos::init::APP_CAP_START + i);
-      }
-      middle = getTime();
-      while (acknowledges != number) {};
-      end = getTime();
-      acknowledges = 0;
-      //MLOG_ERROR(mlog::app, number, "start - end, middle - end", end - start, end - middle);
-      MLOG_ERROR(mlog::app, number, end - start);
+
+  MLOG_ERROR(mlog::app, "NEW PLOT");
+  MLOG_ERROR(mlog::app, "Wakeup", wakeup_to - wakeup_from,"HWTs repeating; nth Repetition;Cycles");
+  MLOG_ERROR(mlog::app, "SLEEP Policy");
+  for (uint64_t j = 0; j < wakeup_repetitions; j++) {
+    start = getTime();
+    for (uint64_t i = wakeup_from; i < wakeup_to; i++) {
+      mythos::syscall_notify(mythos::init::APP_CAP_START + i);
     }
+    while (acknowledges != wakeup_to - wakeup_from) {};
+    end = getTime();
+    acknowledges = 0;
+    MLOG_ERROR(mlog::app, j, end - start);
+  }
+
+  mythos::PortalLock pl2(portal);
+  policy = Policy::SPIN;
+  for (uint64_t i = wakeup_from; i < wakeup_to; i++) {
+    mythos::SchedulingCoordinator sc(mythos::init::SCHEDULING_COORDINATOR_START + i);
+    sc.setPolicy(pl2, policy).wait();
+  }
+  pl.release();
+  MLOG_ERROR(mlog::app, "NEW DATA");
+  MLOG_ERROR(mlog::app, "SPIN Policy");
+  for (uint64_t j = 0; j < wakeup_repetitions; j++) {
+    start = getTime();
+    for (uint64_t i = wakeup_from; i < wakeup_to; i++) {
+      mythos::syscall_notify(mythos::init::APP_CAP_START + i);
+    }
+    while (acknowledges != wakeup_to - wakeup_from) {};
+    end = getTime();
+    acknowledges = 0;
+    MLOG_ERROR(mlog::app, j, end - start);
   }
 }
 
@@ -248,36 +277,52 @@ void* thread_ping_pong(void* ctx) {
   uint64_t other_id = (id == thread1) ? thread2 : thread1;
 
   uint64_t values[pingPongs];
+  while(true) {
+    for (uint64_t i = 0; i < pingPongs; i++) {
+      start = getTime();
+      //MLOG_ERROR(mlog::app, "Wait",id);
+      mythos::ISysretHandler::handle(mythos::syscall_wait());
+      //MLOG_ERROR(mlog::app, "Notify",id);
+      mythos::syscall_notify(mythos::init::APP_CAP_START + other_id);
+      end = getTime();
+      values[i] = end - start;
+    }
 
-  for (uint64_t i = 0; i < pingPongs; i++) {
-    start = getTime();
-    //MLOG_ERROR(mlog::app, "Wait",id);
-    mythos::ISysretHandler::handle(mythos::syscall_wait());
-    //MLOG_ERROR(mlog::app, "Notify",id);
-    mythos::syscall_notify(mythos::init::APP_CAP_START + other_id);
-    end = getTime();
-    values[i] = end - start;
-  }
-
-  if (id != thread1) {
-    return (void*)0;
-  }
-  for (int i = 0; i < pingPongs; i++) {
-    MLOG_ERROR(mlog::app, i, values[i]);
+    if (id == thread1) {
+      for (int i = 1; i < pingPongs; i++) {
+        MLOG_ERROR(mlog::app, i, values[i]);
+      }
+      mythos::ISysretHandler::handle(mythos::syscall_wait());
+    }
+    acknowledges.fetch_add(1);
   }
 }
 
 void benchmark_ping_pong() {
+  MLOG_ERROR(mlog::app, "NEW PLOT");
+  MLOG_ERROR(mlog::app, "Ping Pong Benchmark; Ping Pong; Cycles");
+  MLOG_ERROR(mlog::app, "SLEEP Policy");
   thread_manager mng(&thread_ping_pong);
   mythos::SchedulingCoordinator sc1(mythos::init::SCHEDULING_COORDINATOR_START + thread1);
   mythos::SchedulingCoordinator sc2(mythos::init::SCHEDULING_COORDINATOR_START + thread2);
   mythos::PortalLock pl(portal);
+  acknowledges = 0;
 
+  policy = Policy::SLEEP;
   ASSERT(sc1.setPolicy(pl, policy).wait());
   ASSERT(sc2.setPolicy(pl, policy).wait());
   pl.release();
   mng.create_thread(thread1, (void*)thread1, portal);
   mng.create_thread(thread2, (void*)thread2, portal);
+  mythos::syscall_notify(mythos::init::APP_CAP_START + thread1);
+  while(acknowledges != 2) {}
+
+  MLOG_ERROR(mlog::app, "NEW DATA");
+  MLOG_ERROR(mlog::app, "SPIN Policy");
+  mythos::PortalLock pl2(portal);
+  policy = Policy::SPIN;
+  ASSERT(sc1.setPolicy(pl2, policy).wait());
+  ASSERT(sc2.setPolicy(pl2, policy).wait());
   mythos::syscall_notify(mythos::init::APP_CAP_START + thread1);
 }
 
@@ -289,13 +334,7 @@ void benchmarks() {
 
 int main()
 {
-  char const begin[] = "Starting the benchmarks";
-  char const end[] = "Benchmarks are done";
-  //mythos::syscall_debug(begin, sizeof(begin) - 1);
-
   benchmarks();
-
-  mythos::syscall_debug(end, sizeof(end) - 1);
 
   for (volatile uint64_t i = 0; i < 10000; i++) {
     for (volatile uint64_t ii = 0; ii < 100000; ii++) {

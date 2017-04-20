@@ -111,7 +111,6 @@ struct DeployHWThread
     localSchedulingCoordinator_.set(&getSchedulingCoordinator(apicID));
     getLocalSchedulingCoordinator().init(&async::places[apicID], &getScheduler(apicID));
 
-    MLOG_ERROR(mlog::boot, "Finished init");
     Plugin::initPluginsOnThread(apicID);
   }
 

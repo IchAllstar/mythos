@@ -65,9 +65,12 @@ class file_logger {
         {
           std::cerr << "Error creating directory for logs.\n";
         }
+        s << "/all";
+        all = std::unique_ptr<std::ofstream>(new std::ofstream(s.str(), std::ios::out | std::ios::trunc));
       }
 
     ~file_logger() {
+      all->reset();
       for (auto &c : files) {
         c.second.reset();
       }
@@ -88,11 +91,13 @@ class file_logger {
           return;
         }
       }
+      *all << msg << "\n";
       *filestream << msg << "\n";
     }
 
   private:
     const std::string directory;
+    std::unique_ptr<std::ofstream> all;
     std::unordered_map<uint16_t, std::unique_ptr<std::ofstream>> files;
 };
 
