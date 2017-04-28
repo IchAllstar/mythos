@@ -27,7 +27,7 @@
 
 #include "runtime/PortalBase.hh"
 #include "mythos/protocol/SchedulingCoordinator.hh"
-#include "runtime/UntypedMemory.hh"
+#include "runtime/KernelMemory.hh"
 #include "mythos/init.hh"
 
 namespace mythos {
