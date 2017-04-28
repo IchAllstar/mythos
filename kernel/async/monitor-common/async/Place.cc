@@ -47,7 +47,7 @@ namespace async {
     while (true) {
       auto msg = queue.pull();
       if (msg != nullptr) msg->run();
-      else if (queue.tryRelease()) break;
+      else break;
     }
     hwthread_pollpause(); /// @todo wrong place, no polling here!
     // this assertion races with concurrent push operations
