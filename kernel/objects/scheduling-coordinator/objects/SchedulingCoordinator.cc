@@ -40,7 +40,7 @@ optional<void> SchedulingCoordinator::deleteCap(Cap self, IDeleter& del) {
 }
 
 optional<void const*> SchedulingCoordinator::vcast(TypeId id) const {
-    if (id == TypeId::id<IKernelObject>()) return static_cast<IKernelObject const*>(this);
+    if (id == typeId<IKernelObject>()) return static_cast<IKernelObject const*>(this);
     THROW(Error::TYPE_MISMATCH);
   }
 
@@ -107,7 +107,7 @@ void SchedulingCoordinator::runSleep() {
 }
 
 void SchedulingCoordinator::runSpin() {
-  /*while (true) {
+  while (true) {
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
@@ -123,7 +123,7 @@ void SchedulingCoordinator::runSpin() {
         MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
       }
     }
-  }*/
+  }
 }
 
 } // namespace mythos

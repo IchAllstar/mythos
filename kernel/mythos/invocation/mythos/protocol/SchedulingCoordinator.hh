@@ -27,7 +27,7 @@
 
 #include <cstring>
 #include "mythos/protocol/common.hh"
-#include "mythos/protocol/UntypedMemory.hh"
+#include "mythos/protocol/KernelMemory.hh"
 
 namespace mythos {
   namespace protocol {
