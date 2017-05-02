@@ -90,6 +90,7 @@ Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 // actual functionality
 
 void SchedulingCoordinator::runSleep() {
+  MLOG_ERROR(mlog::boot, "here");
   localPlace->processTasks(); // executes all available kernel tasks
   auto *ec = localSchedulingContext->tryRunUser();
   if (ec) {
@@ -108,6 +109,7 @@ void SchedulingCoordinator::runSleep() {
 
 void SchedulingCoordinator::runSpin() {
   while (true) {
+MLOG_ERROR(mlog::boot, "spin");
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
