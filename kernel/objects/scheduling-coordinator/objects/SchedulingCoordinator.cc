@@ -90,26 +90,26 @@ Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 // actual functionality
 
 void SchedulingCoordinator::runSleep() {
-  MLOG_ERROR(mlog::boot, "here");
   localPlace->processTasks(); // executes all available kernel tasks
   auto *ec = localSchedulingContext->tryRunUser();
   if (ec) {
     if (ec->prepareResume()) {
       while (not localPlace->releaseKernel()) {
         localPlace->processTasks();
-        hwthread_pause(50);
+        //hwthread_pause(50);
       }
       ec->doResume(); //does not return (hopefully)
       MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
     }
   }
-  localPlace->releaseKernel();
+  while (not localPlace->releaseKernel()) {
+    localPlace->processTasks();
+  }
   sleep();
 }
 
 void SchedulingCoordinator::runSpin() {
   while (true) {
-MLOG_ERROR(mlog::boot, "spin");
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
