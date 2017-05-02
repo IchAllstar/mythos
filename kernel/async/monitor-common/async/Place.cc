@@ -52,7 +52,7 @@ namespace async {
     hwthread_pollpause(); /// @todo wrong place, no polling here!
     // this assertion races with concurrent push operations
     //OOPS(!queue.isLocked());
-    nestingMonitor.store(false); // release?
+    //nestingMonitor.store(false); // release?
   }
 
   void Place::setCR3(PhysPtr<void> value)
