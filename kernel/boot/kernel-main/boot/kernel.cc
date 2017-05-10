@@ -63,6 +63,15 @@ uint64_t mythos::tscdelay_MHz=2000;
 NORETURN void entry_bsp() SYMBOL("entry_bsp");
 NORETURN void entry_ap(size_t id) SYMBOL("entry_ap");
 
+std::atomic<bool> flag {false};
+uint64_t last_wakeup = 0;
+
+uint64_t getTime() {
+  uint64_t hi, lo;
+  asm volatile("rdtsc":"=a"(lo), "=d"(hi));
+  return (lo) | ( (hi) << 32);
+}
+
 void entry_bsp()
 {
   mythos::boot::initKernelSpace();
@@ -120,17 +129,24 @@ void mythos::cpu::sleeping_failed()
 void mythos::cpu::syscall_entry_cxx(mythos::cpu::ThreadState* ctx)
 {
   mythos::async::getLocalPlace().enterKernel();
-  MLOG_DETAIL(mlog::boot, "user system call", DVARhex(ctx->rdi), DVARhex(ctx->rsi),
-      DVARhex(ctx->rip), DVARhex(ctx->rsp));
+  MLOG_ERROR(mlog::boot, "user system call", DVARhex(ctx->rdi), DVARhex(ctx->rsi),
+      DVARhex(ctx->rip), DVAR(ctx->rsp), DVAR(getTime()));
+  if (ctx->rdi == 2) {
+    MLOG_ERROR(mlog::boot, "syscall 2");
+  }
   mythos::handle_syscall(ctx);
   runUser();
 }
 
 void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
 {
+  if (ctx->irq == 32) {
+    flag.exchange(true);
+    MLOG_ERROR(mlog::boot, "Changed to true");
+  }
   mythos::async::getLocalPlace().enterKernel();
-  MLOG_DETAIL(mlog::boot, "user interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
-      DVARhex(ctx->rip), DVARhex(ctx->rsp));
+  MLOG_ERROR(mlog::boot, "user interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
+      DVARhex(ctx->rip), DVARhex(ctx->rsp), DVAR(getTime()));
   if (ctx->irq<32) {
     mythos::handle_trap(ctx); // handle traps, exceptions, bugs from user mode
   } else {
@@ -142,8 +158,12 @@ void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
 
 void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
 {
-  MLOG_DETAIL(mlog::boot, "kernel interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
-      DVARhex(ctx->rip), DVARhex(ctx->rsp));
+  if (ctx->irq == 32) {
+    flag.exchange(true);
+    MLOG_ERROR(mlog::boot, "Changed to true");
+  }
+  MLOG_ERROR(mlog::boot, "kernel interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
+      DVARhex(ctx->rip), DVARhex(ctx->rsp), getTime());
   bool wasbug = handle_bugirqs(ctx);
   bool nested = mythos::async::getLocalPlace().enterKernel();
   // initiate irq processing: first kernel bugs

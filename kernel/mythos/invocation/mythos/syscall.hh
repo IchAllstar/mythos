@@ -91,9 +91,9 @@ namespace mythos {
     return syscall(mythos::SYSCALL_POLL, 0, 0, 0);
   }
 
-  inline KEvent syscall_wait()
+  inline KEvent syscall_wait(uint64_t time = 0)
   {
-    return syscall(mythos::SYSCALL_WAIT, 0, 0, 0);
+    return syscall(mythos::SYSCALL_WAIT, time, 0, 0);
   }
 
   NORETURN void syscall_exit(uint64_t rescode=0);

@@ -35,12 +35,17 @@
 #include "async/TaskletQueue.hh"
 #include "cpu/LAPIC.hh"
 
+extern uint64_t getTime();
+extern uint64_t last_wakeup;
+
 namespace mythos {
 namespace async {
 
 class Place;
 extern CoreLocal<Place*> localPlace_ KERNEL_CLM_HOT;
 inline Place& getLocalPlace() { return *localPlace_; }
+
+
 
 /** Local scheduling for a single thread. */
 class Place
@@ -99,7 +104,11 @@ protected:
     queue.pushPrivate(*msg);
   }
 
-  void wakeup() { mythos::lapic.sendIRQ(apicID, 32); }
+  void wakeup() {
+    MLOG_ERROR(mlog::async, "INTERRUPT");
+    last_wakeup = getTime();
+    mythos::lapic.sendIRQ(apicID, 32);
+  }
 
 protected:
   size_t apicID; //< for wakeup signals
@@ -107,6 +116,8 @@ protected:
   TaskletQueueImpl<ChainFIFOBaseAligned> queue; //< for pending tasks
   PhysPtr<void> _cr3;
 };
+
+
 
 /// @todo Should be allocated into local cachelines.
 /// @todo should be moved to the boot/deployment code instead of hardcoding here!
