@@ -64,7 +64,8 @@ NORETURN void entry_bsp() SYMBOL("entry_bsp");
 NORETURN void entry_ap(size_t id) SYMBOL("entry_ap");
 
 std::atomic<bool> flag {false};
-uint64_t last_wakeup = 0;
+uint64_t last_ipi = 0;
+uint64_t after_last_ipi = 0;
 
 uint64_t getTime() {
   uint64_t hi, lo;
@@ -126,27 +127,41 @@ void mythos::cpu::sleeping_failed()
   runUser();
 }
 
+uint64_t a,b,c;
+
 void mythos::cpu::syscall_entry_cxx(mythos::cpu::ThreadState* ctx)
 {
   mythos::async::getLocalPlace().enterKernel();
-  MLOG_ERROR(mlog::boot, "user system call", DVARhex(ctx->rdi), DVARhex(ctx->rsi),
-      DVARhex(ctx->rip), DVAR(ctx->rsp), DVAR(getTime()));
-  if (ctx->rdi == 2) {
-    MLOG_ERROR(mlog::boot, "syscall 2");
+  MLOG_INFO(mlog::boot, "user system call", DVARhex(ctx->rdi), DVARhex(ctx->rsi),
+      DVARhex(ctx->rip), DVAR(ctx->rsp));
+
+  // Benchmark Code
+  if (ctx->rdi == 7) {
+    flag.exchange(false);
+    a = getTime();
+    ASSERT(flag.load() == false);
+    mythos::handle_syscall(ctx);
+    b = getTime();
+    while (flag.load() == false) {}
+    uint64_t c = getTime();
+    MLOG_ERROR(mlog::boot, "b-a", b-a, "c-a", c-a);
+    MLOG_ERROR(mlog::boot, DVAR(a), DVAR(b), DVAR(c), DVAR(last_ipi), DVAR(after_last_ipi));
+  } else {
+    mythos::handle_syscall(ctx);
   }
-  mythos::handle_syscall(ctx);
+
   runUser();
 }
 
 void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
 {
   if (ctx->irq == 32) {
-    flag.exchange(true);
-    MLOG_ERROR(mlog::boot, "Changed to true");
+      bool prev = flag.exchange(true);
+      //MLOG_ERROR(mlog::boot, "Changed to true from", prev);
   }
   mythos::async::getLocalPlace().enterKernel();
-  MLOG_ERROR(mlog::boot, "user interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
-      DVARhex(ctx->rip), DVARhex(ctx->rsp), DVAR(getTime()));
+  MLOG_INFO(mlog::boot, "user interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
+      DVARhex(ctx->rip), DVARhex(ctx->rsp));
   if (ctx->irq<32) {
     mythos::handle_trap(ctx); // handle traps, exceptions, bugs from user mode
   } else {
@@ -159,11 +174,11 @@ void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
 void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
 {
   if (ctx->irq == 32) {
-    flag.exchange(true);
-    MLOG_ERROR(mlog::boot, "Changed to true");
+      bool prev = flag.exchange(true);
+      //MLOG_ERROR(mlog::boot, "Changed to true from", prev);
   }
-  MLOG_ERROR(mlog::boot, "kernel interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
-      DVARhex(ctx->rip), DVARhex(ctx->rsp), getTime());
+  MLOG_INFO(mlog::boot, "kernel interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
+      DVARhex(ctx->rip), DVARhex(ctx->rsp));
   bool wasbug = handle_bugirqs(ctx);
   bool nested = mythos::async::getLocalPlace().enterKernel();
   // initiate irq processing: first kernel bugs

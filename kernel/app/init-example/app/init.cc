@@ -67,14 +67,11 @@ uint64_t getTime() {
 
 void* thread1(void* ctx)
 {
-  MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
-  mythos::ISysretHandler::handle(mythos::syscall_wait(getTime()));
-  MLOG_INFO(mlog::app, "thread resumed from wait", DVAR(ctx));
-  return 0;
-}
+  while (true) {
+    mythos::ISysretHandler::handle(mythos::syscall_wait(getTime()));
+  }
 
-void* thread2(void *ctx) {
-  MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
+  return 0;
 }
 
 struct HostChannel {
@@ -96,15 +93,10 @@ int main()
 
   MLOG_INFO(mlog::app, "test_EC: create ec1");
   mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
-  auto res1 = ec1.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 1,
+  auto res1 = ec1.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 100,
                          thread1stack_top, &thread1, nullptr).wait();
-  TEST(res1);
-  /*
-  MLOG_INFO(mlog::app, "test_EC: create ec2");
-  auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+1,
-                         thread2stack_top, &thread2, nullptr).wait();
-  TEST(res2);
-  */
+  ASSERT(res1);
+
   for (volatile int i=0; i<100000; i++) {
     for (volatile int j=0; j<1000; j++) {}
   }

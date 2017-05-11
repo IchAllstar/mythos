@@ -43,7 +43,7 @@ namespace mythos {
 
   void SchedulingContext::ready(handle_t* ec)
   {
-    MLOG_INFO(mlog::sched, "ready", ec);
+    MLOG_DETAIL(mlog::sched, "ready", ec);
     ASSERT(ec != nullptr);
 
     readyQueue.remove(ec); /// @todo do not need to remove if already on the queue, just do nothing then

@@ -36,7 +36,8 @@
 #include "cpu/LAPIC.hh"
 
 extern uint64_t getTime();
-extern uint64_t last_wakeup;
+extern uint64_t last_ipi;
+extern uint64_t after_last_ipi;
 
 namespace mythos {
 namespace async {
@@ -105,9 +106,9 @@ protected:
   }
 
   void wakeup() {
-    MLOG_ERROR(mlog::async, "INTERRUPT");
-    last_wakeup = getTime();
+    last_ipi = getTime();
     mythos::lapic.sendIRQ(apicID, 32);
+    after_last_ipi = getTime();
   }
 
 protected:
