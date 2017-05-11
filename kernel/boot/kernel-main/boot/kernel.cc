@@ -144,7 +144,7 @@ void mythos::cpu::syscall_entry_cxx(mythos::cpu::ThreadState* ctx)
     b = getTime();
     while (flag.load() == false) {}
     uint64_t c = getTime();
-    MLOG_ERROR(mlog::boot, "b-a", b-a, "c-a", c-a);
+    MLOG_ERROR(mlog::boot, DVAR(b-a), DVAR(c-a), DVAR(after_last_ipi-last_ipi));
     MLOG_ERROR(mlog::boot, DVAR(a), DVAR(b), DVAR(c), DVAR(last_ipi), DVAR(after_last_ipi));
   } else {
     mythos::handle_syscall(ctx);
