@@ -33,99 +33,122 @@ namespace mythos {
 static mlog::Logger<mlog::FilterAny> mlogcoord("SchedulingCoordinator");
 
 optional<void> SchedulingCoordinator::deleteCap(Cap self, IDeleter& del) {
-  if (self.isOriginal()) {
-    del.deleteObject(del_handle);
-  }
-  RETURN(Error::SUCCESS);
+    if (self.isOriginal()) {
+        del.deleteObject(del_handle);
+    }
+    RETURN(Error::SUCCESS);
 }
 
 optional<void const*> SchedulingCoordinator::vcast(TypeId id) const {
     if (id == typeId<IKernelObject>()) return static_cast<IKernelObject const*>(this);
     THROW(Error::TYPE_MISMATCH);
-  }
+}
 
 void SchedulingCoordinator::invoke(Tasklet* t, Cap self, IInvocation* msg)
 {
-  monitor.request(t, [ = ](Tasklet * t) {
-    Error err = Error::NOT_IMPLEMENTED;
-    switch (msg->getProtocol()) {
-      case protocol::KernelObject::proto:
-        err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
-        break;
-      case protocol::SchedulingCoordinator::proto:
-        err = protocol::SchedulingCoordinator::dispatchRequest(this, msg->getMethod(), t, self, msg);
-        break;
-    }
-    if (err != Error::INHIBIT) {
-      msg->replyResponse(err);
-      monitor.requestDone();
-    }
-  } );
+    monitor.request(t, [ = ](Tasklet * t) {
+        Error err = Error::NOT_IMPLEMENTED;
+        switch (msg->getProtocol()) {
+            case protocol::KernelObject::proto:
+                err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
+                break;
+            case protocol::SchedulingCoordinator::proto:
+                err = protocol::SchedulingCoordinator::dispatchRequest(this, msg->getMethod(), t, self, msg);
+                break;
+        }
+        if (err != Error::INHIBIT) {
+            msg->replyResponse(err);
+            monitor.requestDone();
+        }
+    } );
 }
 
 Error SchedulingCoordinator::getDebugInfo(Cap self, IInvocation* msg)
 {
-  return writeDebugInfo("SchedulingCoordinator", self, msg);
+    return writeDebugInfo("SchedulingCoordinator", self, msg);
 }
 
 // usefull protocol implementations
 
 Error SchedulingCoordinator::printMessage(Tasklet*, Cap self, IInvocation* msg)
 {
-  MLOG_INFO(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
-  auto data = msg->getMessage()->cast<protocol::SchedulingCoordinator::PrintMessage>();
-  mlogcoord.error("Actual policy", DVAR(policy), mlog::DebugString(data->message, data->bytes));
-  return Error::SUCCESS;
+    MLOG_INFO(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
+    auto data = msg->getMessage()->cast<protocol::SchedulingCoordinator::PrintMessage>();
+    mlogcoord.error("Actual policy", DVAR(policy), mlog::DebugString(data->message, data->bytes));
+    return Error::SUCCESS;
 }
 
 Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 {
-  MLOG_INFO(mlog::boot, "invoke set policy", DVAR(this), DVAR(self), DVAR(msg));
-  auto data = msg->getMessage()->cast<protocol::SchedulingCoordinator::SpinPolicy>();
-  policy = (Policy)data->policy;
-  return Error::SUCCESS;
+    MLOG_INFO(mlog::boot, "invoke set policy", DVAR(this), DVAR(self), DVAR(msg));
+    auto data = msg->getMessage()->cast<protocol::SchedulingCoordinator::SpinPolicy>();
+    policy = (Policy)data->policy;
+    return Error::SUCCESS;
 }
 
 
 // actual functionality
 
 void SchedulingCoordinator::runSleep() {
-  localPlace->processTasks(); // executes all available kernel tasks
-  auto *ec = localSchedulingContext->tryRunUser();
-  if (ec) {
-    if (ec->prepareResume()) {
-      while (not localPlace->releaseKernel()) {
-        localPlace->processTasks();
-        //hwthread_pause(50);
-      }
-      ec->doResume(); //does not return (hopefully)
-      MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
-    }
-  }
-  while (not localPlace->releaseKernel()) {
-    localPlace->processTasks();
-  }
-  sleep();
-}
-
-void SchedulingCoordinator::runSpin() {
-  while (true) {
-    localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
     if (ec) {
-      if (ec->prepareResume()) {
-        while (not localPlace->releaseKernel()) {
-          MLOG_DETAIL(mlog::boot, "Could not release kernel");
-          localPlace->processTasks();
-          // pause seems to be very slow on qemu !!
-          //hwthread_pause(1);
+        if (ec->prepareResume()) {
+            while (not localPlace->releaseKernel()) {
+                localPlace->processTasks();
+                //hwthread_pause(50);
+            }
+            ec->doResume(); //does not return (hopefully)
+            MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
         }
-        ec->doResume(); //does not return (hopefully)
-        MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
-      }
     }
-  }
+    while (not localPlace->releaseKernel()) {
+        localPlace->processTasks();
+    }
+    sleep();
+}
+
+void SchedulingCoordinator::runSpin() {
+    while (true) {
+        localPlace->enterKernel();
+        localPlace->processTasks(); // executes all available kernel tasks
+        auto *ec = localSchedulingContext->tryRunUser();
+        if (ec) {
+            if (ec->prepareResume()) {
+                while (not localPlace->releaseKernel()) {
+                    MLOG_DETAIL(mlog::boot, "Could not release kernel");
+                    localPlace->processTasks();
+                    // pause seems to be very slow on qemu !!
+                    //hwthread_pause(1);
+                }
+                ec->doResume(); //does not return (hopefully)
+                MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
+            }
+        }
+    }
+}
+
+void SchedulingCoordinator::runGroup() {
+    while (not SLEEP_FLAG) {
+        localPlace->processTasks(); // executes all available kernel tasks
+        auto *ec = localSchedulingContext->tryRunUser();
+        if (ec) {
+            if (ec->prepareResume()) {
+                while (not localPlace->releaseKernel()) {
+                    localPlace->processTasks();
+                    //hwthread_pause(50);
+                }
+                core->sleep_unintent(this);
+                ec->doResume(); //does not return (hopefully)
+                MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
+            }
+        }
+        while (not localPlace->releaseKernel()) {
+            localPlace->processTasks();
+        }
+        core->sleep_intent(this);
+    }
+    sleep();
 }
 
 } // namespace mythos
