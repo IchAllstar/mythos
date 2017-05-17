@@ -97,7 +97,9 @@ public:
    * unlocking was successfull. Hence, the next sender will detect
    * that he has to wakeup this place.
    */
-  void processTasks();
+  int processTasks();
+
+  bool tryProcess();
 
   bool isActive() const { return nestingMonitor.load(std::memory_order_relaxed); }
 
@@ -116,6 +118,7 @@ protected:
   std::atomic<bool> nestingMonitor;
   TaskletQueueImpl<ChainFIFOBaseAligned> queue; //< for pending tasks
   PhysPtr<void> _cr3;
+  TaskletBase *peak {nullptr};
 };
 
 /// @todo Should be allocated into local cachelines.

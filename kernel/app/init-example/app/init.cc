@@ -59,9 +59,9 @@ char* thread2stack_top = threadstack+stacksize;
 
 void* thread_main(void* ctx)
 {
-  MLOG_INFO(mlog::app, "hello thread!", DVAR(ctx));
+  MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
   mythos::ISysretHandler::handle(mythos::syscall_wait());
-  MLOG_INFO(mlog::app, "thread resumed from wait", DVAR(ctx));
+  MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
   return 0;
 }
 
@@ -199,6 +199,6 @@ int main()
   mythos::syscall_notify(ec2.cap());
 
   mythos::syscall_debug(end, sizeof(end)-1);
-
+MLOG_ERROR(mlog::app, "End of Main");
   return 0;
 }

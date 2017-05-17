@@ -129,16 +129,25 @@ void SchedulingCoordinator::runSpin() {
 }
 
 void SchedulingCoordinator::runGroup() {
-    while (not SLEEP_FLAG) {
-        localPlace->processTasks(); // executes all available kernel tasks
+    MLOG_ERROR(mlog::boot, "New Kernel Entry");
+    do {
+        localPlace->enterKernel();
+        if (localPlace->tryProcess()) {
+            MLOG_ERROR(mlog::boot, "New kernel tasks");
+            core->sleep_unintent(this);
+            int i = localPlace->processTasks();
+            if (i) MLOG_ERROR(mlog::boot, "worked at Tasks:", i);
+        }
         auto *ec = localSchedulingContext->tryRunUser();
         if (ec) {
+            MLOG_ERROR(mlog::boot, "Got EC");
             if (ec->prepareResume()) {
-                while (not localPlace->releaseKernel()) {
-                    localPlace->processTasks();
-                    //hwthread_pause(50);
-                }
                 core->sleep_unintent(this);
+                while (not localPlace->releaseKernel()) {
+                    int i = localPlace->processTasks();
+                    if (i) MLOG_ERROR(mlog::boot, "worked at Tasks:", i);
+                }
+                MLOG_ERROR(mlog::boot, "Run EC");
                 ec->doResume(); //does not return (hopefully)
                 MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
             }
@@ -147,7 +156,7 @@ void SchedulingCoordinator::runGroup() {
             localPlace->processTasks();
         }
         core->sleep_intent(this);
-    }
+    } while (not SLEEP_FLAG); // go to sleep if group decides, but looked for tasks before
     sleep();
 }
 
