@@ -41,35 +41,17 @@ namespace async {
     this->queue.tryAcquire();
   }
 
-  bool Place::tryProcess() {
-    ASSERT(peak == nullptr);
-    peak = queue.pull();
-    // without qemu is SUPER slow with GROUP policy in SchedulingCoordinator
-    hwthread_pollpause(); 
-    return peak != nullptr;
-  }
-
-  int Place::processTasks()
+  void Place::processTasks()
   {
-    int i = 0;
-    if (peak != nullptr) {
-      i++;
-      peak->run();
-      peak = nullptr;
-    }
     while (true) {
       auto msg = queue.pull();
-      if (msg != nullptr) {
-        i++;
-        msg->run();
-      } 
+      if (msg != nullptr) msg->run();
       else break;
     }
     hwthread_pollpause(); /// @todo wrong place, no polling here!
     // this assertion races with concurrent push operations
     //OOPS(!queue.isLocked());
     //nestingMonitor.store(false); // release?
-    return i;
   }
 
   void Place::setCR3(PhysPtr<void> value)

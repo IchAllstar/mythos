@@ -46,8 +46,6 @@
 namespace mythos {
   namespace boot {
 
-    static const constexpr size_t HWTHREADS_PER_CORE = 2;
-
     void initAPTrampoline(size_t startIP);
 
     extern SchedulingContext schedulers[BOOT_MAX_THREADS];
@@ -56,14 +54,8 @@ namespace mythos {
     extern SchedulingCoordinator coordinators[BOOT_MAX_THREADS];
     extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM_HOT;
 
-    extern CoreGroup groups[BOOT_MAX_THREADS / HWTHREADS_PER_CORE];
-    extern CoreLocal<CoreGroup*> localGroup KERNEL_CLM_HOT;
-
     SchedulingContext& getScheduler(size_t index) { return schedulers[index]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler; }
-
-    CoreGroup& getCoreGroup(size_t apicID) { return groups[apicID / HWTHREADS_PER_CORE]; }
-    CoreGroup& getLocalCoreGroup() { return *localGroup; }
 
     SchedulingCoordinator& getSchedulingCoordinator(size_t index) { return coordinators[index]; }
     SchedulingCoordinator& getLocalSchedulingCoordinator() { return *localSchedulingCoordinator_; }
@@ -116,12 +108,8 @@ struct DeployHWThread
     localScheduler.set(&getScheduler(apicID));
     getLocalScheduler().init(&async::places[apicID]);
 
-    localGroup.set(&getCoreGroup(apicID));
-
     localSchedulingCoordinator_.set(&getSchedulingCoordinator(apicID));
-    getLocalSchedulingCoordinator().init(&async::places[apicID], &getScheduler(apicID), &getCoreGroup(apicID));
-
-    //localGroup.
+    getLocalSchedulingCoordinator().init(&async::places[apicID], &getScheduler(apicID));
 
     MLOG_ERROR(mlog::boot, "Finished init");
     Plugin::initPluginsOnThread(apicID);
