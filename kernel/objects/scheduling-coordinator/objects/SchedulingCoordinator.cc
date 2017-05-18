@@ -89,6 +89,16 @@ Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 
 // actual functionality
 
+void SchedulingCoordinator::init(mythos::async::Place *p, mythos::SchedulingContext *sc, CoreGroup *core_) {
+        //mlogsc.error("init", p , sc);
+        ASSERT(p != nullptr);
+        ASSERT(sc != nullptr);
+        localPlace = p;
+        localSchedulingContext = sc;
+        core = core_;
+        monitor.setHome(p);
+    }
+
 void SchedulingCoordinator::runSleep() {
     localPlace->processTasks(); // executes all available kernel tasks
     auto *ec = localSchedulingContext->tryRunUser();
@@ -130,6 +140,11 @@ void SchedulingCoordinator::runSpin() {
 
 void SchedulingCoordinator::runGroup() {
     MLOG_ERROR(mlog::boot, "New Kernel Entry");
+    if (core->full()) { // fresh wakeup of core
+        SLEEP_FLAG = false;
+        core->wakeup();
+    }
+    SLEEP_FLAG = false;
     do {
         localPlace->enterKernel();
         if (localPlace->tryProcess()) {

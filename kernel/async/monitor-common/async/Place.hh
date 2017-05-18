@@ -103,6 +103,8 @@ public:
 
   bool isActive() const { return nestingMonitor.load(std::memory_order_relaxed); }
 
+  void wakeup() { MLOG_ERROR(mlog::async, "wakeup", DVAR(apicID)); mythos::lapic.sendIRQ(apicID, 32); }
+
 protected:
   void pushPrivate(TaskletBase* msg) {
     ASSERT(isLocal());
@@ -110,8 +112,6 @@ protected:
     MLOG_DETAIL(mlog::async, this, "push private", msg);
     queue.pushPrivate(*msg);
   }
-
-  void wakeup() { mythos::lapic.sendIRQ(apicID, 32); }
 
 protected:
   size_t apicID; //< for wakeup signals

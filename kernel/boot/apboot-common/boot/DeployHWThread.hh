@@ -39,6 +39,7 @@
 #include "objects/DeleteBroadcast.hh"
 #include "objects/SchedulingContext.hh"
 #include "objects/SchedulingCoordinator.hh"
+#include "objects/CoreGroup.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
 #include "boot/mlog.hh"
