@@ -39,6 +39,7 @@
 #include "async/Place.hh"
 #include "objects/DeleteBroadcast.hh"
 #include "objects/SchedulingContext.hh"
+#include "objects/InterruptControl.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
 #include "boot/mlog.hh"
@@ -51,8 +52,14 @@ namespace mythos {
     extern SchedulingContext schedulers[MYTHOS_MAX_THREADS];
     extern CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
 
+    extern InterruptControl interruptController[MYTHOS_MAX_THREADS];
+    extern CoreLocal<InterruptControl*> localInterruptController KERNEL_CLM;
+
     SchedulingContext& getScheduler(cpu::ThreadID threadID) { return schedulers[threadID]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler.get(); }
+
+    InterruptControl& getInterruptController(cpu::ThreadID threadID) { return interruptController[threadID]; }
+    InterruptControl& getLocalInterruptController() { return *localInterruptController.get(); }
 
 struct DeployHWThread
 {

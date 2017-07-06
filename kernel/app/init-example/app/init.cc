@@ -32,6 +32,7 @@
 #include "runtime/ExecutionContext.hh"
 #include "runtime/CapMap.hh"
 #include "runtime/Example.hh"
+#include "runtime/InterruptControl.hh"
 #include "runtime/PageMap.hh"
 #include "runtime/KernelMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
@@ -188,15 +189,19 @@ int main()
     auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+1,
                            thread2stack_top, &thread_main, nullptr).wait();
     TEST(res2);
+    mythos::InterruptControl intControl(mythos::init::INTERRUPT_CONTROLLER_START);
+    intControl.registerForInterrupt(pl, ec1.cap(), 10);
   }
+
+
 
   for (volatile int i=0; i<100000; i++) {
     for (volatile int j=0; j<1000; j++) {}
   }
 
   MLOG_INFO(mlog::app, "sending notifications");
-  mythos::syscall_notify(ec1.cap());
-  mythos::syscall_notify(ec2.cap());
+  mythos::syscall_signal(ec1.cap());
+  mythos::syscall_signal(ec2.cap());
 
   mythos::syscall_debug(end, sizeof(end)-1);
 
