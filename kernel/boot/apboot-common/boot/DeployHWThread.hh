@@ -97,6 +97,7 @@ struct DeployHWThread
     cpu::hwThreadID_.setAt(threadID, threadID);
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
+    localInterruptController.setAt(threadID, &getInterruptController(threadID));
     getScheduler(threadID).init(async::getPlace(threadID));
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),

@@ -64,11 +64,11 @@ void InterruptControl::invoke(Tasklet* t, Cap self, IInvocation* msg)
 }
 
 void InterruptControl::bind(optional<ISignalable*>) {
-    interruptLog.error("bind");
+    interruptLog.error("bind", DVAR(this));
 }
 
 void InterruptControl::unbind(optional<ISignalable*>) {
-    interruptLog.error("unbind");
+    interruptLog.error("unbind", DVAR(this));
 }
 
 Error InterruptControl::getDebugInfo(Cap self, IInvocation* msg)
@@ -76,19 +76,58 @@ Error InterruptControl::getDebugInfo(Cap self, IInvocation* msg)
     return writeDebugInfo("InterruptControl", self, msg);
 }
 
+/**
+ * TODO figure out:
+ * What to do if there is already one registered?
+ * Will only allow the first entity to register for the moment.
+ */
 Error InterruptControl::registerForInterrupt(Tasklet *t, Cap self, IInvocation *msg) {
+
     auto data = msg->getMessage()->read<protocol::InterruptControl::Register>();
-    auto ec = data.ec();
-    auto interrupt = data.interrupt;
-    MLOG_ERROR(mlog::boot, "invoke registerForInterrupt", DVAR(t), DVAR(self),DVAR(ec), DVAR(interrupt));
+    ASSERT(data.interrupt < 256);
+    if (destinations[data.interrupt].isUsable()) {
+        MLOG_INFO(mlog::boot, "Tried to register to an interrupt already taken:", data.interrupt);
+        return Error::REQUEST_DENIED;
+    }
+    optional<CapEntry*> capEntry = msg->lookupEntry(data.ec());
+    TypedCap<ISignalable> obj(capEntry);
+    if (!obj) return Error::INVALID_CAPABILITY;
+    destinations[data.interrupt].set(this, *capEntry, obj.cap());
+    MLOG_ERROR(mlog::boot, "invoke registerForInterrupt", DVAR(t), DVAR(self), DVAR(data.ec()), DVAR(data.interrupt));
     return Error::SUCCESS;
 }
+
 Error InterruptControl::unregisterForInterrupt(Tasklet *t, Cap self, IInvocation *msg) {
     auto data = msg->getMessage()->read<protocol::InterruptControl::Register>();
-    auto ec = data.ec();
-    auto interrupt = data.interrupt;
-    MLOG_ERROR(mlog::boot, "invoke registerForInterrupt", DVAR(t), DVAR(self),DVAR(ec), DVAR(interrupt));
+    ASSERT(data.interrupt < 256);
+    MLOG_ERROR(mlog::boot, "invoke unregisterForInterrupt", DVAR(self),DVAR(data.ec()), DVAR(data.interrupt));
+    if (destinations[data.interrupt].isUsable()) {
+        optional<CapEntry*> capEntry = msg->lookupEntry(data.ec());
+        TypedCap<ISignalable> obj(capEntry);
+
+        // TODO: this can probably be done better. Check if object to unregister is registered object in array
+        if (obj && destinations[data.interrupt].cap().getPtr() != obj.cap().getPtr()) {
+            MLOG_ERROR(mlog::boot, "Tried to unregister an ISignalable that wasnt registerd", DVAR(data.ec()));
+            return Error::INVALID_ARGUMENT;
+        }
+    }
+    destinations[data.interrupt].reset();
+    ASSERT(!destinations[data.interrupt].isUsable());
     return Error::SUCCESS;
+}
+
+void InterruptControl::handleInterrupt(uint64_t interrupt) {
+    ASSERT(interrupt < 256);
+    if (!destinations[interrupt].isUsable()) {
+        MLOG_ERROR(mlog::boot, "No one registered for", DVAR(interrupt));
+        return;
+    }
+
+    TypedCap<ISignalable> ec(destinations[interrupt].cap());
+    if (ec) {
+        ec.obj()->signal((uint32_t)interrupt);
+    }
+    
 }
 
 } // namespace mythos

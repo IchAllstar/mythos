@@ -75,7 +75,7 @@ optional<void> ExecutionContext::setAddressSpace(optional<CapEntry*> pme)
 
 void ExecutionContext::bind(optional<IPageMap*>)
 {
-    MLOG_INFO(mlog::ec, "setAddressSpace bind", DVAR(this));
+    MLOG_ERROR(mlog::ec, "setAddressSpace bind", DVAR(this));
     clearFlagResume(NO_AS);
 }
 
@@ -397,9 +397,8 @@ void ExecutionContext::handleSyscall(cpu::ThreadState* ctx)
 }
 
 optional<void> ExecutionContext::signal(CapData data) {
-    MLOG_ERROR(mlog::syscall, "signal:", DVAR(data));
     auto prev = setFlag(IS_NOTIFIED);
-    MLOG_DETAIL(mlog::syscall, "receiving signal", DVARhex(prev));
+    MLOG_DETAIL(mlog::syscall, "receiving signal", DVAR(data), DVARhex(prev));
     clearFlagResume(IS_WAITING);
     RETURN(Error::SUCCESS);
 }
