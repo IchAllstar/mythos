@@ -104,6 +104,7 @@ struct DeployHWThread
     cpu::hwThreadID_.setAt(threadID, threadID);
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
+    localInterruptController.setAt(threadID, &getInterruptController(threadID));
     getScheduler(threadID).init(async::getPlace(threadID));
     MLOG_ERROR(mlog::boot, "Setting stuff in prepare");
     localSchedulingCoordinator_.setAt(threadID, &getSchedulingCoordinator(threadID));

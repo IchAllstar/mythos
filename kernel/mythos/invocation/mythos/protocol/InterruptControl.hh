@@ -42,7 +42,7 @@ namespace mythos {
       struct Register : public InvocationBase {
         typedef InvocationBase response_type;
         constexpr static uint16_t label = (proto<<8) + REGISTER;
-        Register(CapPtr ec, uint8_t interrupt_)
+        Register(CapPtr ec, uint32_t interrupt_)
           : InvocationBase(label,getLength(this))
         {
           addExtraCap(ec);
@@ -52,13 +52,13 @@ namespace mythos {
 
         CapPtr ec() const { return this->capPtrs[0]; }
 
-        uint8_t interrupt;
+        uint32_t interrupt;
       };
 
       struct Unregister : public InvocationBase {
         typedef InvocationBase response_type;
         constexpr static uint16_t label = (proto<<8) + UNREGISTER;
-        Unregister(CapPtr ec, uint8_t interrupt_)
+        Unregister(CapPtr ec, uint32_t interrupt_)
           : InvocationBase(label,getLength(this))
         {
           addExtraCap(ec);
@@ -66,7 +66,7 @@ namespace mythos {
         }
 
         CapPtr ec() const { return this->capPtrs[0]; }
-        uint8_t interrupt;
+        uint32_t interrupt;
       };
 
 

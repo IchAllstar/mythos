@@ -37,11 +37,11 @@ namespace mythos {
   public:
     InterruptControl(CapPtr cap) : KObject(cap) {}
 
-    PortalFuture<void> registerForInterrupt(PortalLock pr, CapPtr ec, uint8_t interrupt) {
+    PortalFuture<void> registerForInterrupt(PortalLock pr, CapPtr ec, uint32_t interrupt) {
       return pr.invoke<protocol::InterruptControl::Register>(_cap, ec, interrupt);
     }
 
-    PortalFuture<void> unregisterForInterrupt(PortalLock pr, CapPtr ec, uint8_t interrupt) {
+    PortalFuture<void> unregisterForInterrupt(PortalLock pr, CapPtr ec, uint32_t interrupt) {
       return pr.invoke<protocol::InterruptControl::Unregister>(_cap, ec, interrupt);
     }
   };

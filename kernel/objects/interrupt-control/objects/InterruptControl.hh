@@ -33,9 +33,12 @@
 namespace mythos {
 
 
-class InterruptControl final
+class InterruptControl
     : public IKernelObject
 {
+public:
+    InterruptControl()
+        {}
 public: // IKernelObject interface
     optional<void const*> vcast(TypeId id) const override;
     optional<void> deleteCap(Cap self, IDeleter& del) override;
@@ -49,6 +52,8 @@ public: // protocol
 public:
     void bind(optional<ISignalable*>);
     void unbind(optional<ISignalable*>);
+public:
+    void handleInterrupt(uint64_t interrupt);
 private:
     /** list handle for the deletion procedure */
     LinkedList<IKernelObject*>::Queueable del_handle = {this};

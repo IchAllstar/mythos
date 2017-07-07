@@ -52,6 +52,7 @@
 #include "objects/StaticMemoryRegion.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/SchedulingContext.hh"
+#include "objects/InterruptControl.hh"
 #include "boot/memory-root.hh"
 #include "objects/SchedulingCoordinator.hh"
 
@@ -146,6 +147,7 @@ void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
     mythos::handle_trap(ctx); // handle traps, exceptions, bugs from user mode
   } else {
     // TODO then external and wakeup interrupts
+    mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
     mythos::lapic.endOfInterrupt();
   }
   runUser();
@@ -161,6 +163,7 @@ void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
   if (!wasbug) {
     // TODO then external and wakeup interrupts
     MLOG_INFO(mlog::boot, "ack the interrupt");
+    mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
     mythos::lapic.endOfInterrupt();
   }
 
