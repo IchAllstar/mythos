@@ -120,6 +120,7 @@ void InterruptControl::handleInterrupt(uint64_t interrupt) {
     ASSERT(isValid(interrupt));
     if (!destinations[interrupt].isUsable()) {
         MLOG_ERROR(mlog::boot, "No one registered for", DVAR(interrupt));
+        mythos::lapic.endOfInterrupt();
         return;
     }
     mythos::lapic.maskIRQ(interrupt);
