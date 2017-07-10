@@ -101,12 +101,6 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 }
 
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
-    /*TypedCap<ISignalable> signalable(msg->lookupEntry(ec));
-    //MLOG_ERROR(mlog::boot, DVAR(signalable));
-    signalable.obj()->signal(0);
-    */
-    
-    //auto data = msg->getMessage()->read<protocol::SignalableGroup::SignalAll>();
     MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg));
     ASSERT(member != nullptr);
     for (uint64_t i = 0; i < groupSize; i++) {
@@ -124,28 +118,47 @@ Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
 
     auto data = msg->getMessage()->read<protocol::SignalableGroup::AddMember>();
-    MLOG_ERROR(mlog::boot, "addMember()", DVAR(t), DVAR(self), DVAR(msg));
+    MLOG_DETAIL(mlog::boot, "addMember()", DVAR(t), DVAR(self), DVAR(msg));
 
     auto capEntry = msg->lookupEntry(data.signalable());
     TypedCap<ISignalable> obj(capEntry);
     if (!obj) return Error::INVALID_CAPABILITY;
+
+    // look if it is already in the group
+    for (uint64_t i = 0; i < groupSize; i++) {
+        if (member[i].cap().getPtr() == obj.cap().getPtr()) {
+            return Error::INVALID_ARGUMENT;
+        }
+    }
+
     for (uint64_t i = 0; i < groupSize; i++) {
         if (!member[i].isUsable()) {
-            MLOG_ERROR(mlog::boot, "try to set at place ", DVAR(i), DVARhex(*capEntry), DVARhex(obj.cap().asReference().value()));
             member[i].set(this, *capEntry, obj.cap());
             return Error::SUCCESS;
         }
     }
-
-    return Error::SUCCESS;
+    return Error::INSUFFICIENT_RESOURCES;
 }
 
 Error SignalableGroup::removeMember(Tasklet *t, Cap self, IInvocation *msg) {
-
+    MLOG_DETAIL(mlog::boot, "addMember()", DVAR(t), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->read<protocol::SignalableGroup::RemoveMember>();
-    MLOG_ERROR(mlog::boot, "removeMember()", DVAR(t), DVAR(self), DVAR(msg));
-    data.signalable();
-    return Error::SUCCESS;
+    optional<CapEntry*> entry = msg->lookupEntry(data.signalable());
+    TypedCap<ISignalable> obj(entry);
+    if (!obj) {
+        return Error::INVALID_CAPABILITY;
+    }
+    for (uint64_t i = 0; i < groupSize; i++) {
+        if (member[i].isUsable()) {
+            // TODO: this can probably be done better. Check if object to unregister is registered object in array
+            if (member[i].cap().getPtr() == obj.cap().getPtr()) {
+                MLOG_ERROR(mlog::boot, "Remove member from SignalableGroup", DVAR(obj.cap()));
+                member[i].reset();
+                return Error::SUCCESS;
+            }
+        }
+    }
+    return Error::INVALID_ARGUMENT;
 }
 
 } // namespace mythos
