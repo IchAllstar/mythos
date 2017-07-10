@@ -96,6 +96,10 @@ namespace mythos {
     typedef Subject subject_type;
     typedef Object object_type;
 
+    CapRef()
+      :CapRefBase() 
+    {}
+
     virtual ~CapRef() {}
 
     optional<void> set(Subject* subject, CapEntry* src, Cap srcCap)

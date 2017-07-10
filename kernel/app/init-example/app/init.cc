@@ -36,6 +36,7 @@
 #include "runtime/PageMap.hh"
 #include "runtime/KernelMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
+#include "runtime/SignalableGroup.hh"
 #include "app/mlog.hh"
 #include <cstdint>
 #include "util/optional.hh"
@@ -64,9 +65,9 @@ char* thread4stack_top = threadstack2+stacksize;
 
 void* thread_main(void* ctx)
 {
-  MLOG_INFO(mlog::app, "hello thread!", DVAR(ctx));
+  MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
   mythos::ISysretHandler::handle(mythos::syscall_wait());
-  MLOG_INFO(mlog::app, "thread resumed from wait", DVAR(ctx));
+  MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
   return 0;
 }
 
@@ -133,6 +134,28 @@ void test_float()
   MLOG_INFO(mlog::app, "float z:", int(z), ".", int(1000*(z-float(int(z)))));
 }
 
+void test_signalable_group() {
+  MLOG_ERROR(mlog::app, "begin test signalable group");
+  mythos::PortalLock pl(portal);
+  mythos::SignalableGroup group(capAlloc());
+  auto res1 = group.create(pl, kmem, 5);
+  TEST(res1);
+
+  mythos::ExecutionContext ec1(capAlloc());
+  auto res2 = ec1.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 2,
+                           thread1stack_top, &thread_main, nullptr).wait();
+  TEST(res2);
+  mythos::ExecutionContext ec2(capAlloc());
+  auto res3 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 3,
+                           thread2stack_top, &thread_main, nullptr).wait();
+  TEST(res3);
+  TEST(group.addMember(pl, ec1.cap()).wait());
+  TEST(group.addMember(pl, ec2.cap()).wait());
+
+  TEST(group.signalAll(pl));
+  MLOG_ERROR(mlog::app, "end test signalable group");
+}
+
 struct HostChannel {
   void init() { ctrlToHost.init(); ctrlFromHost.init(); }
   typedef mythos::PCIeRingChannel<128,8> CtrlChannel;
@@ -153,7 +176,8 @@ int main()
   test_float();
   test_Example();
   test_Portal();
-
+  //test_signalable_group();
+/*
   {
     mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
     // allocate a 2MiB frame
@@ -180,7 +204,7 @@ int main()
     // MLOG_INFO(mlog::app, "register at host info table", DVAR(res3.state()));
     //ASSERT(res3.state() == mythos::Error::SUCCESS);
   }
-
+*/
   mythos::ExecutionContext ec1(capAlloc());
   mythos::ExecutionContext ec2(capAlloc());
   mythos::ExecutionContext ec3(capAlloc());
@@ -197,20 +221,21 @@ int main()
     TEST(res1);
     MLOG_INFO(mlog::app, "test_EC: create ec2");
     auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+1,
-                           thread2stack_top, &thread_main, nullptr).wait();
+                           thread2stack_top, &thread_main, (void*)1).wait();
     TEST(res2);
     auto res3 = ec3.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+2,
-                           thread3stack_top, &thread_main, nullptr).wait();
+                           thread3stack_top, &thread_main, (void*)2).wait();
     TEST(res3);
     auto res4 = ec4.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+3,
-                           thread4stack_top, &thread_main, nullptr).wait();
+                           thread4stack_top, &thread_main, (void*)3).wait();
     TEST(res4);
     mythos::InterruptControl intControl(mythos::init::INTERRUPT_CONTROLLER_START+1);
-    intControl1.registerForInterrupt(pl, ec1.cap(), 10);
+    /*intControl1.registerForInterrupt(pl, ec1.cap(), 10);
     intControl2.registerForInterrupt(pl, ec2.cap(), 32);
     intControl2.registerForInterrupt(pl, ec3.cap(), 10);
     intControl2.registerForInterrupt(pl, ec4.cap(), 10);
     intControl1.unregisterForInterrupt(pl, ec2.cap(), 10);
+    */
   }
 
 
@@ -222,6 +247,8 @@ int main()
   MLOG_INFO(mlog::app, "sending notifications");
   mythos::syscall_signal(ec1.cap());
   mythos::syscall_signal(ec2.cap());
+  mythos::syscall_signal(ec3.cap());
+  mythos::syscall_signal(ec4.cap());
 
   mythos::syscall_debug(end, sizeof(end)-1);
 

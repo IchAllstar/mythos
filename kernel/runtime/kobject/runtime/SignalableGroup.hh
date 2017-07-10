@@ -25,34 +25,34 @@
  */
 #pragma once
 
-#include <cstdint>
-#include "mythos/InvocationBuf.hh"
-#include "mythos/Error.hh"
+#include "runtime/PortalBase.hh"
+#include "mythos/protocol/SignalableGroup.hh"
+#include "runtime/KernelMemory.hh"
+#include "mythos/init.hh"
 
 namespace mythos {
 
-  namespace protocol {
+class SignalableGroup : public KObject
+{
+public:
+    SignalableGroup(CapPtr cap) : KObject(cap) {}
 
-    enum CoreProtocols : uint8_t {
-      KERNEL_OBJECT = 1,
-      UNTYPED_MEMORY,
-      FRAME,
-      PAGEMAP,
-      CAPMAP,
-      EXECUTION_CONTEXT,
-      PORTAL,
-      EXAMPLE,
-      CPUDRIVERKNC,
-      INTERRUPT_CONTROL,
-      SIGNALABLE_GROUP,
-    };
+    PortalFuture<void> create(PortalLock pr, KernelMemory kmem,
+            size_t groupSize, CapPtr factory = init::SIGNALABLE_GROUP_FACTORY) {
+        return pr.invoke<protocol::SignalableGroup::Create>(kmem.cap(), _cap, factory, groupSize);
+    }
 
-  } // namespace protocol
+    PortalFuture<void> addMember(PortalLock pr, CapPtr signalable) {
+      return pr.invoke<protocol::SignalableGroup::AddMember>(_cap, signalable);
+    }
 
-enum MappingRequest : uint8_t {
-  MAPPING_PROPERTIES,
-  MAP_FRAME,
-  MAP_TABLE,
+    PortalFuture<void> removeMember(PortalLock pr, CapPtr signalable) {
+      return pr.invoke<protocol::SignalableGroup::RemoveMember>(_cap, signalable);
+    }
+
+    PortalFuture<void> signalAll(PortalLock pr) {
+        return pr.invoke<protocol::SignalableGroup::SignalAll>(_cap);
+    }
 };
 
 } // namespace mythos

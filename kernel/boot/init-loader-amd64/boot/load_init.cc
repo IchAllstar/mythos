@@ -39,6 +39,7 @@
 #include "objects/PageMapAmd64.hh"
 #include "objects/ExecutionContext.hh"
 #include "objects/SchedulingContext.hh"
+#include "objects/SignalableGroup.hh"
 #include "objects/Portal.hh"
 #include "objects/Example.hh"
 #include "boot/mlog.hh"
@@ -109,6 +110,7 @@ namespace factory {
   CapMapFactory capmap;
   PageMapFactory pagemap;
   KernelMemoryFactory untypedMemory;
+  SignalableGroupFactory signalable_group;
 } // namespace example
 
 template<class Object, class Factory, class... ARGS>
@@ -169,6 +171,7 @@ optional<void> InitLoader::initCSpace()
   if (res) res = csSet(PORTAL_FACTORY, factory::portal);
   if (res) res = csSet(CAPMAP_FACTORY, factory::capmap);
   if (res) res = csSet(PAGEMAP_FACTORY, factory::pagemap);
+  if (res) res = csSet(SIGNALABLE_GROUP_FACTORY, factory::signalable_group);
   if (res) res = csSet(UNTYPED_MEMORY_FACTORY, factory::untypedMemory);
   if (!res) RETHROW(res);
 

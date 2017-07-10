@@ -27,6 +27,7 @@
 #include "objects/CapRef.hh"
 #include "objects/ops.hh"
 
+
 namespace mythos {
 
   CapRefBase::~CapRefBase()
@@ -39,8 +40,9 @@ namespace mythos {
     this->reset();
     RETURN(cap::setReference(
         [=](){
-          this->orig.store(srcCap.asReference().value());
-          this->binding(subject, srcCap.asReference());
+          auto ref = srcCap.asReference();
+          this->orig.store(ref.value());
+          this->binding(subject, ref);
         },
         this->entry,
         srcCap.asReference(this, kernel2phys(subject)),

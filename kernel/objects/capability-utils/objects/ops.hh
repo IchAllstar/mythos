@@ -29,6 +29,7 @@
 #include "objects/CapEntry.hh"
 #include "util/optional.hh"
 #include "util/error-trace.hh"
+#include "objects/mlog.hh"
 
 namespace mythos {
 
