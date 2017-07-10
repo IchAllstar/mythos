@@ -47,9 +47,10 @@ public: // Constructor
         :_mem(mem), member(arr), groupSize(groupSize_)
         {
             MLOG_ERROR(mlog::boot, "Create Group with size", groupSize);
+            // TODO maybe better way to get pseudo static array
+            CapRef<SignalableGroup, ISignalable>* obj IGNORE_UNUSED;
             for (uint64_t i = 0; i < groupSize; i++) {
-               CapRef<SignalableGroup, ISignalable>* obj = new (&member[i]) CapRef<SignalableGroup, ISignalable>();
-               MLOG_ERROR(mlog::boot, "usable", member[i].isUsable());
+               obj = new (&member[i]) CapRef<SignalableGroup, ISignalable>();
             }
         }
 public: // IKernelObject interface

@@ -153,6 +153,7 @@ void test_signalable_group() {
   TEST(group.addMember(pl, ec2.cap()).wait());
 
   TEST(group.signalAll(pl));
+  TEST(group.removeMember(pl, ec1.cap()).wait());
   MLOG_ERROR(mlog::app, "end test signalable group");
 }
 
@@ -176,7 +177,7 @@ int main()
   test_float();
   test_Example();
   test_Portal();
-  //test_signalable_group();
+  test_signalable_group();
 /*
   {
     mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
@@ -204,7 +205,7 @@ int main()
     // MLOG_INFO(mlog::app, "register at host info table", DVAR(res3.state()));
     //ASSERT(res3.state() == mythos::Error::SUCCESS);
   }
-*/
+
   mythos::ExecutionContext ec1(capAlloc());
   mythos::ExecutionContext ec2(capAlloc());
   mythos::ExecutionContext ec3(capAlloc());
@@ -230,12 +231,12 @@ int main()
                            thread4stack_top, &thread_main, (void*)3).wait();
     TEST(res4);
     mythos::InterruptControl intControl(mythos::init::INTERRUPT_CONTROLLER_START+1);
-    /*intControl1.registerForInterrupt(pl, ec1.cap(), 10);
-    intControl2.registerForInterrupt(pl, ec2.cap(), 32);
-    intControl2.registerForInterrupt(pl, ec3.cap(), 10);
-    intControl2.registerForInterrupt(pl, ec4.cap(), 10);
-    intControl1.unregisterForInterrupt(pl, ec2.cap(), 10);
-    */
+    //intControl1.registerForInterrupt(pl, ec1.cap(), 10);
+    //intControl2.registerForInterrupt(pl, ec2.cap(), 32);
+    //intControl2.registerForInterrupt(pl, ec3.cap(), 10);
+    //intControl2.registerForInterrupt(pl, ec4.cap(), 10);
+    //intControl1.unregisterForInterrupt(pl, ec2.cap(), 10);
+    
   }
 
 
@@ -249,7 +250,7 @@ int main()
   mythos::syscall_signal(ec2.cap());
   mythos::syscall_signal(ec3.cap());
   mythos::syscall_signal(ec4.cap());
-
+*/
   mythos::syscall_debug(end, sizeof(end)-1);
 
   return 0;
