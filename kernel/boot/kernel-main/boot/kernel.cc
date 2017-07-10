@@ -150,8 +150,8 @@ void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
     mythos::handle_trap(ctx); // handle traps, exceptions, bugs from user mode
   } else {
     // TODO then external and wakeup interrupts
+    ASSERT(ctx->irq < 256);
     mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
-    mythos::lapic.endOfInterrupt();
   }
   runUser();
 }
@@ -164,10 +164,8 @@ void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
   bool wasbug = handle_bugirqs(ctx); // initiate irq processing: first kernel bugs
   bool nested = mythos::async::getLocalPlace().enterKernel();
   if (!wasbug) {
-    // TODO then external and wakeup interrupts
-    MLOG_INFO(mlog::boot, "ack the interrupt");
+    ASSERT(ctx->irq < 256);
     mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
-    mythos::lapic.endOfInterrupt();
   }
 
   if (!nested) runUser();
