@@ -47,22 +47,17 @@
 namespace mythos {
   namespace boot {
 
-    static const constexpr size_t HWTHREADS_PER_CORE = 2;
-
     void initAPTrampoline(size_t startIP);
 
     extern SchedulingContext schedulers[MYTHOS_MAX_THREADS];
     extern CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
+
+
     extern SchedulingCoordinator coordinators[MYTHOS_MAX_THREADS];
-    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM;
-    extern CoreGroup groups[MYTHOS_MAX_THREADS / HWTHREADS_PER_CORE];
-    extern CoreLocal<CoreGroup*> localGroup KERNEL_CLM_HOT;
+    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM_HOT;
 
-    SchedulingContext& getScheduler(cpu::ThreadID threadID) { return schedulers[threadID]; }
-    SchedulingContext& getLocalScheduler() { return *localScheduler.get(); }
-
-    CoreGroup& getCoreGroup(size_t apicID) { return groups[apicID / HWTHREADS_PER_CORE]; }
-    CoreGroup& getLocalCoreGroup() { return *localGroup; }
+    SchedulingContext& getScheduler(size_t index) { return schedulers[index]; }
+    SchedulingContext& getLocalScheduler() { return *localScheduler; }
 
     SchedulingCoordinator& getSchedulingCoordinator(size_t index) { return coordinators[index]; }
     SchedulingCoordinator& getLocalSchedulingCoordinator() { return *localSchedulingCoordinator_; }
@@ -104,9 +99,8 @@ struct DeployHWThread
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
     getScheduler(threadID).init(async::getPlace(threadID));
-    localGroup.set(&getCoreGroup(threadID));
     localSchedulingCoordinator_.set(&getSchedulingCoordinator(threadID));
-    getLocalSchedulingCoordinator().init(async::getPlace(threadID), &getLocalScheduler(), &getCoreGroup(apicID));
+    getLocalSchedulingCoordinator().init(async::getPlace(threadID), &getLocalScheduler());
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),
                 DVARhex(stacks[apicID]), DVARhex(stackphys), DVARhex(tss_kernel.ist[1]),
@@ -130,6 +124,7 @@ struct DeployHWThread
     } else {
       // not needed, would through away pending irqs: mythos::lapic.init();
     }
+
   }
 
   TSS64 tss_kernel;
