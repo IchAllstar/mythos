@@ -33,6 +33,7 @@
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/SchedulingCoordinator.hh"
 #include "boot/mlog.hh"
+#include "util/ThreadMutex.hh"
 
 namespace mythos {
 
@@ -40,6 +41,9 @@ using mythos::async::Place;
 using mythos::SchedulingContext;
 
 class CoreGroup;
+class CoordinatorPolicy;
+class GroupPolicy;
+
 
 /**
  * Class coordinates between Place(kernel task scheduler), SchedulingContext(system thread scheduler),
@@ -54,7 +58,7 @@ class SchedulingCoordinator
         GROUP,
     };
 
- friend class CoreGroup;
+    friend class CoreGroup;
 
 //IKernelObject interface
 public:
@@ -94,7 +98,6 @@ public:
         monitor.setHome(p);
     }
 
-
   NORETURN void sleep() {
     MLOG_DETAIL(mlog::boot, "going to sleep now");
     mythos::idle::sleep(); // resets the kernel stack!
@@ -112,8 +115,6 @@ private:
     Place *localPlace = nullptr;
     SchedulingContext *localSchedulingContext = nullptr;
 
-    void (*runPolicy)(int);
-
     Policy policy = {GROUP};
 
     CoreGroup *core {nullptr};
@@ -126,6 +127,7 @@ private:
     static const constexpr int HWTHREADS_PER_CORE = 2;
     SchedulingCoordinator* group[HWTHREADS_PER_CORE] = {nullptr};
     bool intents[HWTHREADS_PER_CORE] = {false};
+    ThreadMutex mutex;
 public:
 
     void sleep_intent(int apicID) {
@@ -162,27 +164,32 @@ public:
     }
 
     void sleep_intent(SchedulingCoordinator *sc) {
-        if (!contains(sc)) {
-            MLOG_ERROR(mlog::boot, "NEW Sleep intent", DVAR(sc));
-            for (int i = 0; i < HWTHREADS_PER_CORE; i++) {
-                if (group[i] == nullptr) {
-                    group[i] = sc;
-                    break;
+        mutex << [&] () {
+            if (!contains(sc)) {
+                MLOG_ERROR(mlog::boot, "NEW Sleep intent", DVAR(sc));
+                for (int i = 0; i < HWTHREADS_PER_CORE; i++) {
+                    if (group[i] == nullptr) {
+                        group[i] = sc;
+                        break;
+                    }
+                }
+                if (full()) {
+                    group_sleep();
                 }
             }
-            if (full()) {
-                group_sleep();
-            }
-        }
+        };
+
     }
 
     void sleep_unintent(SchedulingCoordinator *sc) {
-        for (int i = 0; i < HWTHREADS_PER_CORE; i++) {
-            if (group[i] == sc) {
-                MLOG_ERROR(mlog::boot, "Sleep Unintent", DVAR(sc));
-                group[i] = nullptr;
+        mutex << [&] () {
+            for (int i = 0; i < HWTHREADS_PER_CORE; i++) {
+                if (group[i] == sc) {
+                    MLOG_ERROR(mlog::boot, "Sleep Unintent", DVAR(sc));
+                    group[i] = nullptr;
+                }
             }
-        }
+        };
     }
 };
 

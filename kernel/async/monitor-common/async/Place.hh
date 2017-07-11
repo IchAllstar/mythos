@@ -96,7 +96,9 @@ public:
    * unlocking was successfull. Hence, the next sender will detect
    * that he has to wakeup this place.
    */
-  void processTasks();
+  int processTasks();
+
+  bool tryProcess();
 
   bool isActive() const { return nestingMonitor.load(std::memory_order_relaxed); }
 
@@ -123,6 +125,8 @@ protected:
   PhysPtr<void> _cr3 = PhysPtr<void>(0ul);
 
   TaskletQueueImpl<ChainFIFOBaseAligned> queue; //< for pending tasks
+
+  TaskletBase *peak {nullptr};
 };
 
 

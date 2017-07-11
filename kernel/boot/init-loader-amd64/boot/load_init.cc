@@ -189,7 +189,7 @@ optional<void> InitLoader::initCSpace()
   
   MLOG_INFO(mlog::boot, "... create scheduling coordinator caps in caps", SCHEDULING_COORDINATOR_START, "till", SCHEDULING_COORDINATOR_START+cpu::getNumThreads()-1);
   for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
-    auto res = csSet(CapPtr(SCHEDULING_COORDINATOR_START+id), boot::getSchedulingCoordinator(id));
+    auto res = csSet(SCHEDULING_COORDINATOR_START+id, boot::getSchedulingCoordinator(id));
     if (!res) RETHROW(res);
   }
   initLoaderEvent.trigger_after(*this);
