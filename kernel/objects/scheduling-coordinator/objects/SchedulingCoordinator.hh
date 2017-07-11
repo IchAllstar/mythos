@@ -67,6 +67,8 @@ protected:
 // Actual Methods
 public:
   NORETURN void runUser() {
+    ASSERT(localPlace != nullptr);
+    ASSERT(localSchedulingContext != nullptr);
     switch (policy) {
       case SLEEP : runSleep();
       case SPIN  : runSpin();
@@ -84,7 +86,7 @@ public:
   NORETURN void runSpin();
 
   void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
-    //mlogsc.error("init", p , sc);
+    MLOG_ERROR(mlog::boot, "Init", DVAR(p), DVAR(sc));
     ASSERT(p != nullptr);
     ASSERT(sc != nullptr);
     localPlace = p;
