@@ -30,6 +30,7 @@
 #include "objects/ISignalable.hh"
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/SignalableGroup.hh"
+#include "objects/TreeBroadcast.hh"
 
 namespace mythos {
 
@@ -38,6 +39,7 @@ namespace mythos {
  * A Group of ISignalable objects with a maximum group size. When signalAll() is invoked, a signal is
  * send to every valid group member. Some data can be passed through CapData data. It is the responsibility
  * of the receiver to handle (aggregate or save in a list) the received data.
+ * TODO handle correct deletion of kernel object -> free the array
  */
 class SignalableGroup
     : public IKernelObject
@@ -56,6 +58,7 @@ public: // Constructor
 public: // IKernelObject interface
     optional<void const*> vcast(TypeId id) const override;
     optional<void> deleteCap(Cap self, IDeleter& del) override;
+    void deleteObject(Tasklet* t, IResult<void>* r) override;
     void invoke(Tasklet* t, Cap, IInvocation* msg) override;
     Error invokeBind(Tasklet* t, Cap, IInvocation* msg);
 public: // protocol 
@@ -76,6 +79,9 @@ private:
     // allocate when group size is known
     CapRef<SignalableGroup, ISignalable> *member {nullptr};
     size_t groupSize {0};
+
+    // Signaling Broadcast mechanism
+    TreeBroadcast tree;
 };
 
 class SignalableGroupFactory : public FactoryBase
