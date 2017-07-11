@@ -53,6 +53,7 @@
 #include "objects/ISchedulable.hh"
 #include "objects/SchedulingContext.hh"
 #include "boot/memory-root.hh"
+#include "objects/SchedulingCoordinator.hh"
 
 ALIGN_4K uint8_t boot_stack[BOOT_STACK_SIZE] SYMBOL("BOOT_STACK");
 extern char CLM_ADDR;
@@ -96,11 +97,7 @@ void entry_bsp()
 NORETURN void runUser();
 
 void runUser() {
-  mythos::async::getLocalPlace().processTasks();
-  MLOG_DETAIL(mlog::boot, "trying to execute app");
-  mythos::boot::getLocalScheduler().tryRunUser();
-  MLOG_DETAIL(mlog::boot, "going to sleep now");
-  mythos::idle::sleep(); // resets the kernel stack!
+  mythos::boot::getLocalSchedulingCoordinator().runUser();
 }
 
 /** Boot entry point and deep sleep exit point for application

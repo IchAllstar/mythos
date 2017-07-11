@@ -83,11 +83,21 @@ public:
     return nestingMonitor.exchange(true); // relaxed?
   }
 
+  /** release queue and kernel monitor until successfull */
+  bool releaseKernel() {
+    if (not queue.tryRelease()) {
+      return false;
+    }
+    nestingMonitor.store(false); // release?
+    return true;
+  }
+
   /** Processes tasks until the queue is empty and the atomic
    * unlocking was successfull. Hence, the next sender will detect
    * that he has to wakeup this place.
    */
   void processTasks();
+
   bool isActive() const { return nestingMonitor.load(std::memory_order_relaxed); }
 
 protected:

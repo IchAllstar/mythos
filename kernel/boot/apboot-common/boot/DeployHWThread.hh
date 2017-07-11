@@ -39,6 +39,7 @@
 #include "async/Place.hh"
 #include "objects/DeleteBroadcast.hh"
 #include "objects/SchedulingContext.hh"
+#include "objects/SchedulingCoordinator.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
 #include "boot/mlog.hh"
@@ -50,9 +51,13 @@ namespace mythos {
 
     extern SchedulingContext schedulers[MYTHOS_MAX_THREADS];
     extern CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
+    extern SchedulingCoordinator coordinators[MYTHOS_MAX_THREADS];
+    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM;
 
     SchedulingContext& getScheduler(cpu::ThreadID threadID) { return schedulers[threadID]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler.get(); }
+    SchedulingCoordinator& getSchedulingCoordinator(size_t index) { return coordinators[index]; }
+    SchedulingCoordinator& getLocalSchedulingCoordinator() { return *localSchedulingCoordinator_; }
 
 struct DeployHWThread
 {
@@ -91,6 +96,8 @@ struct DeployHWThread
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
     getScheduler(threadID).init(async::getPlace(threadID));
+    localSchedulingCoordinator_.set(&getSchedulingCoordinator(threadID));
+    getLocalSchedulingCoordinator().init(async::getPlace(threadID), &getLocalScheduler());
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),
                 DVARhex(stacks[apicID]), DVARhex(stackphys), DVARhex(tss_kernel.ist[1]),
