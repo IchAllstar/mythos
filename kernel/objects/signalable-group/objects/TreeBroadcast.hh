@@ -27,6 +27,7 @@
 
 
 #include "objects/ISignalable.hh"
+#include "objects/ExecutionContext.hh"
 #include "objects/CapRef.hh"
 #include "objects/mlog.hh"
 
@@ -35,21 +36,24 @@ namespace mythos {
 
 class SignalableGroup;
 
-struct TreeBroadcast
+class TreeBroadcast
 {
-    Error operator()(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize) {
-        MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
+public:
+    Error operator()(Tasklet *t, CapRef<SignalableGroup, ISignalable> *group, size_t groupSize) {
+        MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(group), DVAR(groupSize));
         ASSERT(group != nullptr);
         for (uint64_t i = 0; i < groupSize; i++) {
             if (group[i].isUsable()) {
                 TypedCap<ISignalable> signalable(group[i].cap());
                 if (signalable) {
-                    signalable.obj()->signal(0);
+                    signalable->signal(100);
                 }
             }
         }
 
         return Error::SUCCESS;
     }
+private:
+
 };
 } // namespace mythos
