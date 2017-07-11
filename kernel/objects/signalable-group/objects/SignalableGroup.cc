@@ -103,7 +103,9 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     Cap cap(*obj);
     auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
     if (!res) {
+        mem->free(*group, 64);
         mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
+        dstEntry->reset();
         RETHROW(res);
     }
     return *obj;
@@ -122,7 +124,7 @@ Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     }
 
     return Error::SUCCESS;*/
-    return tree(member, groupSize);
+    return tree(t, member, groupSize);
 }
 
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
