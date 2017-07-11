@@ -108,7 +108,7 @@ protected:
     queue.pushPrivate(*msg);
   }
 
-  void wakeup() { mythos::lapic.sendIRQ(apicID, 32); }
+  void wakeup() { /*mythos::lapic.sendIRQ(apicID, 32); */}
 
 protected:
   cpu::ThreadID threadID; //< own thread's linear identifier
