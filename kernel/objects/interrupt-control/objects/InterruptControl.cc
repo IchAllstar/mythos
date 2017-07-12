@@ -81,7 +81,7 @@ Error InterruptControl::getDebugInfo(Cap self, IInvocation* msg)
  * What to do if there is already one registered?
  * Will only allow the first entity to register for the moment.
  */
-Error InterruptControl::registerForInterrupt(Tasklet *t, Cap self, IInvocation *msg) {
+Error InterruptControl::registerForInterrupt(Tasklet */*t*/, Cap self, IInvocation *msg) {
 
     auto data = msg->getMessage()->read<protocol::InterruptControl::Register>();
     ASSERT(isValid(data.interrupt));
@@ -93,11 +93,11 @@ Error InterruptControl::registerForInterrupt(Tasklet *t, Cap self, IInvocation *
     TypedCap<ISignalable> obj(capEntry);
     if (!obj) return Error::INVALID_CAPABILITY;
     destinations[data.interrupt].set(this, *capEntry, obj.cap());
-    MLOG_ERROR(mlog::boot, "invoke registerForInterrupt", DVAR(t), DVAR(self), DVAR(data.ec()), DVAR(data.interrupt));
+    MLOG_ERROR(mlog::boot, "invoke registerForInterrupt", DVAR(self), DVAR(data.ec()), DVAR(data.interrupt));
     return Error::SUCCESS;
 }
 
-Error InterruptControl::unregisterForInterrupt(Tasklet *t, Cap self, IInvocation *msg) {
+Error InterruptControl::unregisterForInterrupt(Tasklet * /*t*/, Cap self, IInvocation *msg) {
     auto data = msg->getMessage()->read<protocol::InterruptControl::Unregister>();
     ASSERT(isValid(data.interrupt));
     MLOG_ERROR(mlog::boot, "invoke unregisterForInterrupt", DVAR(self),DVAR(data.ec()), DVAR(data.interrupt));
@@ -123,7 +123,7 @@ void InterruptControl::handleInterrupt(uint64_t interrupt) {
         mythos::lapic.endOfInterrupt();
         return;
     }
-    mythos::lapic.maskIRQ(interrupt);
+    mythos::lapic.maskIRQ((uint8_t) interrupt);
     mythos::lapic.endOfInterrupt();
     TypedCap<ISignalable> ec(destinations[interrupt].cap());
     if (ec) {

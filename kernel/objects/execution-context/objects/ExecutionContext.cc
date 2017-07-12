@@ -415,6 +415,22 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
     RETURN(p.sendInvocation(dest, user));
 }
 
+void ExecutionContext::broadcast(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize, size_t idx, size_t N) {
+    for (size_t i = 0; i < N; ++i) { // for all children in tree
+        size_t child_idx = idx * N + i + 1;
+        //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
+        if (child_idx >= groupSize) {
+            return;
+        }
+        TypedCap<ISignalable> signalable(group[child_idx].cap());
+        if (signalable) {
+            //MLOG_ERROR(mlog::boot, "bc set", DVAR(groupSize), DVAR(child_idx), DVAR(&signalable->bc));
+            signalable->bc.set(group, groupSize, child_idx, N);
+            signalable->signal(300);
+        }
+    }
+}
+
 void ExecutionContext::resume() {
     if (!isReady()) return;
     auto prevState = clearFlag(IN_WAIT);
@@ -424,6 +440,12 @@ void ExecutionContext::resume() {
         auto last = lastSignal.exchange(0);
         if (last != 0) {
             MLOG_ERROR(mlog::ec, "LastSignal", DVAR(last));
+        }
+
+        // Am I member of a multicast? TODO: multiple multicasts ...
+        if (bc.onGoing.load()) {
+            broadcast(bc.group, bc.groupSize, bc.idx, bc.N);
+            bc.reset();
         }
         clearFlag(IS_NOTIFIED); // this is safe because we wake up anyway
         auto e = notificationQueue.pull();
