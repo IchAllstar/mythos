@@ -40,7 +40,7 @@ public: // ISignalable Interface
 	}
 
 	void multicast(ISignalable **group, uint64_t groupSize, uint64_t idx, uint64_t N) override {
-		MLOG_ERROR(mlog::app, "Multicast", DVAR(idx), DVAR(groupSize), DVAR(N));
+		MLOG_ERROR(mlog::app, "Multicast", DVAR(idx), DVAR(groupSize), DVAR(N), DVAR(idx * N + 1));
     for (size_t i = 0; i < N; ++i) { // for all children in tree
 			size_t child_idx = idx * N + i + 1;
 			if (child_idx >= groupSize) {
