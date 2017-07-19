@@ -67,19 +67,21 @@ int main()
     counter.fetch_add(1);
   });
   manager.startAll();
-
-  while (counter.load() <= 99) {
-    //MLOG_ERROR(mlog::app, DVAR(counter.load()));
+  while (counter.load() < 99) {
   };
-  SignalableGroup</*TreeStrategy*/> group;
+  counter.store(0);
+
+
+  MLOG_ERROR(mlog::app, "Signalable Group Test");
+  SignalableGroup<TreeStrategy> group;
   for (int i = 1; i < manager.getNumThreads(); ++i) {
     group.addMember(manager.getThread(i));
   }
 
   uint64_t start ,end;
   start = getTime();
-  //group.signalAll((void*)5);
-  while (counter.load() <= 99) {
+  group.signalAll((void*)5);
+  while (counter.load() < 99) {
     MLOG_ERROR(mlog::app, DVAR(counter.load()));
   };
   end = getTime();
