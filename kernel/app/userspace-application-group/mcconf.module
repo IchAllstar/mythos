@@ -1,7 +1,7 @@
 # -*- mode:toml; -*-
 [module.userspace-application-group]
     initappfiles = [ "app/init.cc"]
-	incfiles = [ "app/Thread.hh"]
+	incfiles = [ "app/Thread.hh", "app/Mutex.hh", "app/Multicast.hh", "app/ISignalable.hh", "app/List.hh"]
     provides = [ "app/init.elf" ]
     requires = [ "crtbegin" ]
     makefile_head = '''

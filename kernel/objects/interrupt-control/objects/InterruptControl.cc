@@ -100,7 +100,7 @@ Error InterruptControl::registerForInterrupt(Tasklet */*t*/, Cap self, IInvocati
 Error InterruptControl::unregisterForInterrupt(Tasklet * /*t*/, Cap self, IInvocation *msg) {
     auto data = msg->getMessage()->read<protocol::InterruptControl::Unregister>();
     ASSERT(isValid(data.interrupt));
-    MLOG_ERROR(mlog::boot, "invoke unregisterForInterrupt", DVAR(self),DVAR(data.ec()), DVAR(data.interrupt));
+    MLOG_INFO(mlog::boot, "invoke unregisterForInterrupt", DVAR(self),DVAR(data.ec()), DVAR(data.interrupt));
     if (destinations[data.interrupt].isUsable()) {
         optional<CapEntry*> capEntry = msg->lookupEntry(data.ec());
         TypedCap<ISignalable> obj(capEntry);
@@ -119,7 +119,7 @@ Error InterruptControl::unregisterForInterrupt(Tasklet * /*t*/, Cap self, IInvoc
 void InterruptControl::handleInterrupt(uint64_t interrupt) {
     ASSERT(isValid(interrupt));
     if (!destinations[interrupt].isUsable()) {
-        MLOG_ERROR(mlog::boot, "No one registered for", DVAR(interrupt));
+        MLOG_INFO(mlog::boot, "No one registered for", DVAR(interrupt));
         mythos::lapic.endOfInterrupt();
         return;
     }

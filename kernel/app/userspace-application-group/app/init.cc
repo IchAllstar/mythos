@@ -39,6 +39,8 @@
 #include "app/mlog.hh"
 #include <cstdint>
 #include "app/Thread.hh"
+#include "app/Multicast.hh"
+#include "util/Time.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -54,12 +56,27 @@ mythos::KernelMemory kmem(mythos::init::KM);
 mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
                                   mythos::init::SIZE-mythos::init::APP_CAP_START);
 
-
+using mythos::getTime;
 int main()
 {
   ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
-  manager.init();
+  manager.init([](void *data) -> void* {
+    MLOG_ERROR(mlog::app, "Hello Thread"); 
+    MLOG_ERROR(mlog::app, "Do work"); 
+  });
   manager.startAll();
-  manager.wakeup(*manager.getThread(1));
+
+  SignalableGroup</*TreeStrategy*/> group;
+  for (int i = 1; i < manager.getNumThreads(); ++i) {
+    group.addMember(manager.getThread(i));
+  }
+
+  uint64_t start ,end;
+  start = getTime();
+  group.signalAll((void*)5);
+  end = getTime();
+  MLOG_ERROR(mlog::app, DVAR(end - start));
+  //group.signalAll((void*)5);
+  //group.signalAll((void*)5);
   return 0;
 }
