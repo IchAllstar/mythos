@@ -32,7 +32,7 @@ public:
 template<typename MULTICAST_STRATEGY = SequentialStrategy>
 class SignalableGroup {
 private:
-	static constexpr uint64_t MAX = 10;
+	static constexpr uint64_t MAX = 100;
 public:
 	void addMember(ISignalable *t);
 	void signalAll(void *data);

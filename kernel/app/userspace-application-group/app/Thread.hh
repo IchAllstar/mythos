@@ -5,7 +5,7 @@
 #include "app/mlog.hh"
 #include "app/Mutex.hh"
 
-static constexpr size_t NUM_THREADS = 4;
+static constexpr size_t NUM_THREADS = 100;
 static constexpr size_t PAGE_SIZE = 2 * 1024 * 1024;
 static constexpr size_t STACK_SIZE = 1 * PAGE_SIZE;
 
@@ -40,16 +40,15 @@ public: // ISignalable Interface
 	}
 
 	void multicast(ISignalable **group, uint64_t groupSize, uint64_t idx, uint64_t N) override {
-		for (size_t i = 0; i < N; ++i) { // for all children in tree
+		MLOG_ERROR(mlog::app, "Multicast", DVAR(idx), DVAR(groupSize), DVAR(N));
+    for (size_t i = 0; i < N; ++i) { // for all children in tree
 			size_t child_idx = idx * N + i + 1;
-			MLOG_ERROR(mlog::app, "try broadcast to child", DVAR(child_idx), DVAR(groupSize));
 			if (child_idx >= groupSize) {
 				return;
 			}
 			//TypedCap<ISignalable> signalable(group[child_idx].cap());
 			ISignalable *signalable = group[child_idx];
 			if (signalable) {
-				MLOG_ERROR(mlog::app, "multicast to:", DVAR(child_idx), DVAR(groupSize));
 				signalable->cast.set(group, groupSize, child_idx, N);
 				signalable->signal((void*)1);
 			} else {
@@ -164,7 +163,7 @@ void ThreadManager::initMem() {
 void ThreadManager::initThreads(void*(*fun_)(void*)) {
 	auto id = 0;
 	for (auto& t : threads) {
-		t.id = id++;
+    t.id = id++;
 		t.sc = mythos::init::SCHEDULERS_START + t.id;
 		t.fun = fun_;
 		t.ec = caps.alloc();
@@ -181,9 +180,11 @@ void ThreadManager::startThread(Thread &t) {
 	}
 	mythos::ExecutionContext thread(t.ec);
 	t.state.store(RUN);
-	auto res = thread.create(pl, kmem,
-	                         as,
-	                         cs,
+  MLOG_ERROR(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
+	auto res = thread.create(pl,
+                           kmem,
+	                         mythos::init::PML4,
+	                         mythos::init::CSPACE,
 	                         t.sc,
 	                         t.stack_begin,
 	                         &Thread::run,
@@ -193,6 +194,7 @@ void ThreadManager::startThread(Thread &t) {
 
 void ThreadManager::startAll() {
 	for (auto &t : threads) {
+
 		startThread(t);
 	}
 }

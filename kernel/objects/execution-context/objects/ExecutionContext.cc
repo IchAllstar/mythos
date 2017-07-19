@@ -75,7 +75,7 @@ optional<void> ExecutionContext::setAddressSpace(optional<CapEntry*> pme)
 
 void ExecutionContext::bind(optional<IPageMap*>)
 {
-    MLOG_ERROR(mlog::ec, "setAddressSpace bind", DVAR(this));
+    MLOG_INFO(mlog::ec, "setAddressSpace bind", DVAR(this));
     clearFlagResume(NO_AS);
 }
 
