@@ -57,15 +57,20 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
                                   mythos::init::SIZE-mythos::init::APP_CAP_START);
 
 using mythos::getTime;
+std::atomic<uint64_t> counter {0};
 int main()
 {
   ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
   manager.init([](void *data) -> void* {
-    MLOG_ERROR(mlog::app, "Hello Thread"); 
-    MLOG_ERROR(mlog::app, "Do work"); 
+    //MLOG_ERROR(mlog::app, "Hello Thread");
+    //MLOG_ERROR(mlog::app, "Do work");
+    counter.fetch_add(1);
   });
   manager.startAll();
 
+  while (counter.load() <= 99) {
+    //MLOG_ERROR(mlog::app, DVAR(counter.load()));
+  };
   SignalableGroup</*TreeStrategy*/> group;
   for (int i = 1; i < manager.getNumThreads(); ++i) {
     group.addMember(manager.getThread(i));
@@ -73,7 +78,10 @@ int main()
 
   uint64_t start ,end;
   start = getTime();
-  group.signalAll((void*)5);
+  //group.signalAll((void*)5);
+  while (counter.load() <= 99) {
+    MLOG_ERROR(mlog::app, DVAR(counter.load()));
+  };
   end = getTime();
   MLOG_ERROR(mlog::app, DVAR(end - start));
   //group.signalAll((void*)5);
