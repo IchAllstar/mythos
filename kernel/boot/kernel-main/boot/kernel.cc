@@ -117,7 +117,7 @@ void entry_ap(size_t apicID, size_t reason)
 {
   //asm volatile("xchg %bx,%bx");
   mythos::boot::apboot_thread(apicID);
-  MLOG_DETAIL(mlog::boot, "started hardware thread", DVAR(reason));
+  MLOG_ERROR(mlog::boot, "started hardware thread", DVAR(reason));
   mythos::idle::wokeup(apicID, reason); // may not return
   runUser();
 }
