@@ -40,12 +40,12 @@ namespace mythos {
     size_t N {0}; //N-ary Tree
 
     void set(CapRef<SignalableGroup, ISignalable> *group_, size_t groupSize_, size_t idx_, size_t N_) {
-    	if (onGoing.exchange(true) == false) {
-    		group = group_;
-    		groupSize = groupSize_;
-    		idx = idx_;
-    		N = N_;
-    	}
+    	while (onGoing.exchange(true) == true) {
+      }
+      group = group_;
+      groupSize = groupSize_;
+      idx = idx_;
+      N = N_;
     }
 
     void reset() {

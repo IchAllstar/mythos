@@ -9,6 +9,7 @@ static constexpr size_t NUM_THREADS = 100;
 static constexpr size_t PAGE_SIZE = 2 * 1024 * 1024;
 static constexpr size_t STACK_SIZE = 1 * PAGE_SIZE;
 
+bool signaled[100];
 
 enum ThreadState {
 	RUN = 0,
@@ -39,61 +40,68 @@ public: // ISignalable Interface
 		signal(*this);
 	}
 
-	void multicast(ISignalable **group, uint64_t groupSize, uint64_t idx, uint64_t N) override {
-		MLOG_ERROR(mlog::app, "Multicast", DVAR(idx), DVAR(groupSize), DVAR(N), DVAR(idx * N + 1));
-    for (size_t i = 0; i < N; ++i) { // for all children in tree
-			size_t child_idx = idx * N + i + 1;
-			if (child_idx >= groupSize) {
+  void forwardMulticast() override {
+    auto &mc = this->cast;
+    ASSERT(mc.group != nullptr);
+    ASSERT(mc.idx == this->id -1);
+    for (size_t i = 0; i < mc.N; ++i) { // for all children in tree
+			size_t child_idx = mc.idx * mc.N + i + 1;
+			if (child_idx >= mc.groupSize) {
 				return;
 			}
-			//TypedCap<ISignalable> signalable(group[child_idx].cap());
-			ISignalable *signalable = group[child_idx];
+      //MLOG_ERROR(mlog::app, DVAR(this->id), DVAR(mc.idx), DVAR(child_idx));
+			ISignalable *signalable = mc.group[child_idx]; // child
 			if (signalable) {
-				signalable->cast.set(group, groupSize, child_idx, N);
-				signalable->signal((void*)1);
+        // setup and signal
+				signalable->cast.set(mc.group, mc.groupSize, child_idx, mc.N);
+        signalable->signal((void*)mc.idx);
 			} else {
 				MLOG_ERROR(mlog::app, "Child not there", DVAR(child_idx));
 			}
 		}
-	}
+  }
 };
 
-void* Thread::run(void *data)  {
+void* Thread::run(void *data) {
 	auto *thread = reinterpret_cast<Thread*>(data);
-	MLOG_ERROR(mlog::app, "Started Thread", thread->id);
+  ASSERT(thread != nullptr);
+	//MLOG_INFO(mlog::app, "Started Thread", thread->id);
 	while (true) {
-		if (thread->SIGNALLED) {
-			if (thread->cast.onGoing.load() == true) {
-				MLOG_ERROR(mlog::app, "Ongoing cast", DVAR(thread->id), DVAR(thread->cast.idx), DVAR(thread->cast.groupSize));
-				thread->cast.group[thread->cast.idx]->multicast(thread->cast.group, thread->cast.groupSize, thread->cast.idx, thread->cast.N);
-				thread->cast.reset();
-			}
-			MLOG_ERROR(mlog::app, "Received Signal", thread->id);
-			thread->SIGNALLED.store(false);
-		}
+    auto prev = thread->SIGNALLED.exchange(false);
+    if (prev) {
+			//MLOG_ERROR(mlog::app, "Received Signal", thread->id);
+      if (thread->cast.onGoing.load() == true) {
+        while (thread->cast.inUpdate.load() == true) {
+          MLOG_ERROR(mlog::app, "inupdate");
+        }
+        thread->forwardMulticast();
+        //MLOG_ERROR(mlog::app, "Ongoing cast", DVAR(thread->id), DVAR(thread->cast.idx), DVAR(thread->cast.groupSize));
+        thread->cast.reset();
+      }
+    }
 
-		if (thread->fun != nullptr) {
+    if (thread->fun != nullptr) {
 			thread->fun(data);
 		}
 
 		wait(*thread);
-		MLOG_ERROR(mlog::app, "Resumed", DVAR(thread->id));
+		//MLOG_ERROR(mlog::app, "Resumed", DVAR(thread->id));
 	}
 }
 
 void Thread::wait(Thread &t) {
-	MLOG_ERROR(mlog::app, "Thread", t.id, "is going to sleep");
-	auto prev = t.SIGNALLED.exchange(false);
-	if (prev) {
+	//auto prev = t.SIGNALLED.exchange(false);
+	if (t.SIGNALLED.load()) {
 		return;
 	}
-	t.state.store(STOP);
+	//t.state.store(STOP);
+  MLOG_ERROR(mlog::app, "Thread", t.id, "is going to sleep");
 	mythos::syscall_wait();
 }
 
 void Thread::signal(Thread &t) {
-	MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
-	t.state.store(RUN);
+	//MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
+  t.state.store(RUN);
 	auto prev = t.SIGNALLED.exchange(true);
 	if (not prev) {
 		mythos::syscall_signal(t.ec);
@@ -174,13 +182,13 @@ void ThreadManager::initThreads(void*(*fun_)(void*)) {
 void ThreadManager::startThread(Thread &t) {
 	mythos::PortalLock pl(portal);
 	if (t.state.load() != ZOMBIE && t.state.load() != INIT) {
-		MLOG_ERROR(mlog::app, "Thread already initialized", DVAR(t.id));
+		MLOG_INFO(mlog::app, "Thread already initialized", DVAR(t.id));
 		wakeup(t);
 		return;
 	}
 	mythos::ExecutionContext thread(t.ec);
 	t.state.store(RUN);
-  MLOG_ERROR(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
+  //MLOG_INFO(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
 	auto res = thread.create(pl,
                            kmem,
 	                         mythos::init::PML4,

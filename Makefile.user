@@ -4,6 +4,7 @@ CPPFLAGS += -DMLOG_CAP=FilterError
 CPPFLAGS += -DMLOG_EC=FilterError
 CPPFLAGS += -DMLOG_PORTAL=FilterError
 CPPFLAGS += -DMLOG_KM=FilterError
+CPPFLAGS += -DMLOG_APP=FilterError
 #CPPFLAGS += -DMLOG_CPU=FilterError
 #CPPFLAGS += -DMLOG_TASKLET=FilterError
 CPPFLAGS += -DMLOG_SYSCALL=FilterError
