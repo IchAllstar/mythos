@@ -23,7 +23,9 @@ public:
 	void operator() (void* data, ISignalable **array, uint64_t size) {
 		auto signalable = array[0];
 		if (signalable) {
-            signalable->multicast(array, size, 0, N_ARY_TREE);
+            signalable->cast.set(array,size,0,N_ARY_TREE);
+            //signalable->forwardMulticast();
+            //signalable->cast.reset();
             signalable->signal(data);
         }
 	}

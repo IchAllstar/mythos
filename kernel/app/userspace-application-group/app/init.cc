@@ -58,19 +58,30 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 
 using mythos::getTime;
 std::atomic<uint64_t> counter {0};
+
+ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
+extern bool signaled[100];
 int main()
 {
-  ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
+
   manager.init([](void *data) -> void* {
     //MLOG_ERROR(mlog::app, "Hello Thread");
     //MLOG_ERROR(mlog::app, "Do work");
     counter.fetch_add(1);
+    /*auto *thread = reinterpret_cast<Thread*>(data);
+    if (thread->id == 1) {
+      thread->signal(*manager.getThread(2));
+    } else {
+      thread->signal(*manager.getThread(1));
+    }
+    thread->wait(*thread);
+    */
   });
   manager.startAll();
+
+  // wait until all initialized
   while (counter.load() < 99) {
   };
-  counter.store(0);
-
 
   MLOG_ERROR(mlog::app, "Signalable Group Test");
   SignalableGroup<TreeStrategy> group;
@@ -78,12 +89,26 @@ int main()
     group.addMember(manager.getThread(i));
   }
 
+  counter.store(0);
+
   uint64_t start ,end;
   start = getTime();
   group.signalAll((void*)5);
   while (counter.load() < 99) {
-    MLOG_ERROR(mlog::app, DVAR(counter.load()));
-  };
+    //MLOG_ERROR(mlog::app, DVAR(counter.load()));
+    /*char c[101];
+    c[100] = 0;
+    for (int i = 0; i < 100; i++) {
+      if (signaled[i]) {
+        c[i] = '1';
+      } else {
+        c[i] = '0';
+      }
+    }
+    MLOG_ERROR(mlog::app, DVAR(c));
+  */
+  }
+
   end = getTime();
   MLOG_ERROR(mlog::app, DVAR(end - start));
   //group.signalAll((void*)5);
