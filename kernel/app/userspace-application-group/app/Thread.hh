@@ -41,7 +41,9 @@ public: // ISignalable Interface
 	}
 
   void forwardMulticast() override {
-    auto &mc = this->cast;
+    //auto &mc = this->cast;
+    Multicast mc;
+    this->cast.read(mc);
     ASSERT(mc.group != nullptr);
     ASSERT(mc.idx == this->id -1);
     for (size_t i = 0; i < mc.N; ++i) { // for all children in tree
