@@ -20,3 +20,20 @@ public:
 private:
 	std::atomic_flag flag;
 };
+
+
+template<typename MUTEX>
+class LockGuard {
+public:
+  LockGuard(MUTEX &m_)
+    :m(m_) {
+    m.lock();
+  }
+
+  ~LockGuard() {
+    m.unlock();
+  }
+
+private:
+    MUTEX &m;
+};

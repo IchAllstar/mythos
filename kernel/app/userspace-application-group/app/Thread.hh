@@ -10,6 +10,7 @@ const size_t PAGE_SIZE = 2 * 1024 * 1024;
 const size_t STACK_SIZE = 1 * PAGE_SIZE;
 
 bool signaled[NUM_THREADS];
+SpinMutex global;
 
 enum ThreadState {
 	RUN = 0,
@@ -36,14 +37,14 @@ struct Thread : public ISignalable {
 	static void  wait(Thread &t);
 	static void  signal(Thread &t);
 public: // ISignalable Interface
-	void signal(void *data) override {
+	void signal() override {
 		signal(*this);
 	}
 
   void forwardMulticast() override {
-    //auto &mc = this->cast;
-    Multicast mc;
-    this->cast.read(mc);
+    auto &mc = this->cast;
+    //Multicast mc;
+    //this->cast.read(mc);
     ASSERT(mc.group != nullptr);
     ASSERT(mc.idx == this->id -1);
     for (size_t i = 0; i < mc.N; ++i) { // for all children in tree
@@ -56,7 +57,7 @@ public: // ISignalable Interface
 			if (signalable) {
         // setup and signal
 				signalable->cast.set(mc.group, mc.groupSize, child_idx, mc.N);
-        signalable->signal((void*)mc.idx);
+        signalable->signal();
 			} else {
 				MLOG_ERROR(mlog::app, "Child not there", DVAR(child_idx));
 			}
@@ -71,13 +72,8 @@ void* Thread::run(void *data) {
 	while (true) {
     auto prev = thread->SIGNALLED.exchange(false);
     if (prev) {
-			//MLOG_ERROR(mlog::app, "Received Signal", thread->id);
       if (thread->cast.onGoing.load() == true) {
-        while (thread->cast.inUpdate.load() == true) {
-          MLOG_ERROR(mlog::app, "inupdate");
-        }
         thread->forwardMulticast();
-        //MLOG_ERROR(mlog::app, "Ongoing cast", DVAR(thread->id), DVAR(thread->cast.idx), DVAR(thread->cast.groupSize));
         thread->cast.reset();
       }
     }
@@ -87,26 +83,25 @@ void* Thread::run(void *data) {
 		}
 
 		wait(*thread);
-		//MLOG_ERROR(mlog::app, "Resumed", DVAR(thread->id));
 	}
 }
 
 void Thread::wait(Thread &t) {
-	//auto prev = t.SIGNALLED.exchange(false);
 	if (t.SIGNALLED.load()) {
 		return;
 	}
 	//t.state.store(STOP);
-  	//MLOG_ERROR(mlog::app, "Thread", t.id, "is going to sleep");
+	t.state.store(STOP);
 	mythos::syscall_wait();
 }
 
 void Thread::signal(Thread &t) {
 	//MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
-  	t.state.store(RUN);
+  t.state.store(RUN);
 	auto prev = t.SIGNALLED.exchange(true);
 	if (not prev) {
-		mythos::syscall_signal(t.ec);
+    //LockGuard<SpinMutex> g(global);
+	  mythos::syscall_signal(t.ec);
 	}
 }
 
