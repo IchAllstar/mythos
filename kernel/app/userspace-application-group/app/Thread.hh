@@ -5,11 +5,11 @@
 #include "app/mlog.hh"
 #include "app/Mutex.hh"
 
-static constexpr size_t NUM_THREADS = 100;
-static constexpr size_t PAGE_SIZE = 2 * 1024 * 1024;
-static constexpr size_t STACK_SIZE = 1 * PAGE_SIZE;
+const size_t NUM_THREADS = 16;
+const size_t PAGE_SIZE = 2 * 1024 * 1024;
+const size_t STACK_SIZE = 1 * PAGE_SIZE;
 
-bool signaled[100];
+bool signaled[NUM_THREADS];
 
 enum ThreadState {
 	RUN = 0,
@@ -97,13 +97,13 @@ void Thread::wait(Thread &t) {
 		return;
 	}
 	//t.state.store(STOP);
-  MLOG_ERROR(mlog::app, "Thread", t.id, "is going to sleep");
+  	//MLOG_ERROR(mlog::app, "Thread", t.id, "is going to sleep");
 	mythos::syscall_wait();
 }
 
 void Thread::signal(Thread &t) {
 	//MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
-  t.state.store(RUN);
+  	t.state.store(RUN);
 	auto prev = t.SIGNALLED.exchange(true);
 	if (not prev) {
 		mythos::syscall_signal(t.ec);
@@ -190,7 +190,7 @@ void ThreadManager::startThread(Thread &t) {
 	}
 	mythos::ExecutionContext thread(t.ec);
 	t.state.store(RUN);
-  //MLOG_INFO(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
+  	//MLOG_INFO(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
 	auto res = thread.create(pl,
                            kmem,
 	                         mythos::init::PML4,

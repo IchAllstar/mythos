@@ -58,12 +58,12 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 
 using mythos::getTime;
 std::atomic<uint64_t> counter {0};
+extern const size_t NUM_THREADS;
 
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
-extern bool signaled[100];
+extern bool signaled[NUM_THREADS];
 int main()
 {
-
   manager.init([](void *data) -> void* {
     //MLOG_ERROR(mlog::app, "Hello Thread");
     //MLOG_ERROR(mlog::app, "Do work");
@@ -80,7 +80,8 @@ int main()
   manager.startAll();
 
   // wait until all initialized
-  while (counter.load() < 99) {
+  while (counter.load() < NUM_THREADS - 1) {
+
   };
 
   MLOG_ERROR(mlog::app, "Signalable Group Test");
@@ -94,7 +95,8 @@ int main()
   uint64_t start ,end;
   start = getTime();
   group.signalAll((void*)5);
-  while (counter.load() < 99) {
+  while (counter.load() < NUM_THREADS - 1) {
+    mythos::hwthread_pause(1);
     //MLOG_ERROR(mlog::app, DVAR(counter.load()));
     /*char c[101];
     c[100] = 0;
