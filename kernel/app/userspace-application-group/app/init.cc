@@ -49,6 +49,14 @@ constexpr uint64_t stacksize = 4*4096;
 char initstack[stacksize];
 char* initstack_top = initstack+stacksize;
 
+// [ ) range
+struct ThreadRange {
+  std::atomic<bool> onGoing {false};
+  ISignalable **group {nullptr};
+  uint64_t from = 0;
+  uint64_t to   = 0;
+};
+
 mythos::Portal portal(mythos::init::PORTAL, msg_ptr);
 mythos::CapMap myCS(mythos::init::CSPACE);
 mythos::PageMap myAS(mythos::init::PML4);
@@ -59,16 +67,61 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 using mythos::getTime;
 std::atomic<uint64_t> counter {0};
 extern const size_t NUM_THREADS;
+extern const size_t NUM_HELPER_THREADS;
 
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
-extern bool signaled[NUM_THREADS];
+ThreadRange helper_info[NUM_HELPER_THREADS];
+
+void* helper_thread(void *data) {
+  ASSERT(data != nullptr);
+  auto *thread = reinterpret_cast<Thread*>(data);
+  MLOG_ERROR(mlog::app, "Helper started", DVAR(thread->id));
+  while(true)  {
+    auto prev = thread->SIGNALLED.exchange(false);
+    if (prev) {
+      MLOG_ERROR(mlog::app, "Got Signalled.");
+      auto &info = helper_info[thread->id];
+      if (info.onGoing.load()) {
+        //do stuff
+        for (uint64_t i = info.from; i < info.to; i++) {
+          MLOG_ERROR(mlog::app, "Signal", i);
+          info.group[i]->signal();
+        }
+        info.onGoing.store(false);
+      }
+    }
+    Thread::wait(*thread);
+  }
+}
+
+void test_helper() {
+  SignalableGroup<100, HelperStrategy> group;
+  for (int i = NUM_HELPER_THREADS; i < manager.getNumThreads(); ++i) {
+    group.addMember(manager.getThread(i));
+  }
+  //group.signalAll();
+}
 
 int main()
 {
   manager.init([](void *data) -> void* {
-    counter.fetch_add(1);
+      ASSERT(data != nullptr);
+      auto *thread = reinterpret_cast<Thread*>(data);
+      if (manager.isHelper(*thread)) {
+        return helper_thread(data);
+      } else {
+        counter.fetch_add(1);
+      }
   });
+  for (uint64_t i = 1; i < NUM_HELPER_THREADS; ++i) {
+    manager.registerHelper(*manager.getThread(i));
+  }
   manager.startAll();
+
+  if (NUM_HELPER_THREADS > 0) {
+    test_helper();
+    return 0;
+  }
 
   // wait until all initialized
   while (counter.load() < NUM_THREADS - 1) {
@@ -76,7 +129,8 @@ int main()
   };
 
   MLOG_ERROR(mlog::app, "Signalable Group Test");
-  SignalableGroup<100, TreeStrategy> group;
+  SignalableGroup<100> group;
+  //SignalableGroup<100, TreeStrategy> group;
   for (int i = 1; i < manager.getNumThreads(); ++i) {
     group.addMember(manager.getThread(i));
   }
