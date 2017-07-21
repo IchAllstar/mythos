@@ -4,6 +4,7 @@
 #include "app/ISignalable.hh"
 #include "app/Mutex.hh"
 #include "app/mlog.hh"
+#include "app/Thread.hh"
 
 class SequentialStrategy {
 public:
@@ -27,6 +28,18 @@ public:
       signalable->signal();
     }
 	}
+};
+
+extern ThreadManager manager;
+class HelperStrategy {
+public:
+  void operator() (ISignalable **array, uint64_t size) {
+    auto divide = size / NUM_HELPER_THREADS;
+    uint64_t current = 0;
+    for (uint64_t i  = 0; i < NUM_HELPER_THREADS; i++) {
+
+    }
+  }
 };
 
 template<size_t MAX = 100, typename MULTICAST_STRATEGY = SequentialStrategy>

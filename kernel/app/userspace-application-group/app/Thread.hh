@@ -5,11 +5,11 @@
 #include "app/mlog.hh"
 #include "app/Mutex.hh"
 
-const size_t NUM_THREADS = 16;
+const size_t NUM_THREADS = 50;
+const size_t NUM_HELPER_THREADS = 0;
 const size_t PAGE_SIZE = 2 * 1024 * 1024;
 const size_t STACK_SIZE = 1 * PAGE_SIZE;
 
-bool signaled[NUM_THREADS];
 SpinMutex global;
 
 enum ThreadState {
@@ -114,7 +114,9 @@ public:
 	void startThread(Thread &t);
 	void startAll();
 	void deleteThread(Thread &t);
-	void wakeup(Thread &t);
+  void registerHelper(Thread &t);
+  bool isHelper(Thread &t);
+  Thread* getHelper(uint64_t number);
 	uint64_t getNumThreads() {
 		return NUM_THREADS;
 	}
@@ -132,6 +134,7 @@ private:
 
 private:
 	Thread threads[NUM_THREADS];
+  Thread* helperThreads[NUM_HELPER_THREADS];
 	mythos::Portal &portal;
 	mythos::CapMap cs;
 	mythos::PageMap as;
@@ -179,13 +182,13 @@ void ThreadManager::initThreads(void*(*fun_)(void*)) {
 void ThreadManager::startThread(Thread &t) {
 	mythos::PortalLock pl(portal);
 	if (t.state.load() != ZOMBIE && t.state.load() != INIT) {
-		MLOG_INFO(mlog::app, "Thread already initialized", DVAR(t.id));
-		wakeup(t);
+		MLOG_ERROR(mlog::app, "Thread already initialized", DVAR(t.id));
+    Thread::signal(t);
 		return;
 	}
 	mythos::ExecutionContext thread(t.ec);
 	t.state.store(RUN);
-  	//MLOG_INFO(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
+  MLOG_ERROR(mlog::app, DVAR(t.id), DVAR(t.ec), DVAR(t.sc), DVAR(t.stack_begin));
 	auto res = thread.create(pl,
                            kmem,
 	                         mythos::init::PML4,
@@ -199,7 +202,6 @@ void ThreadManager::startThread(Thread &t) {
 
 void ThreadManager::startAll() {
 	for (auto &t : threads) {
-
 		startThread(t);
 	}
 }
@@ -212,6 +214,27 @@ void ThreadManager::deleteThread(Thread &t) {
 	ASSERT(res);
 }
 
-void ThreadManager::wakeup(Thread &t) {
-	Thread::signal(t);
+void ThreadManager::registerHelper(Thread &t) {
+  for (uint64_t i = 0; i < NUM_HELPER_THREADS; ++i) {
+    if (helperThreads[i] == nullptr) {
+        helperThreads[i] = &t;
+        MLOG_ERROR(mlog::app, "register helper at", i);
+    }
+  }
+  PANIC("No free helper space");
+}
+
+Thread* ThreadManager::getHelper(uint64_t number) {
+  ASSERT(number < NUM_HELPER_THREADS);
+  return helperThreads[number];
+}
+
+bool ThreadManager::isHelper(Thread &t) {
+  for (uint64_t i = 0; i < NUM_HELPER_THREADS; ++i) {
+    if (helperThreads[i] == &t) {
+      MLOG_ERROR(mlog::app, "is helper", i);
+      return true;
+    }
+  }
+  return false;
 }
