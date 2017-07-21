@@ -62,30 +62,21 @@ extern const size_t NUM_THREADS;
 
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
 extern bool signaled[NUM_THREADS];
+
 int main()
 {
   manager.init([](void *data) -> void* {
-    //MLOG_ERROR(mlog::app, "Hello Thread");
-    //MLOG_ERROR(mlog::app, "Do work");
     counter.fetch_add(1);
-    /*auto *thread = reinterpret_cast<Thread*>(data);
-    if (thread->id == 1) {
-      thread->signal(*manager.getThread(2));
-    } else {
-      thread->signal(*manager.getThread(1));
-    }
-    thread->wait(*thread);
-    */
   });
   manager.startAll();
 
   // wait until all initialized
   while (counter.load() < NUM_THREADS - 1) {
-
+    mythos::hwthread_pause(100);
   };
 
   MLOG_ERROR(mlog::app, "Signalable Group Test");
-  SignalableGroup<TreeStrategy> group;
+  SignalableGroup<100, TreeStrategy> group;
   for (int i = 1; i < manager.getNumThreads(); ++i) {
     group.addMember(manager.getThread(i));
   }
@@ -94,26 +85,12 @@ int main()
 
   uint64_t start ,end;
   start = getTime();
-  group.signalAll((void*)5);
+  group.signalAll();
   while (counter.load() < NUM_THREADS - 1) {
-    mythos::hwthread_pause(1);
-    //MLOG_ERROR(mlog::app, DVAR(counter.load()));
-    /*char c[101];
-    c[100] = 0;
-    for (int i = 0; i < 100; i++) {
-      if (signaled[i]) {
-        c[i] = '1';
-      } else {
-        c[i] = '0';
-      }
-    }
-    MLOG_ERROR(mlog::app, DVAR(c));
-  */
+    mythos::hwthread_pause(100);
   }
 
   end = getTime();
   MLOG_ERROR(mlog::app, DVAR(end - start));
-  //group.signalAll((void*)5);
-  //group.signalAll((void*)5);
   return 0;
 }
