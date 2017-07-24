@@ -39,8 +39,10 @@
 #include "app/mlog.hh"
 #include <cstdint>
 #include "app/Thread.hh"
-#include "app/Multicast.hh"
+#include "app/ThreadManager.hh"
+#include "app/SignalableGroup.hh"
 #include "util/Time.hh"
+#include "app/HelperThread.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -48,14 +50,6 @@ int main() asm("main");
 constexpr uint64_t stacksize = 4*4096;
 char initstack[stacksize];
 char* initstack_top = initstack+stacksize;
-
-// [ ) range
-struct ThreadRange {
-  std::atomic<bool> onGoing {false};
-  ISignalable **group {nullptr};
-  uint64_t from = 0;
-  uint64_t to   = 0;
-};
 
 mythos::Portal portal(mythos::init::PORTAL, msg_ptr);
 mythos::CapMap myCS(mythos::init::CSPACE);
@@ -67,61 +61,107 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 using mythos::getTime;
 std::atomic<uint64_t> counter {0};
 extern const size_t NUM_THREADS;
-extern const size_t NUM_HELPER_THREADS;
 
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
-ThreadRange helper_info[NUM_HELPER_THREADS];
+
+const size_t NUM_HELPER = 10;
+HelperThread helpers[NUM_HELPER];
+// Place the helper on following threads
+uint64_t helperIDs[NUM_HELPER] = {1,3,4,7,8,11,25,29,33,37};
+
+HelperThread *getHelper(uint64_t threadID) {
+  for (auto &h : helpers) {
+    if (h.thread->id == threadID) {
+      return &h;
+    }
+  }
+  return nullptr;
+}
+
+bool contains(uint64_t id) {
+  for (auto i : helperIDs) {
+    if (id == i) return true;
+  }
+  return false;
+}
 
 void* helper_thread(void *data) {
   ASSERT(data != nullptr);
   auto *thread = reinterpret_cast<Thread*>(data);
-  MLOG_ERROR(mlog::app, "Helper started", DVAR(thread->id));
+  //MLOG_ERROR(mlog::app, "Helper started", DVAR(thread->id));
+  auto *helper = getHelper(thread->id);
+  ASSERT(helper);
   while(true)  {
     auto prev = thread->SIGNALLED.exchange(false);
     if (prev) {
-      MLOG_ERROR(mlog::app, "Got Signalled.");
-      auto &info = helper_info[thread->id];
-      if (info.onGoing.load()) {
-        //do stuff
-        for (uint64_t i = info.from; i < info.to; i++) {
-          MLOG_ERROR(mlog::app, "Signal", i);
-          info.group[i]->signal();
-        }
-        info.onGoing.store(false);
+      //MLOG_ERROR(mlog::app, "Helper: Got Signalled.");
+      //do useful stuff
+      uint64_t start , end;
+      start = getTime();
+      for (uint64_t i = helper->from; i < helper->to; ++i) {
+        //MLOG_ERROR(mlog::app, "wakeup", i);
+        helper->group[i]->signal();
       }
+      helper->onGoing.store(false);
+      end = getTime();
+      //MLOG_ERROR(mlog::app, DVAR(end - start));
     }
     Thread::wait(*thread);
   }
 }
 
-void test_helper() {
-  SignalableGroup<100, HelperStrategy> group;
-  for (int i = NUM_HELPER_THREADS; i < manager.getNumThreads(); ++i) {
-    group.addMember(manager.getThread(i));
+void init_helper() {
+  uint64_t helper_number = 0;
+  for (auto i : helperIDs/*uint64_t i = 1; i < NUM_HELPER + 1; ++i*/) {
+    manager.initThread(i, &helper_thread);
+    ASSERT(manager.getThread(i));
+    helpers[helper_number].thread = manager.getThread(i);
+    manager.startThread(*manager.getThread(i));
+    helper_number++;
   }
-  //group.signalAll();
 }
 
-int main()
-{
+void init_worker() {
+  for (uint64_t i = 1; i < NUM_THREADS; i++) {
+    if (contains(i)) continue;
+
+    manager.initThread(i, [](void *data) -> void* {
+      auto *thread = reinterpret_cast<Thread*>(data);
+      counter.fetch_add(1);
+      //MLOG_ERROR(mlog::app, "Worker ", thread->id);
+    });
+    manager.startThread(*manager.getThread(i));
+  }
+}
+
+void test_helper() {
+  init_helper();
+  init_worker();
+  SignalableGroup<100, HelperStrategy> group;
+  for (int i = 1; i < NUM_THREADS; i++) {
+    if (contains(i)) continue;
+    group.addMember(manager.getThread(i));
+  }
+  counter.store(0);
+  uint64_t start,middle,end;
+  start = getTime();
+  group.signalAll();
+  middle = getTime();
+  while (counter.load(std::memory_order_relaxed) < NUM_THREADS - NUM_HELPER - 1) {
+    //mythos::hwthread_pause(1);
+  }
+  end = getTime();
+  MLOG_ERROR(mlog::app, "Num Threads:", group.count(), "Helper:", NUM_HELPER, "Time:", end - start, "Middle", middle - start);
+}
+
+
+void test_multicast() {
   manager.init([](void *data) -> void* {
       ASSERT(data != nullptr);
       auto *thread = reinterpret_cast<Thread*>(data);
-      if (manager.isHelper(*thread)) {
-        return helper_thread(data);
-      } else {
-        counter.fetch_add(1);
-      }
+      counter.fetch_add(1);
   });
-  for (uint64_t i = 1; i < NUM_HELPER_THREADS; ++i) {
-    manager.registerHelper(*manager.getThread(i));
-  }
   manager.startAll();
-
-  if (NUM_HELPER_THREADS > 0) {
-    test_helper();
-    return 0;
-  }
 
   // wait until all initialized
   while (counter.load() < NUM_THREADS - 1) {
@@ -145,6 +185,12 @@ int main()
   }
 
   end = getTime();
-  MLOG_ERROR(mlog::app, DVAR(end - start));
+  MLOG_ERROR(mlog::app,DVAR(group.count()),  DVAR(end - start));
+}
+
+int main()
+{
+  //test_multicast();
+  test_helper();
   return 0;
 }
