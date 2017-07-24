@@ -37,7 +37,7 @@ namespace mythos {
   public:
     virtual ~PluginCpuDriverKNC() {}
     void initGlobal() override {
-      MLOG_ERROR(mlog::boot, "registering init loader event hook");
+      MLOG_DETAIL(mlog::boot, "registering init loader event hook");
       boot::initLoaderEvent.register_hook(this);
     }
   protected:
