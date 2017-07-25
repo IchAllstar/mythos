@@ -93,7 +93,6 @@ namespace mythos {
   }
 
   void SchedulingContext::preempt() {
-    MLOG_DETAIL(mlog::sched, "preempt", DVAR(home));
     if (&getLocalPlace() == home) return; // we are on the home thread already, nothing to do
     if (preempting.test_and_set()) return; // we are preempting the home already, nothing to do
     home->run(tasklet.set([=](Tasklet*){ preempting.clear(); }));

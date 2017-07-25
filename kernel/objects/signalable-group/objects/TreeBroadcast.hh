@@ -30,12 +30,14 @@
 #include "objects/ExecutionContext.hh"
 #include "objects/CapRef.hh"
 #include "objects/mlog.hh"
+#include "util/Time.hh"
 
 
 namespace mythos {
 
 class SignalableGroup;
-
+std::atomic<uint64_t> counter {0};
+extern std::atomic<uint64_t> bla;
 class TreeBroadcast
 {
 public:
@@ -43,11 +45,26 @@ public:
         ASSERT(group != nullptr);
         MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
 
+        uint64_t start, end, tmp=0;
+        start = getTime();
+
         TypedCap<ISignalable> signalable(group[0].cap());
         if (signalable) {
-            signalable->broadcast(group, groupSize, 0, N_ARY_TREE);
+            signalable->bc.set(group, groupSize, 0, N_ARY_TREE);
             signalable->signal(300);
         }
+        while (counter.load() < groupSize) {
+          hwthread_pause();
+          if (tmp != counter.load()) {
+            tmp = counter.load();
+            MLOG_ERROR(mlog::boot, DVAR(tmp));
+          }
+
+        }
+
+        end = getTime();
+        MLOG_ERROR(mlog::boot, DVAR(end - start));
+
         return Error::SUCCESS;
     }
 private:

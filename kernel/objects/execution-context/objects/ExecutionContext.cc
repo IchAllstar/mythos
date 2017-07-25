@@ -56,7 +56,7 @@ void ExecutionContext::setFlagSuspend(uint8_t f)
 void ExecutionContext::clearFlagResume(uint8_t f)
 {
     auto prev = clearFlag(f);
-    MLOG_DETAIL(mlog::ec, "cleared flag", DVAR(this), DVARhex(f), DVARhex(prev), DVARhex(flags.load()), isReady());
+    //MLOG_ERROR(mlog::ec, "cleared flag", DVAR(this), DVARhex(f), DVARhex(prev), DVARhex(flags.load()), isReady());
     if (isBlocked(prev) && isReady()) {
         auto sched = _sched.get();
         MLOG_DETAIL(mlog::ec, "trying to wake up the scheduler");
@@ -416,22 +416,28 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
 }
 
 void ExecutionContext::broadcast(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize, size_t idx, size_t N) {
+    //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
     for (size_t i = 0; i < N; ++i) { // for all children in tree
+        ASSERT(N != 0);
+        ASSERT(group != nullptr);
         size_t child_idx = idx * N + i + 1;
+        if (child_idx >= groupSize) return;
         //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
-        if (child_idx >= groupSize) {
-            return;
-        }
         TypedCap<ISignalable> signalable(group[child_idx].cap());
         if (signalable) {
             //MLOG_ERROR(mlog::boot, "bc set", DVAR(groupSize), DVAR(child_idx), DVAR(&signalable->bc));
             signalable->bc.set(group, groupSize, child_idx, N);
             signalable->signal(0);
+        } else {
+          PANIC("Signalable not valid anymore");
         }
     }
+    //MLOG_ERROR(mlog::boot, "here");
 }
 
-  bool ExecutionContext::prepareResume() {
+std::atomic<uint64_t> bla {0};
+extern std::atomic<uint64_t> counter;
+bool ExecutionContext::prepareResume() {
     if (!isReady()) return false;
     auto prevState = clearFlag(IN_WAIT);
     MLOG_DETAIL(mlog::ec, "try to resume", DVARhex(prevState));
@@ -441,13 +447,8 @@ void ExecutionContext::broadcast(CapRef<SignalableGroup, ISignalable> *group, si
         if (last != 0) {
             MLOG_ERROR(mlog::ec, "LastSignal", DVAR(last));
         }
-
-        // Am I member of a multicast? TODO: multiple multicasts ...
-        if (bc.onGoing.load()) {
-            broadcast(bc.group, bc.groupSize, bc.idx, bc.N);
-            bc.reset();
-        }
         clearFlag(IS_NOTIFIED); // this is safe because we wake up anyway
+
         auto e = notificationQueue.pull();
         if (e) {
             auto ev = e->get()->deliver();
@@ -458,6 +459,15 @@ void ExecutionContext::broadcast(CapRef<SignalableGroup, ISignalable> *group, si
             threadState.rdi = uint64_t(Error::NO_MESSAGE);
         }
         //MLOG_DETAIL(mlog::ec, DVARhex(threadState.rsi), DVAR(threadState.rdi));
+    }
+    // Am I member of a multicast? TODO: multiple multicasts ...
+    if (bc.onGoing.load()) {
+        //MLOG_ERROR(mlog::boot, "Ongoing broadcast", DVAR(bc.idx), DVAR(bc.groupSize));
+
+        broadcast(bc.group, bc.groupSize, bc.idx, bc.N);
+        counter.fetch_add(1);
+        bc.reset();
+        MLOG_ERROR(mlog::boot, "finished forwarding");
     }
 
     // remove myself from the last place's current_ec if still there
@@ -489,6 +499,7 @@ void ExecutionContext::broadcast(CapRef<SignalableGroup, ISignalable> *group, si
 
   void ExecutionContext::doResume() {
     MLOG_INFO(mlog::ec, "resuming", DVAR(this), DVARhex(threadState.rip), DVARhex(threadState.rsp));
+
     cpu::return_to_user();
     }
 

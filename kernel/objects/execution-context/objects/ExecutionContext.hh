@@ -152,7 +152,6 @@ namespace mythos {
     INotifiable::list_t notificationQueue;
     std::atomic<uint8_t> flags;
     std::atomic<CapData> lastSignal = {0};
-    //Broadcast bc;
     CapRef<ExecutionContext,IPageMap> _as;
     CapRef<ExecutionContext,ICapMap> _cs;
     CapRef<ExecutionContext,IScheduler> _sched;

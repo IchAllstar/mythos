@@ -30,9 +30,9 @@
 #include "util/assert.hh"
 
 namespace mythos {
-LAPIC lapic;
+  LAPIC lapic;
 
-void LAPIC::init() {
+  void LAPIC::init() {
     MLOG_DETAIL(mlog::boot, "initializing local xAPIC");
     Register value;
 
@@ -73,6 +73,7 @@ void LAPIC::init() {
     // After a crash, interrupts from previous run can still have ISR bit set.
     // Thus clear these with EndOfInterrupt.
     size_t queued = 0;
+<<<<<<< HEAD
 
     for (size_t loops = 0; loops < 1000000; loops++) {
         for (size_t i = 0; i < 0x8; i++) queued |= read(REG_IRR + i * 0x10).value;
@@ -83,6 +84,17 @@ void LAPIC::init() {
                 if (value.value & (1 << j)) endOfInterrupt();
             }
         }
+=======
+    for (size_t loops=0; loops<1000000; loops++) {
+      for (size_t i=0; i<0x8; i++) queued |= read(REG_IRR + i*0x10).value;
+      if (!queued) break;
+      for (size_t i=0; i<0x8; i++) {
+	value = read(REG_ISR + i*0x10);
+	for (size_t j=0; j<32; j++) {
+	  if (value.value & (1<<j)) endOfInterrupt();
+	}
+      }
+>>>>>>> 8249ce0... Added extra init application for kernelspace group testing. Same bug in Kernelspace like in userspace. acts the same
     }
 
     // init the Spurious Interrupt Vector Register for handling local interrupt sources
@@ -110,21 +122,21 @@ void LAPIC::init() {
     write(REG_LVT_ERROR, value);
     // spec says clear errors after enabling vector.
     write(REG_ESR, 0); read(REG_ESR); // Due to the Pentium erratum 3AP.
-}
+  }
 
-void LAPIC::enablePeriodicTimer(uint8_t irq, uint32_t count) {
+  void LAPIC::enablePeriodicTimer(uint8_t irq, uint32_t count) {
     MLOG_INFO(mlog::boot, "enable periodic APIC timer", DVAR(irq), DVAR(count));
     write(REG_TIMER_DCR, 0x0b);  // divide bus clock by 0xa=128 or 0xb=1
     setInitialCount(count);
     write(REG_LVT_TIMER, read(REG_LVT_TIMER).timer_mode(PERIODIC).masked(0).vector(irq));
-}
+  }
 
-void LAPIC::disableTimer() {
+  void LAPIC::disableTimer() {
     MLOG_INFO(mlog::boot, "disable APIC timer");
     write(REG_LVT_TIMER, read(REG_LVT_TIMER).timer_mode(ONESHOT).masked(1).vector(0));
-}
+  }
 
-bool LAPIC::broadcastInitIPIEdge() {
+  bool LAPIC::broadcastInitIPIEdge() {
     write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     read(REG_ESR);
     writeIPI(0, edgeIPI(ICR_DESTSHORT_NOTSELF, MODE_INIT, 0));
@@ -138,10 +150,10 @@ bool LAPIC::broadcastInitIPIEdge() {
      */
     hwthread_wait(10000);
     return true;
-}
+  }
 
-bool LAPIC::broadcastStartupIPI(size_t startIP) {
-    ASSERT((startIP & 0x0FFF) == 0 && ((startIP >> 12) >> 8) == 0);
+  bool LAPIC::broadcastStartupIPI(size_t startIP) {
+    ASSERT((startIP & 0x0FFF) == 0 && ((startIP>>12)>>8) == 0);
     write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     read(REG_ESR);
     writeIPI(0, edgeIPI(ICR_DESTSHORT_NOTSELF, MODE_SIPI, uint8_t(startIP >> 12)));
@@ -149,46 +161,34 @@ bool LAPIC::broadcastStartupIPI(size_t startIP) {
     uint32_t esr = read(REG_ESR).value & 0xEF;
     MLOG_DETAIL(mlog::boot, "SIPI broadcast result", DVARhex(esr));
     return true;
-}
+  }
 
-bool LAPIC::sendNMI(size_t destination) {
+  bool LAPIC::sendNMI(size_t destination) {
     write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     read(REG_ESR);
     writeIPI(destination, edgeIPI(ICR_DESTSHORT_NO, MODE_NMI, 0));
     write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     return true;
-}
+  }
 
-bool LAPIC::sendIRQ(size_t destination, uint8_t vector)
-{
+  bool LAPIC::sendIRQ(size_t destination, uint8_t vector)
+  {
     MLOG_INFO(mlog::boot, "send IRQ:", DVAR(destination), DVAR(vector));
     //write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     //read(REG_ESR);
     writeIPI(destination, edgeIPI(ICR_DESTSHORT_NO, MODE_FIXED, vector));
     //write(REG_ESR, 0); // Be paranoid about clearing APIC errors.
     return true;
-}
+  }
 
-void LAPIC::writeIPI(size_t destination, Register icrlow) {
-    ASSERT(destination < 256);
+  void LAPIC::writeIPI(size_t destination, Register icrlow) {
+    ASSERT(destination<256);
     MLOG_DETAIL(mlog::boot, "write ICR", DVAR(destination), DVARhex(icrlow.value));
 
-    while (read(REG_ICR_LOW).delivery_pending) hwthread_pause();
+    while(read(REG_ICR_LOW).delivery_pending) hwthread_pause();
 
     write(REG_ICR_HIGH, Register().destination(destination));
     write(REG_ICR_LOW, icrlow);
-}
-
-void LAPIC::ackIRQ(uint8_t vector) {
-    MLOG_ERROR(mlog::boot, "Not yet implemented", vector);
-}
-
-void LAPIC::maskIRQ(uint8_t vector) {
-    MLOG_ERROR(mlog::boot, "Not yet implemented", vector);
-}
-
-void LAPIC::unmaskIRQ(uint8_t vector) {
-    MLOG_ERROR(mlog::boot, "Not yet implemented", vector);
-}
+  }
 
 } // namespace mythos
