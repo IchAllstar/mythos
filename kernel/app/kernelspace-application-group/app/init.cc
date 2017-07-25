@@ -44,64 +44,68 @@
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = 4*4096;
+constexpr uint64_t stacksize = 4 * 4096;
 char initstack[stacksize];
-char* initstack_top = initstack+stacksize;
+char* initstack_top = initstack + stacksize;
 
 mythos::Portal portal(mythos::init::PORTAL, msg_ptr);
 mythos::CapMap cs(mythos::init::CSPACE);
 mythos::PageMap as(mythos::init::PML4);
 mythos::KernelMemory kmem(mythos::init::KM);
 mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
-                                  mythos::init::SIZE-mythos::init::APP_CAP_START);
+                               mythos::init::SIZE - mythos::init::APP_CAP_START);
 
 char threadstack[stacksize];
-char* thread1stack_top = threadstack+stacksize/2;
-char* thread2stack_top = threadstack+stacksize;
+char* thread1stack_top = threadstack + stacksize / 2;
+char* thread2stack_top = threadstack + stacksize;
 
 char threadstack2[stacksize];
-char* thread3stack_top = threadstack2+stacksize/2;
-char* thread4stack_top = threadstack2+stacksize;
+char* thread3stack_top = threadstack2 + stacksize / 2;
+char* thread4stack_top = threadstack2 + stacksize;
 
-uint64_t NUM_THREADS = 100;
+uint64_t NUM_THREADS = 60;
 const uint64_t PAGE_SIZE  = 2 * 1024 * 1024; // 2 MB
 const uint64_t STACK_SIZE = 1 * PAGE_SIZE;
 
 
 void* thread_main(void* ctx)
 {
-  //MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
-  mythos::ISysretHandler::handle(mythos::syscall_wait());
-  MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+  while (true) {
+    //MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
+    mythos::ISysretHandler::handle(mythos::syscall_wait());
+    //MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+  }
   return 0;
 }
 
 void init_threads() {
-	mythos::PortalLock pl(portal);
-	mythos::Frame stackFrame(caps.alloc());
-	auto res1 = stackFrame.create(pl, kmem, NUM_THREADS * STACK_SIZE, PAGE_SIZE).wait();
-	ASSERT(res1);
-	MLOG_INFO(mlog::app, "alloc thread stack frame", DVAR(res1.state()));
-	constexpr uintptr_t VADDR = 12 * PAGE_SIZE;
-	auto res2 = as.mmap(pl, stackFrame, VADDR, NUM_THREADS * STACK_SIZE,
-	                    mythos::protocol::PageMap::MapFlags().writable(true)).wait();
-	ASSERT(res2);
-	MLOG_INFO(mlog::app, "mmap stack frame", DVAR(res2.state()),
-	          DVARhex(res2->vaddr), DVARhex(res2->size), DVAR(res2->level));
+  mythos::PortalLock pl(portal);
+  mythos::Frame stackFrame(caps.alloc());
+  auto res1 = stackFrame.create(pl, kmem, NUM_THREADS * STACK_SIZE, PAGE_SIZE).wait();
+  ASSERT(res1);
+  MLOG_INFO(mlog::app, "alloc thread stack frame", DVAR(res1.state()));
+  constexpr uintptr_t VADDR = 12 * PAGE_SIZE;
+  auto res2 = as.mmap(pl, stackFrame, VADDR, NUM_THREADS * STACK_SIZE,
+                      mythos::protocol::PageMap::MapFlags().writable(true)).wait();
+  ASSERT(res2);
+  MLOG_INFO(mlog::app, "mmap stack frame", DVAR(res2.state()),
+            DVARhex(res2->vaddr), DVARhex(res2->size), DVAR(res2->level));
 
   mythos::SignalableGroup group(caps());
   TEST(group.create(pl, kmem, 100).wait());
 
   auto addr = reinterpret_cast<uint8_t*>(VADDR);
-	for (uint64_t i = 1; i < NUM_THREADS; ++i) {
-		addr += STACK_SIZE;
+  for (uint64_t i = 1; i < NUM_THREADS; ++i) {
+    addr += STACK_SIZE;
     mythos::ExecutionContext ec(caps());
     auto res2 = ec.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + i,
-                             addr, &thread_main, (void*)i).wait();
+                          addr, &thread_main, (void*)i).wait();
     TEST(res2);
-    TEST(group.addMember(pl,ec.cap()).wait());
-	}
-  group.signalAll(pl);
+    TEST(group.addMember(pl, ec.cap()).wait());
+  }
+  while(true) {
+    group.signalAll(pl).wait();
+  }
 }
 
 void test_signalable_group() {
@@ -113,19 +117,19 @@ void test_signalable_group() {
 
   mythos::ExecutionContext ec1(caps());
   auto res2 = ec1.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 2,
-                           thread1stack_top, &thread_main, (void*)1).wait();
+                         thread1stack_top, &thread_main, (void*)1).wait();
   TEST(res2);
   mythos::ExecutionContext ec2(caps());
   auto res3 = ec2.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 3,
-                           thread2stack_top, &thread_main, (void*)2).wait();
+                         thread2stack_top, &thread_main, (void*)2).wait();
   TEST(res3);
   mythos::ExecutionContext ec3(caps());
   auto res4 = ec3.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 3,
-                           thread3stack_top, &thread_main, (void*)3).wait();
+                         thread3stack_top, &thread_main, (void*)3).wait();
   TEST(res4);
   mythos::ExecutionContext ec4(caps());
   auto res5 = ec4.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 1,
-                           thread4stack_top, &thread_main, (void*)4).wait();
+                         thread4stack_top, &thread_main, (void*)4).wait();
   TEST(res5);
   TEST(group.addMember(pl, ec1.cap()).wait());
   TEST(group.addMember(pl, ec2.cap()).wait());
@@ -143,7 +147,7 @@ int main()
 
   //test_signalable_group();
   init_threads();
-  mythos::syscall_debug(end, sizeof(end)-1);
+  mythos::syscall_debug(end, sizeof(end) - 1);
 
   return 0;
 }
