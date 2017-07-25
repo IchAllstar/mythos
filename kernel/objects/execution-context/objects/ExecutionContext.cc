@@ -467,7 +467,7 @@ void ExecutionContext::resume() {
         broadcast(bc.group, bc.groupSize, bc.idx, bc.N);
         counter.fetch_add(1);
         bc.reset();
-        MLOG_ERROR(mlog::boot, "finished forwarding");
+        //MLOG_ERROR(mlog::boot, "finished forwarding");
     }
 
     // remove myself from the last place's current_ec if still there

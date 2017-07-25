@@ -43,28 +43,28 @@ class TreeBroadcast
 public:
     Error operator()(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize) {
         ASSERT(group != nullptr);
-        MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
+        //MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
 
-        uint64_t start, end, tmp=0;
+        uint64_t start, end, tmp = 0;
         start = getTime();
 
         TypedCap<ISignalable> signalable(group[0].cap());
         if (signalable) {
             signalable->bc.set(group, groupSize, 0, N_ARY_TREE);
-            signalable->signal(300);
+            signalable->signal(0);
         }
         while (counter.load() < groupSize) {
-          hwthread_pause();
-          if (tmp != counter.load()) {
-            tmp = counter.load();
-            MLOG_ERROR(mlog::boot, DVAR(tmp));
-          }
+            hwthread_pause();
+            if (tmp != counter.load()) {
+                tmp = counter.load();
+                //MLOG_ERROR(mlog::boot, DVAR(tmp));
+            }
 
         }
 
         end = getTime();
-        MLOG_ERROR(mlog::boot, DVAR(end - start));
-
+        //MLOG_ERROR(mlog::boot, DVAR(end - start));
+        counter.store(0);
         return Error::SUCCESS;
     }
 private:

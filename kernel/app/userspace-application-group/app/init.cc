@@ -61,10 +61,11 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 using mythos::getTime;
 std::atomic<uint64_t> counter {0};
 extern const size_t NUM_THREADS;
+extern const size_t NUM_HELPER;
 
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
 
-const size_t NUM_HELPER = 10;
+
 HelperThread helpers[NUM_HELPER];
 // Place the helper on following threads
 uint64_t helperIDs[NUM_HELPER] = {1,3,4,7,8,11,25,29,33,37};
@@ -128,7 +129,6 @@ void init_worker() {
     manager.initThread(i, [](void *data) -> void* {
       auto *thread = reinterpret_cast<Thread*>(data);
       counter.fetch_add(1);
-      //MLOG_ERROR(mlog::app, "Worker ", thread->id);
     });
     manager.startThread(*manager.getThread(i));
   }
@@ -148,7 +148,7 @@ void test_helper() {
   group.signalAll();
   middle = getTime();
   while (counter.load(std::memory_order_relaxed) < NUM_THREADS - NUM_HELPER - 1) {
-    //mythos::hwthread_pause(1);
+    mythos::hwthread_pause();
   }
   end = getTime();
   MLOG_ERROR(mlog::app, "Num Threads:", group.count(), "Helper:", NUM_HELPER, "Time:", end - start, "Middle", middle - start);
@@ -190,7 +190,9 @@ void test_multicast() {
 
 int main()
 {
+  MLOG_ERROR(mlog::app, "START application");
   //test_multicast();
   test_helper();
+  MLOG_ERROR(mlog::app, "END application");
   return 0;
 }
