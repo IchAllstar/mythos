@@ -63,13 +63,13 @@ public:
         diff -= times;
       }
 
-      /*
+/*
       helper.to = (current + divide) < size? current + divide : size;
       if (mod > 0) {
         helper.to++;
         mod--;
       }
-      */
+*/
       if (helper.to > size) helper.to = size;
 
       current = helper.to;
