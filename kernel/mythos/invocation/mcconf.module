@@ -10,5 +10,6 @@
              "mythos/protocol/Example.hh",
              "mythos/protocol/CapMap.hh",
              "mythos/protocol/Portal.hh",
-             "mythos/protocol/SchedulingCoordinator.hh"
+             "mythos/protocol/SchedulingCoordinator.hh",
+             "mythos/protocol/InterruptControl.hh",
              ]
