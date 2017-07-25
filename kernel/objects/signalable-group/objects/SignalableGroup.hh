@@ -79,6 +79,7 @@ private:
     // allocate when group size is known
     CapRef<SignalableGroup, ISignalable> *member {nullptr};
     size_t groupSize {0};
+    size_t actualSize {0};
 
     // Signaling Broadcast mechanism
     TreeBroadcast tree;

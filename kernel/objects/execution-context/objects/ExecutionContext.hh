@@ -101,6 +101,7 @@ namespace mythos {
     void doResume() override;
   public: // ISignalable interface
     optional<void> signal(CapData data) override;
+    void broadcast(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize, size_t idx, size_t N);
 
   public: // IPortalUser interface
     optional<CapEntryRef> lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writeable) override;
@@ -151,6 +152,7 @@ namespace mythos {
     INotifiable::list_t notificationQueue;
     std::atomic<uint8_t> flags;
     std::atomic<CapData> lastSignal = {0};
+    //Broadcast bc;
     CapRef<ExecutionContext,IPageMap> _as;
     CapRef<ExecutionContext,ICapMap> _cs;
     CapRef<ExecutionContext,IScheduler> _sched;

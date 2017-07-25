@@ -124,7 +124,7 @@ Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     }
 
     return Error::SUCCESS;*/
-    return tree(t, member, groupSize);
+    return tree(member, actualSize);
 }
 
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
@@ -145,6 +145,7 @@ Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
     for (uint64_t i = 0; i < groupSize; i++) {
         if (!member[i].isUsable()) {
             member[i].set(this, *capEntry, obj.cap());
+            actualSize++;
             return Error::SUCCESS;
         }
     }
@@ -166,6 +167,7 @@ Error SignalableGroup::removeMember(Tasklet *t, Cap self, IInvocation *msg) {
             if (member[i].cap().getPtr() == obj.cap().getPtr()) {
                 MLOG_ERROR(mlog::boot, "Remove member from SignalableGroup", DVAR(obj.cap()));
                 member[i].reset();
+                actualSize--;
                 return Error::SUCCESS;
             }
         }

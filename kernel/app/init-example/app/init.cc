@@ -143,17 +143,27 @@ void test_signalable_group() {
 
   mythos::ExecutionContext ec1(capAlloc());
   auto res2 = ec1.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 2,
-                           thread1stack_top, &thread_main, nullptr).wait();
+                           thread1stack_top, &thread_main, (void*)1).wait();
   TEST(res2);
   mythos::ExecutionContext ec2(capAlloc());
   auto res3 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 3,
-                           thread2stack_top, &thread_main, nullptr).wait();
+                           thread2stack_top, &thread_main, (void*)2).wait();
   TEST(res3);
+  mythos::ExecutionContext ec3(capAlloc());
+  auto res4 = ec3.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 3,
+                           thread3stack_top, &thread_main, (void*)3).wait();
+  TEST(res4);
+  mythos::ExecutionContext ec4(capAlloc());
+  auto res5 = ec4.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 1,
+                           thread4stack_top, &thread_main, (void*)4).wait();
+  TEST(res5);
   TEST(group.addMember(pl, ec1.cap()).wait());
   TEST(group.addMember(pl, ec2.cap()).wait());
+  TEST(group.addMember(pl, ec3.cap()).wait());
+  TEST(group.addMember(pl, ec4.cap()).wait());
 
   TEST(group.signalAll(pl));
-  TEST(group.removeMember(pl, ec1.cap()).wait());
+  //TEST(group.removeMember(pl, ec1.cap()).wait());
   MLOG_ERROR(mlog::app, "end test signalable group");
 }
 

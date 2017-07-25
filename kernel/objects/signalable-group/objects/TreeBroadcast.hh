@@ -39,21 +39,21 @@ class SignalableGroup;
 class TreeBroadcast
 {
 public:
-    Error operator()(Tasklet *t, CapRef<SignalableGroup, ISignalable> *group, size_t groupSize) {
-        MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(group), DVAR(groupSize));
+    Error operator()(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize) {
         ASSERT(group != nullptr);
-        for (uint64_t i = 0; i < groupSize; i++) {
-            if (group[i].isUsable()) {
-                TypedCap<ISignalable> signalable(group[i].cap());
-                if (signalable) {
-                    signalable->signal(100);
-                }
-            }
-        }
+        MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
 
+        TypedCap<ISignalable> signalable(group[0].cap());
+        if (signalable) {
+            signalable->broadcast(group, groupSize, 0, N_ARY_TREE);
+            signalable->signal(300);
+        }
         return Error::SUCCESS;
     }
 private:
-
+    static constexpr uint64_t N_ARY_TREE = 2;
 };
+
+
+
 } // namespace mythos
