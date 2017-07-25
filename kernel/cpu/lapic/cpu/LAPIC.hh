@@ -60,6 +60,7 @@ namespace mythos {
     bool sendIRQ(size_t destination, uint8_t vector);
     void endOfInterrupt() { write(REG_EOI, 0); }
 
+    void ackIRQ(uint8_t vector);
     void maskIRQ(uint8_t vector);
     void unmaskIRQ(uint8_t vector);
 

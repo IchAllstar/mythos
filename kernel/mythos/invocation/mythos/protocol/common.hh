@@ -45,6 +45,7 @@ namespace mythos {
       SCHEDULING_COORDINATOR,
       CPUDRIVERKNC,
       INTERRUPT_CONTROL,
+      SIGNALABLE_GROUP,
     };
 
   } // namespace protocol

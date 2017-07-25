@@ -1,4 +1,4 @@
-/* -*- mode:C++; -*- */
+/* -*- mode:C++; indent-tabs-mode:nil; -*- */
 /* MIT License -- MyThOS: The Many-Threads Operating System
  *
  * Permission is hereby granted, free of charge, to any person
@@ -25,42 +25,34 @@
  */
 #pragma once
 
-#include <cstddef>
-#include "mythos/caps.hh"
-#include "mythos/InvocationBuf.hh"
+#include "runtime/PortalBase.hh"
+#include "mythos/protocol/SignalableGroup.hh"
+#include "runtime/KernelMemory.hh"
+#include "mythos/init.hh"
 
 namespace mythos {
-namespace init {
 
-  enum CSpaceLayout : CapPtr {
-    NULLCAP = 0,
-    KM,
-    CSPACE,
-    EC,
-    PORTAL,
-    EXAMPLE_FACTORY,
-    MEMORY_REGION_FACTORY,
-    EXECUTION_CONTEXT_FACTORY,
-    PORTAL_FACTORY,
-    CAPMAP_FACTORY,
-    PAGEMAP_FACTORY,
-    UNTYPED_MEMORY_FACTORY,
-    SIGNALABLE_GROUP_FACTORY,
-    CAP_ALLOC_START,
-    CAP_ALLOC_END = 250,
-    MSG_FRAME,
-    DYNAMIC_REGION,
-    PML2,
-    PML3,
-    PML4,
-    STATIC_MEM_START,
-    SCHEDULERS_START = 512,
-    CPUDRIVER = 768,
-    SCHEDULING_COORDINATOR_START = 769,
-    INTERRUPT_CONTROLLER_START = 1025,
-    APP_CAP_START = 1281,
-    SIZE = 4096
-  };
+class SignalableGroup : public KObject
+{
+public:
+    SignalableGroup(CapPtr cap) : KObject(cap) {}
 
-} // namespace init
+    PortalFuture<void> create(PortalLock pr, KernelMemory kmem,
+            size_t groupSize, CapPtr factory = init::SIGNALABLE_GROUP_FACTORY) {
+        return pr.invoke<protocol::SignalableGroup::Create>(kmem.cap(), _cap, factory, groupSize);
+    }
+
+    PortalFuture<void> addMember(PortalLock pr, CapPtr signalable) {
+      return pr.invoke<protocol::SignalableGroup::AddMember>(_cap, signalable);
+    }
+
+    PortalFuture<void> removeMember(PortalLock pr, CapPtr signalable) {
+      return pr.invoke<protocol::SignalableGroup::RemoveMember>(_cap, signalable);
+    }
+
+    PortalFuture<void> signalAll(PortalLock pr) {
+        return pr.invoke<protocol::SignalableGroup::SignalAll>(_cap);
+    }
+};
+
 } // namespace mythos

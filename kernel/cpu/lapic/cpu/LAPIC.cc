@@ -179,6 +179,10 @@ void LAPIC::writeIPI(size_t destination, Register icrlow) {
     write(REG_ICR_LOW, icrlow);
 }
 
+void LAPIC::ackIRQ(uint8_t vector) {
+    MLOG_ERROR(mlog::boot, "Not yet implemented", vector);
+}
+
 void LAPIC::maskIRQ(uint8_t vector) {
     MLOG_ERROR(mlog::boot, "Not yet implemented", vector);
 }

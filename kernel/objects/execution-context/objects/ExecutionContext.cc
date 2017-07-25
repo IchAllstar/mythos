@@ -398,7 +398,7 @@ void ExecutionContext::handleSyscall(cpu::ThreadState* ctx)
 
 optional<void> ExecutionContext::signal(CapData data) {
     auto prev = setFlag(IS_NOTIFIED);
-    MLOG_DETAIL(mlog::syscall, "receiving signal", DVAR(data), DVARhex(prev));
+    MLOG_ERROR(mlog::syscall, "receiving signal", DVAR(this), DVAR(data), DVARhex(prev));
     clearFlagResume(IS_WAITING);
     RETURN(Error::SUCCESS);
 }
