@@ -46,7 +46,7 @@ namespace mythos {
     auto mboot_magic = *physPtr(&_mboot_magic);
     auto mboot_table = *physPtr(&_mboot_table);
 
-    //MLOG_DETAIL(log, DVARhex(mboot_magic), DVARhex(mboot_table));
+    MLOG_DETAIL(log, DVARhex(mboot_magic), DVARhex(mboot_table));
 
     //MultiBootInfo mbi(mboot_table);
     //MLOG_INFO(log, DVARhex(mbi->flags));

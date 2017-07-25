@@ -25,7 +25,7 @@
  */
 #pragma once
 
-#include "async/NestedMonitorDelegating.hh"
+#include "async/NestedMonitorHome.hh"
 #include "cpu/CoreLocal.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/IKernelObject.hh"
@@ -86,7 +86,7 @@ public:
   NORETURN void runSpin();
 
   void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
-    MLOG_ERROR(mlog::boot, "Init", DVAR(p), DVAR(sc));
+    MLOG_DETAIL(mlog::boot, "Init", DVAR(p), DVAR(sc));
     ASSERT(p != nullptr);
     ASSERT(sc != nullptr);
     localPlace = p;
@@ -97,7 +97,7 @@ public:
 private:
   // kernel object stuff
   IDeleter::handle_t del_handle = {this};
-  async::NestedMonitorDelegating monitor;
+  async::NestedMonitorHome monitor;
 
   // actual stuff
   mythos::async::Place *localPlace = nullptr;

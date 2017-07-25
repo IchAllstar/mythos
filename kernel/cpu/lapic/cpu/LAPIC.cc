@@ -73,7 +73,6 @@ namespace mythos {
     // After a crash, interrupts from previous run can still have ISR bit set.
     // Thus clear these with EndOfInterrupt.
     size_t queued = 0;
-<<<<<<< HEAD
 
     for (size_t loops = 0; loops < 1000000; loops++) {
         for (size_t i = 0; i < 0x8; i++) queued |= read(REG_IRR + i * 0x10).value;
@@ -84,17 +83,6 @@ namespace mythos {
                 if (value.value & (1 << j)) endOfInterrupt();
             }
         }
-=======
-    for (size_t loops=0; loops<1000000; loops++) {
-      for (size_t i=0; i<0x8; i++) queued |= read(REG_IRR + i*0x10).value;
-      if (!queued) break;
-      for (size_t i=0; i<0x8; i++) {
-	value = read(REG_ISR + i*0x10);
-	for (size_t j=0; j<32; j++) {
-	  if (value.value & (1<<j)) endOfInterrupt();
-	}
-      }
->>>>>>> 8249ce0... Added extra init application for kernelspace group testing. Same bug in Kernelspace like in userspace. acts the same
     }
 
     // init the Spurious Interrupt Vector Register for handling local interrupt sources

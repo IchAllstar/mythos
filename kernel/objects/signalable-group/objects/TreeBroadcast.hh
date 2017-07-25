@@ -63,7 +63,7 @@ public:
         }
 
         end = getTime();
-        //MLOG_ERROR(mlog::boot, DVAR(end - start));
+        MLOG_ERROR(mlog::boot, DVAR(end - start));
         counter.store(0);
         return Error::SUCCESS;
     }
