@@ -103,9 +103,9 @@ void init_threads() {
     TEST(res2);
     TEST(group.addMember(pl, ec.cap()).wait());
   }
-  while(true) {
-    group.signalAll(pl).wait();
-  }
+  //while(true) {
+  group.signalAll(pl).wait();
+  //}
 }
 
 void test_signalable_group() {

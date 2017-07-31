@@ -26,8 +26,27 @@
 
 #include "objects/SignalableGroup.hh"
 #include "objects/mlog.hh"
+#include "objects/TreeMulticast.hh"
+#include "objects/SequentialMulticast.hh"
 
 namespace mythos {
+
+SignalableGroup::SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_)
+    : _mem(mem), member(arr), tasklets(tasklets_), groupSize(groupSize_)
+{
+    MLOG_ERROR(mlog::boot, "Create Group with size", groupSize);
+
+    // initialize arrays in place
+    CapRef<SignalableGroup, ISignalable>* obj IGNORE_UNUSED;
+    for (uint64_t i = 0; i < groupSize; i++) {
+        obj = new (&member[i]) CapRef<SignalableGroup, ISignalable>();
+    }
+
+    Tasklet* tasklet IGNORE_UNUSED;
+    for (uint64_t i = 0; i < groupSize; i++) {
+        tasklet = new (&tasklets[i]) Tasklet();
+    }
+}
 
 
 optional<void> SignalableGroup::deleteCap(Cap self, IDeleter& del) {
@@ -38,11 +57,11 @@ optional<void> SignalableGroup::deleteCap(Cap self, IDeleter& del) {
 }
 
 void SignalableGroup::deleteObject(Tasklet* t, IResult<void>* r)  {
-      monitor.doDelete(t, [=](Tasklet* t) {
+    monitor.doDelete(t, [ = ](Tasklet * t) {
         for (uint64_t i = 0; i < groupSize; i++) {
             member[i].reset();
         }
-        _mem->free(t, r, this, sizeof(SignalableGroup)); 
+        _mem->free(t, r, this, sizeof(SignalableGroup));
     });
 }
 
@@ -87,14 +106,25 @@ optional<SignalableGroup*>
 SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
                                 IAllocator* mem, message_type* data)
 {
+    // Allocate CapRef array to save group members
     auto group = mem->alloc(sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize, 64);
     if (!group) {
         dstEntry->reset();
         RETHROW(group);
     }
     memset(*group, 0, sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize);
+
+    // Allocate Tasklet array for asynchronous handling of propagation
+    auto tasklets = mem->alloc(sizeof(Tasklet) * data->groupSize, 64);
+    if (!tasklets) {
+        dstEntry->reset();
+        RETHROW(tasklets);
+    }
+    memset(*tasklets, 0, sizeof(Tasklet) * data->groupSize);
+
+    // Create actual kernel object
     auto obj = mem->create<SignalableGroup>(
-                   (CapRef<SignalableGroup, ISignalable>*) *group, data->groupSize);
+                   (CapRef<SignalableGroup, ISignalable>*) *group, (Tasklet*) *tasklets, data->groupSize);
     if (!obj) {
         mem->free(*group, 64);
         dstEntry->reset();
@@ -113,18 +143,8 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg));
-    /*ASSERT(member != nullptr);
-    for (uint64_t i = 0; i < groupSize; i++) {
-        if (member[i].isUsable()) {
-            TypedCap<ISignalable> signalable(member[i].cap());
-            if (signalable) {
-                signalable.obj()->signal(0);
-            }
-        }
-    }
-
-    return Error::SUCCESS;*/
-    return tree(member, actualSize);
+    ASSERT(member != nullptr);
+    return TreeMulticast::multicast(this, 0, actualSize);
 }
 
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
@@ -136,7 +156,7 @@ Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
     TypedCap<ISignalable> obj(capEntry);
     if (!obj) return Error::INVALID_CAPABILITY;
 
-    // look if it is in the group 
+    // look if it is in the group
     for (uint64_t i = 0; i < groupSize; i++) {
         if (member[i].cap().getPtr() == obj.cap().getPtr()) {
             return Error::INVALID_ARGUMENT;
@@ -153,7 +173,7 @@ Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
 }
 
 Error SignalableGroup::removeMember(Tasklet *t, Cap self, IInvocation *msg) {
-    
+
     MLOG_DETAIL(mlog::boot, "addMember()", DVAR(t), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->read<protocol::SignalableGroup::RemoveMember>();
     optional<CapEntry*> entry = msg->lookupEntry(data.signalable());
@@ -173,7 +193,7 @@ Error SignalableGroup::removeMember(Tasklet *t, Cap self, IInvocation *msg) {
         }
     }
     return Error::INVALID_ARGUMENT;
-    
+
 }
 
 } // namespace mythos

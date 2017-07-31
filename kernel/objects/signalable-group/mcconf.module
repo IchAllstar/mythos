@@ -1,5 +1,5 @@
 # -*- mode:toml; -*-
 
 [module.objects-signalable-group]
-    incfiles = [ "objects/SignalableGroup.hh", "objects/TreeBroadcast.hh" ]
+    incfiles = [ "objects/SignalableGroup.hh", "objects/TreeMulticast.hh", "objects/SequentialMulticast.hh" ]
     kernelfiles = [ "objects/SignalableGroup.cc" ]

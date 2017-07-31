@@ -25,54 +25,32 @@
  */
 #pragma once
 
-#include "cpu/CoreLocal.hh"
-#include <atomic>
+
+#include "objects/ISignalable.hh"
+#include "objects/ExecutionContext.hh"
+#include "objects/CapRef.hh"
+
 
 namespace mythos {
-  class SignalableGroup;
-  class ISignalable;
 
-  struct Broadcast {
-    std::atomic<bool> onGoing {false};
-    std::atomic<bool> inUpdate {false};
-    SignalableGroup *group;
-    //CapRef<SignalableGroup, ISignalable> *group {nullptr};
-    size_t groupSize {0};
-    size_t idx {0}; // index in array for calculation of children
-    size_t N {0}; //N-ary Tree
+class SignalableGroup;
 
-    void set(SignalableGroup *group_, size_t groupSize_, size_t idx_, size_t N_) {
-      auto prev = inUpdate.exchange(true);
-      if (prev) {
-        PANIC("BLA");
-      }
-      group = group_;
-      groupSize = groupSize_;
-      idx = idx_;
-      N = N_;
-      onGoing.store(true);
-      inUpdate.store(true);
+class SequentialMulticast
+{
+public:
+    static Error multicast(CapRef<SignalableGroup, ISignalable> *group, Tasklet *tasklets, size_t groupSize) {
+        ASSERT(group != nullptr);
+
+        for (uint64_t i = 0; i < groupSize; i++) {
+            TypedCap<ISignalable> signalable(group[i].cap());
+            if (signalable) {
+                signalable->signal(0);
+            }
+        }
+        return Error::SUCCESS;
     }
+};
 
-    void reset() {
-    	onGoing.store(false);
-    	group = nullptr;
-    	groupSize = 0;
-    	idx = 0;
-    }
-  };
-
-  class ISignalable
-  {
-  public:
-    virtual ~ISignalable() {}
-
-    virtual optional<void> signal(CapData data);
-    virtual void broadcast(SignalableGroup *group, size_t idx, size_t groupSize);
-    virtual void broadcast(Tasklet* t, SignalableGroup *group, size_t idx, size_t groupSize);
-  public:
-  	Broadcast bc;
-  };
 
 
 } // namespace mythos

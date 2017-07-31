@@ -37,12 +37,17 @@ namespace mythos {
 
 class SignalableGroup;
 std::atomic<uint64_t> counter {0};
-extern std::atomic<uint64_t> bla;
-class TreeBroadcast
+class TreeMulticast
 {
 public:
-    Error operator()(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize) {
+    static Error multicast(SignalableGroup *group, size_t idx, size_t groupSize) {
         ASSERT(group != nullptr);
+        TypedCap<ISignalable> signalable(group->getMember(0)->cap());
+        if (signalable) {
+            signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
+            //signalable->signal(0);
+        }
+        /*
         //MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
 
         uint64_t start, end, tmp = 0;
@@ -63,9 +68,12 @@ public:
         }
 
         end = getTime();
-        //MLOG_ERROR(mlog::boot, DVAR(end - start));
+        MLOG_ERROR(mlog::boot, DVAR(end - start));
         counter.store(0);
+        */
         return Error::SUCCESS;
+        
+
     }
 private:
     static constexpr uint64_t N_ARY_TREE = 2;
