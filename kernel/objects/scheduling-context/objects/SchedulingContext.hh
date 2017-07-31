@@ -86,6 +86,10 @@ namespace mythos {
     ISchedulable* tryRunUser();
     void preempt();
 
+    void run(Tasklet* t) override {
+      home->run(t);
+    }
+
   public: // IScheduler interface
     void bind(handle_t*) override {}
     void unbind(handle_t* ec_handle) override;

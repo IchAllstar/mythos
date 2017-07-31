@@ -439,35 +439,65 @@ void ExecutionContext::broadcast(SignalableGroup *group, size_t idx, size_t grou
 }
 
 void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) {
-    monitor.request(t, [ = ](Tasklet * t) {
-        MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
-        Error err = Error::NOT_IMPLEMENTED;
-        ASSERT(group != nullptr);
-        size_t N = 2;
-        auto *member = group->getMembers();
-        //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
-        for (size_t i = 0; i < N; ++i) { // for all children in tree
-            ASSERT(N != 0);
-            ASSERT(member != nullptr);
-            size_t child_idx = idx * N + i + 1;
-            if (child_idx >= groupSize) return;
-            //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
-            TypedCap<ISignalable> signalable(member[child_idx].cap());
-            if (signalable) {
-                MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
-                signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
-                //signalable->signal(0);
-            } else {
-                PANIC("Signalable not valid anymore");
+    auto sched = _sched.get();
+    if (sched) {
+        MLOG_ERROR(mlog::boot, "here", DVAR(*sched));
+        sched->run(t->set([ = ](Tasklet * t) {
+            MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
+            TypedCap<ISignalable> own(group->getMember(idx)->cap());
+            ASSERT(own);
+            own->signal(0);
+            Error err = Error::NOT_IMPLEMENTED;
+            ASSERT(group != nullptr);
+            size_t N = 2;
+            //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
+            for (size_t i = 0; i < N; ++i) { // for all children in tree
+                ASSERT(N != 0);
+                size_t child_idx = idx * N + i + 1;
+                if (child_idx >= groupSize) return;
+                //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
+                TypedCap<ISignalable> signalable(group->getMember(child_idx)->cap());
+                if (signalable) {
+                    MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
+                    signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
+                    signalable->signal(0);
+                } else {
+                    PANIC("Signalable not valid anymore");
+                }
             }
-        }
+        }));
+    }
+    /*
+        monitor.request(t, [ = ](Tasklet * t) {
+            MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
+            Error err = Error::NOT_IMPLEMENTED;
+            ASSERT(group != nullptr);
+            size_t N = 2;
+            auto *member = group->getMembers();
+            //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
+            for (size_t i = 0; i < N; ++i) { // for all children in tree
+                ASSERT(N != 0);
+                ASSERT(member != nullptr);
+                size_t child_idx = idx * N + i + 1;
+                if (child_idx >= groupSize) return;
+                //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
+                TypedCap<ISignalable> signalable(member[child_idx].cap());
+                if (signalable) {
+                    MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
+                    signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
+                    signalable->signal(0);
+                } else {
+                    PANIC("Signalable not valid anymore");
+                }
+            }
 
-        if (err != Error::INHIBIT) {
-            MLOG_ERROR(mlog::boot, "Response");
-            //msg->replyResponse(err);
-            monitor.requestDone();
-        }
-    } );
+            if (err != Error::INHIBIT) {
+                MLOG_ERROR(mlog::boot, "Response");
+                //msg->replyResponse(err);
+                monitor.requestDone();
+            }
+        } );
+    */
 }
 
 std::atomic<uint64_t> bla {0};
@@ -515,37 +545,37 @@ bool ExecutionContext::prepareResume() {
     // load own context stuff if someone else was running on this place
     ISchedulable* prev = thisPlace->load();
     if (prev != this) {
-      if (prev) prev->unload();
-      TypedCap<IPageMap> as(_as);
-      if (!as) {
-        setFlag(NO_AS); // might have been revoked concurrently
-        return false;
-      } 
-      cpu::thread_state = &threadState;
-      lastPlace = thisPlace;
-      thisPlace->store(this);
-      auto info = as->getPageMapInfo(as.cap());
-      MLOG_DETAIL(mlog::ec, "load addrspace", DVAR(this), DVARhex(info.table.physint()));
-      getLocalPlace().setCR3(info.table);
-      /// @todo restore FPU and vector state
+        if (prev) prev->unload();
+        TypedCap<IPageMap> as(_as);
+        if (!as) {
+            setFlag(NO_AS); // might have been revoked concurrently
+            return false;
+        }
+        cpu::thread_state = &threadState;
+        lastPlace = thisPlace;
+        thisPlace->store(this);
+        auto info = as->getPageMapInfo(as.cap());
+        MLOG_DETAIL(mlog::ec, "load addrspace", DVAR(this), DVARhex(info.table.physint()));
+        getLocalPlace().setCR3(info.table);
+        /// @todo restore FPU and vector state
     }
     return true;
-  }
+}
 
-  void ExecutionContext::doResume() {
+void ExecutionContext::doResume() {
     MLOG_INFO(mlog::ec, "resuming", DVAR(this), DVARhex(threadState.rip), DVARhex(threadState.rsp));
 
     cpu::return_to_user();
-    }
+}
 
-  void ExecutionContext::resume() {
+void ExecutionContext::resume() {
     if (prepareResume()) {
-      doResume();
+        doResume();
     }
-  }
+}
 
-  void ExecutionContext::unload()
-  {
+void ExecutionContext::unload()
+{
     /// @todo save FPU and vector state
 }
 

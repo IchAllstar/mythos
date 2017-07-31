@@ -70,6 +70,8 @@ namespace mythos {
     virtual void preempt(handle_t* ec_handle) = 0;
 
     virtual void yield(handle_t* ec_handle) = 0;
+
+    virtual void run(Tasklet *t) = 0;
   };
 
 } // namespace mythos

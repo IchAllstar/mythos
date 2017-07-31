@@ -40,6 +40,7 @@
 #include "app/mlog.hh"
 #include <cstdint>
 #include "util/optional.hh"
+#include "util/Time.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -67,13 +68,15 @@ uint64_t NUM_THREADS = 60;
 const uint64_t PAGE_SIZE  = 2 * 1024 * 1024; // 2 MB
 const uint64_t STACK_SIZE = 1 * PAGE_SIZE;
 
+std::atomic<uint64_t> counter {0};
 
 void* thread_main(void* ctx)
 {
   while (true) {
     //MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
     mythos::ISysretHandler::handle(mythos::syscall_wait());
-    //MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+    counter.fetch_add(1);
+    MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
   }
   return 0;
 }
@@ -103,9 +106,14 @@ void init_threads() {
     TEST(res2);
     TEST(group.addMember(pl, ec.cap()).wait());
   }
+  uint64_t start, end;
+  start = mythos::getTime();
   //while(true) {
   group.signalAll(pl).wait();
   //}
+  while (counter.load() < NUM_THREADS - 1) {mythos::hwthread_pause();}
+  end = mythos::getTime();
+  MLOG_ERROR(mlog::app, DVAR(end - start));
 }
 
 void test_signalable_group() {
