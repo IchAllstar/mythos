@@ -101,7 +101,8 @@ namespace mythos {
     void doResume() override;
   public: // ISignalable interface
     optional<void> signal(CapData data) override;
-    void broadcast(CapRef<SignalableGroup, ISignalable> *group, size_t groupSize, size_t idx, size_t N);
+    void broadcast(SignalableGroup *group, size_t idx, size_t groupSize);
+    void broadcast(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize);
 
   public: // IPortalUser interface
     optional<CapEntryRef> lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writeable) override;

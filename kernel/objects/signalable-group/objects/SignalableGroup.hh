@@ -30,7 +30,7 @@
 #include "objects/ISignalable.hh"
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/SignalableGroup.hh"
-#include "objects/TreeBroadcast.hh"
+
 
 namespace mythos {
 
@@ -45,31 +45,32 @@ class SignalableGroup
     : public IKernelObject
 {
 public: // Constructor
-    SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISignalable> *arr, size_t groupSize_)
-        :_mem(mem), member(arr), groupSize(groupSize_)
-        {
-            MLOG_ERROR(mlog::boot, "Create Group with size", groupSize);
-            // TODO maybe better way to get pseudo static array
-            CapRef<SignalableGroup, ISignalable>* obj IGNORE_UNUSED;
-            for (uint64_t i = 0; i < groupSize; i++) {
-               obj = new (&member[i]) CapRef<SignalableGroup, ISignalable>();
-            }
-        }
+    SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_);
+
 public: // IKernelObject interface
     optional<void const*> vcast(TypeId id) const override;
     optional<void> deleteCap(Cap self, IDeleter& del) override;
     void deleteObject(Tasklet* t, IResult<void>* r) override;
     void invoke(Tasklet* t, Cap, IInvocation* msg) override;
     Error invokeBind(Tasklet* t, Cap, IInvocation* msg);
-public: // protocol 
+
+public: // protocol
     friend struct protocol::KernelObject;
     Error getDebugInfo(Cap self, IInvocation* msg);
     Error signalAll(Tasklet *t, Cap self, IInvocation *msg);
     Error addMember(Tasklet *t, Cap self, IInvocation *msg);
     Error removeMember(Tasklet *t, Cap self, IInvocation *msg);
+
 public:
     void bind(optional<ISignalable*>);
     void unbind(optional<ISignalable*>);
+public:
+    CapRef<SignalableGroup, ISignalable>* getMembers() { return member; }
+    Tasklet* getTasklets() { return tasklets; }
+    size_t getSize() { return actualSize; }
+    Tasklet* getTasklet(size_t idx) { ASSERT(idx < actualSize); return &tasklets[idx]; }
+    CapRef<SignalableGroup, ISignalable>* getMember(size_t idx) { ASSERT(idx < actualSize); return &member[idx]; }
+
 private:
     IAsyncFree* _mem;
     /** list handle for the deletion procedure */
@@ -78,16 +79,14 @@ private:
 
     // allocate when group size is known
     CapRef<SignalableGroup, ISignalable> *member {nullptr};
+    Tasklet *tasklets;
     size_t groupSize {0};
     size_t actualSize {0};
-
-    // Signaling Broadcast mechanism
-    TreeBroadcast tree;
 };
 
 class SignalableGroupFactory : public FactoryBase
-  {
-  public:
+{
+public:
     typedef protocol::SignalableGroup::Create message_type;
 
     static optional<SignalableGroup*>
@@ -95,9 +94,9 @@ class SignalableGroupFactory : public FactoryBase
 
     Error factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
                   IAllocator* mem, IInvocation* msg) const override {
-      auto data = msg->getMessage()->read<message_type>();
-      return factory(dstEntry, memEntry, memCap, mem, &data).state();
+        auto data = msg->getMessage()->read<message_type>();
+        return factory(dstEntry, memEntry, memCap, mem, &data).state();
     }
-  };
+};
 
 } // namespace mythos
