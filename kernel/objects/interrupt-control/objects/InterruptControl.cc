@@ -123,7 +123,7 @@ void InterruptControl::handleInterrupt(uint64_t interrupt) {
         mythos::lapic.endOfInterrupt();
         return;
     }
-    mythos::lapic.maskIRQ((uint8_t) interrupt);
+    maskIRQ((uint8_t) interrupt);
     mythos::lapic.endOfInterrupt();
     TypedCap<ISignalable> ec(destinations[interrupt].cap());
     if (ec) {
@@ -133,7 +133,7 @@ void InterruptControl::handleInterrupt(uint64_t interrupt) {
 
 void InterruptControl::maskIRQ(uint64_t interrupt) {
     ASSERT(isValid(interrupt));
-    mythos::lapic.maskIRQ((uint8_t) interrupt);
+    //mythos::lapic.maskIRQ((uint8_t) interrupt);
 }
 
 void InterruptControl::ackIRQ(uint64_t interrupt) {
