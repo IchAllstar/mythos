@@ -439,16 +439,17 @@ void ExecutionContext::broadcast(SignalableGroup *group, size_t idx, size_t grou
 }
 
 void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) {
+    // Find hardware thread to execution context and send tasklet to its kernel task scheduler
     auto sched = _sched.get();
     if (sched) {
-        MLOG_ERROR(mlog::boot, "here", DVAR(*sched));
         sched->run(t->set([ = ](Tasklet * t) {
             MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
             TypedCap<ISignalable> own(group->getMember(idx)->cap());
             ASSERT(own);
-            own->signal(0);
-            Error err = Error::NOT_IMPLEMENTED;
             ASSERT(group != nullptr);
+            ASSERT(groupSize > 0);
+            // Signal own EC, will be scheduled after kernel task handling
+            own->signal(0);
             size_t N = 2;
             //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
             for (size_t i = 0; i < N; ++i) { // for all children in tree
@@ -467,41 +468,9 @@ void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx,
             }
         }));
     }
-    /*
-        monitor.request(t, [ = ](Tasklet * t) {
-            MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
-            Error err = Error::NOT_IMPLEMENTED;
-            ASSERT(group != nullptr);
-            size_t N = 2;
-            auto *member = group->getMembers();
-            //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
-            for (size_t i = 0; i < N; ++i) { // for all children in tree
-                ASSERT(N != 0);
-                ASSERT(member != nullptr);
-                size_t child_idx = idx * N + i + 1;
-                if (child_idx >= groupSize) return;
-                //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
-                TypedCap<ISignalable> signalable(member[child_idx].cap());
-                if (signalable) {
-                    MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
-                    signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
-                    signalable->signal(0);
-                } else {
-                    PANIC("Signalable not valid anymore");
-                }
-            }
-
-            if (err != Error::INHIBIT) {
-                MLOG_ERROR(mlog::boot, "Response");
-                //msg->replyResponse(err);
-                monitor.requestDone();
-            }
-        } );
-    */
 }
 
-std::atomic<uint64_t> bla {0};
-extern std::atomic<uint64_t> counter;
+
 bool ExecutionContext::prepareResume() {
     if (!isReady()) return false;
     auto prevState = clearFlag(IN_WAIT);
@@ -530,7 +499,7 @@ bool ExecutionContext::prepareResume() {
         //MLOG_ERROR(mlog::boot, "Ongoing broadcast", DVAR(bc.idx), DVAR(bc.groupSize));
 
         broadcast(bc.group, bc.idx, bc.groupSize);
-        counter.fetch_add(1);
+        //counter.fetch_add(1);
         bc.reset();
         //MLOG_ERROR(mlog::boot, "finished forwarding");
     }
@@ -564,7 +533,6 @@ bool ExecutionContext::prepareResume() {
 
 void ExecutionContext::doResume() {
     MLOG_INFO(mlog::ec, "resuming", DVAR(this), DVARhex(threadState.rip), DVARhex(threadState.rsp));
-
     cpu::return_to_user();
 }
 

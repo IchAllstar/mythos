@@ -76,7 +76,7 @@ void* thread_main(void* ctx)
     //MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
     mythos::ISysretHandler::handle(mythos::syscall_wait());
     counter.fetch_add(1);
-    MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+    //MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
   }
   return 0;
 }
@@ -113,7 +113,7 @@ void init_threads() {
   //}
   while (counter.load() < NUM_THREADS - 1) {mythos::hwthread_pause();}
   end = mythos::getTime();
-  MLOG_ERROR(mlog::app, DVAR(end - start));
+  MLOG_ERROR(mlog::app, DVAR(end - start), DVAR(counter.load()));
 }
 
 void test_signalable_group() {
