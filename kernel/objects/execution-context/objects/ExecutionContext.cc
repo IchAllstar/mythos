@@ -415,35 +415,12 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
     RETURN(p.sendInvocation(dest, user));
 }
 
-void ExecutionContext::broadcast(SignalableGroup *group, size_t idx, size_t groupSize) {
-    ASSERT(group != nullptr);
-    size_t N = 2;
-    auto *member = group->getMembers();
-    //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
-    for (size_t i = 0; i < N; ++i) { // for all children in tree
-        ASSERT(N != 0);
-        ASSERT(member != nullptr);
-        size_t child_idx = idx * N + i + 1;
-        if (child_idx >= groupSize) return;
-        //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
-        TypedCap<ISignalable> signalable(member[child_idx].cap());
-        if (signalable) {
-            //MLOG_ERROR(mlog::boot, "bc set", DVAR(groupSize), DVAR(child_idx), DVAR(&signalable->bc));
-            signalable->bc.set(group, groupSize, child_idx, N);
-            signalable->signal(0);
-        } else {
-            PANIC("Signalable not valid anymore");
-        }
-    }
-    //MLOG_ERROR(mlog::boot, "here");
-}
-
 void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) {
     // Find hardware thread to execution context and send tasklet to its kernel task scheduler
     auto sched = _sched.get();
     if (sched) {
-        sched->run(t->set([ = ](Tasklet * t) {
-            MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
+        sched->run(t->set([=](Tasklet*) {
+            //MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
             TypedCap<ISignalable> own(group->getMember(idx)->cap());
             ASSERT(own);
             ASSERT(group != nullptr);
@@ -459,7 +436,7 @@ void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx,
                 //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
                 TypedCap<ISignalable> signalable(group->getMember(child_idx)->cap());
                 if (signalable) {
-                    MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
+                    //MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
                     signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
                     signalable->signal(0);
                 } else {
@@ -493,15 +470,6 @@ bool ExecutionContext::prepareResume() {
             threadState.rdi = uint64_t(Error::NO_MESSAGE);
         }
         //MLOG_DETAIL(mlog::ec, DVARhex(threadState.rsi), DVAR(threadState.rdi));
-    }
-    // Am I member of a multicast? TODO: multiple multicasts ...
-    if (bc.onGoing.load()) {
-        //MLOG_ERROR(mlog::boot, "Ongoing broadcast", DVAR(bc.idx), DVAR(bc.groupSize));
-
-        broadcast(bc.group, bc.idx, bc.groupSize);
-        //counter.fetch_add(1);
-        bc.reset();
-        //MLOG_ERROR(mlog::boot, "finished forwarding");
     }
 
     // remove myself from the last place's current_ec if still there

@@ -111,7 +111,14 @@ void init_threads() {
   //while(true) {
   group.signalAll(pl).wait();
   //}
-  while (counter.load() < NUM_THREADS - 1) {mythos::hwthread_pause();}
+  uint64_t old_counter = counter.load();
+  while (counter.load() < NUM_THREADS - 1) {
+    mythos::hwthread_pause();
+    if (old_counter != counter.load()) {
+      old_counter = counter.load();
+      MLOG_ERROR(mlog::app, DVAR(counter.load()));
+    }
+  }
   end = mythos::getTime();
   MLOG_ERROR(mlog::app, DVAR(end - start), DVAR(counter.load()));
 }

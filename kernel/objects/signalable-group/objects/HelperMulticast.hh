@@ -29,28 +29,29 @@
 #include "objects/ISignalable.hh"
 #include "objects/ExecutionContext.hh"
 #include "objects/CapRef.hh"
+#include "objects/mlog.hh"
+#include "util/Time.hh"
 
 
 namespace mythos {
 
+
 class SignalableGroup;
 
-class SequentialMulticast
+class HelperMulticast
 {
 public:
-    static Error multicast(SignalableGroup *group, Tasklet *tasklets, size_t groupSize) {
+    static Error multicast(SignalableGroup *group, size_t idx, size_t groupSize) {
         ASSERT(group != nullptr);
-
-        for (uint64_t i = 0; i < groupSize; i++) {
-            TypedCap<ISignalable> signalable(group->getMember(i)->cap());
-            if (signalable) {
-                signalable->signal(0);
-            }
+        TypedCap<ISignalable> signalable(group->getMember(0)->cap());
+        if (signalable) {
+            signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
         }
         return Error::SUCCESS;
     }
+private:
+    static constexpr uint64_t N_ARY_TREE = 2;
 };
 
-
-
 } // namespace mythos
+

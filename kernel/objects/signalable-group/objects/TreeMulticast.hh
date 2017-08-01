@@ -35,6 +35,37 @@
 
 namespace mythos {
 
+struct TreeMulticastFun {
+  void operator()(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) {
+    t->set([=] (Tasklet *t) {
+        //MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        ASSERT(own);
+        ASSERT(group != nullptr);
+        ASSERT(groupSize > 0);
+        // Signal own EC, will be scheduled after kernel task handling
+        own->signal(0);
+        size_t N = 2;
+        //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
+        for (size_t i = 0; i < N; ++i) { // for all children in tree
+            ASSERT(N != 0);
+            size_t child_idx = idx * N + i + 1;
+            if (child_idx >= groupSize) return;
+            //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
+            TypedCap<ISignalable> signalable(group->getMember(child_idx)->cap());
+            if (signalable) {
+                //MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
+                signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
+                signalable->signal(0);
+            } else {
+                PANIC("Signalable not valid anymore");
+            }
+        }
+    });
+  }
+};
+
+
 class SignalableGroup;
 std::atomic<uint64_t> counter {0};
 class TreeMulticast
@@ -45,9 +76,8 @@ public:
         TypedCap<ISignalable> signalable(group->getMember(0)->cap());
         if (signalable) {
             signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
-            //signalable->signal(0);
         }
-        /*
+        /* OLD VERSION
         //MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
 
         uint64_t start, end, tmp = 0;
@@ -72,8 +102,6 @@ public:
         counter.store(0);
         */
         return Error::SUCCESS;
-        
-
     }
 private:
     static constexpr uint64_t N_ARY_TREE = 2;
