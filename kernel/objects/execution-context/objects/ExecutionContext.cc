@@ -453,7 +453,6 @@ void ExecutionContext::multicast(const CastStrategy &cs) {
         auto *tasklet = cs.group->getTasklet(cs.idx);
         ASSERT(tasklet != nullptr);
         cs.create(*tasklet);
-        MLOG_ERROR(mlog::boot, "Run Tasklet on", cs.idx);
         sched->run(tasklet);
     }
 }

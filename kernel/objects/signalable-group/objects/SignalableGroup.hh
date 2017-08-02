@@ -36,9 +36,12 @@ namespace mythos {
 
 
 /**
- * A Group of ISignalable objects with a maximum group size. When signalAll() is invoked, a signal is
- * send to every valid group member. Some data can be passed through CapData data. It is the responsibility
- * of the receiver to handle (aggregate or save in a list) the received data.
+ * A Group of ISignalable objects with a maximum group size. When signalAll() is invoked, a signal is somehow 
+ * send to all group members. The group is constructed with a maximum group size and members can just be added,
+ * not deleted. Max Groupsize Tasklets are allocated and serve as function objects to send to the destination
+ * hardware threads. They can be used to implemented broadcasts, where nodes are used to forward the cast.
+ * Always use the tasklet of the receiver node, because I need to send to multiple children, so cannot use my own
+ * tasklet.
  * TODO handle correct deletion of kernel object -> free the array
  */
 class SignalableGroup

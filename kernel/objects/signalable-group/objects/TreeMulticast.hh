@@ -36,7 +36,10 @@
 namespace mythos {
 
 
-
+/**
+ * Strategy implementation, which constructs a "fibonacci" multicast tree of the group members.
+ * 
+ */
 struct TreeCastStrategy : public CastStrategy {
     static const uint64_t LATENCY = 4;
 
@@ -75,11 +78,13 @@ struct TreeCastStrategy : public CastStrategy {
     }
 
     void create(Tasklet &t) const override {
+        // Need to copy variables for capturing in lambda
+        auto group_ = group;
         size_t idx_, from_,to_;
         idx_ = idx;
         from_ = from;
         to_ = to;
-        auto group_ = group;
+        // Create Tasklet which will be send to destination hardware thread
         t.set([group_, idx_, from_, to_](Tasklet*) {
             MLOG_ERROR(mlog::boot, DVAR(idx_), DVAR(from_), DVAR(to_));
             TypedCap<ISignalable> own(group_->getMember(idx_)->cap());
@@ -90,19 +95,22 @@ struct TreeCastStrategy : public CastStrategy {
             
             // Signal own EC, will be scheduled after kernel task handling
             own->signal(0);
+
             while (true) {
                 uint64_t n = to_tmp - from_ + 1;
                 if ( n < 2) {
                     return;
                 }
                 uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
-                if (j+from_ > 59) {
-                    MLOG_ERROR(mlog::boot, DVAR(j+from_));
-                }
                 TreeCastStrategy tcs(group_, j + from_, j + from_, to_tmp);
+                MLOG_ERROR(mlog::boot, idx_, "sends to", j+from_);
                 TypedCap<ISignalable> dest(group_->getMember(j + from_)->cap());
                 if (dest) {
-                    dest->multicast(tcs);
+                    if (j + from_ < to_tmp) { // if leaf node, which does not forward, just signal it
+                        dest->multicast(tcs);
+                    } else {
+                        dest->signal(0);
+                    }
                 }
                 to_tmp = from_ + j - 1;
             }
@@ -112,16 +120,15 @@ struct TreeCastStrategy : public CastStrategy {
 };
 
 class SignalableGroup;
-std::atomic<uint64_t> counter {0};
 class TreeMulticast
 {
 public:
-    static Error multicast(SignalableGroup *group, size_t idx, size_t groupSize) {
+    static Error multicast(SignalableGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
         TypedCap<ISignalable> signalable(group->getMember(0)->cap());
         if (signalable) {
             //signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
-            TreeCastStrategy tcs(group, 0, 0, groupSize - 1);
+            TreeCastStrategy tcs(group, 0, 0, groupSize - 1); // from and to are included
             signalable->multicast(tcs);
         }
         return Error::SUCCESS;

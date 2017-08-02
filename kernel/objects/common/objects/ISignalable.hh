@@ -37,10 +37,14 @@ namespace mythos {
     size_t idx;
     CastStrategy(SignalableGroup *group_, size_t idx_)
       :group(group_), idx(idx_) {}
-      
+
     virtual void create(Tasklet &t) const = 0;
   };
 
+  /**
+   * Interface for signalable objects. 
+   * Those objects also have to define methods to forward multicasts.
+   */
   class ISignalable
   {
   public:
