@@ -142,7 +142,7 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 }
 
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
-    MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg));
+    MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);
     return TreeMulticast::multicast(this, 0, actualSize);
 }

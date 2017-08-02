@@ -35,36 +35,81 @@
 
 namespace mythos {
 
-struct TreeMulticastFun {
-  void operator()(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) {
-    t->set([=] (Tasklet *t) {
-        //MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
-        TypedCap<ISignalable> own(group->getMember(idx)->cap());
-        ASSERT(own);
-        ASSERT(group != nullptr);
-        ASSERT(groupSize > 0);
-        // Signal own EC, will be scheduled after kernel task handling
-        own->signal(0);
-        size_t N = 2;
-        //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
-        for (size_t i = 0; i < N; ++i) { // for all children in tree
-            ASSERT(N != 0);
-            size_t child_idx = idx * N + i + 1;
-            if (child_idx >= groupSize) return;
-            //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
-            TypedCap<ISignalable> signalable(group->getMember(child_idx)->cap());
-            if (signalable) {
-                //MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
-                signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
-                signalable->signal(0);
-            } else {
-                PANIC("Signalable not valid anymore");
-            }
-        }
-    });
-  }
-};
 
+
+struct TreeCastStrategy : public CastStrategy {
+    static const uint64_t LATENCY = 4;
+
+    size_t from;
+    size_t to;
+
+    TreeCastStrategy(SignalableGroup *group_, size_t idx_, size_t from_, size_t to_)
+        :CastStrategy(group_, idx_), from(from_), to(to_)
+    {}
+
+    // Helper functions to calculate fibonacci tree for optimal multicast
+    static size_t F(size_t time) {
+        if (time < LATENCY) {
+            return 1;
+        }
+        return F(time - 1) + F(time - LATENCY);
+    }
+
+    // index function for F
+    static uint64_t f(uint64_t n) {
+        if (n==0) {
+            return 0;
+        }
+        uint64_t i = 1;
+        uint64_t current = F(i);
+        while (current < n) {
+            i++;
+            current = F(i);
+        }
+
+        if (current == n) {
+           return i;
+        } else {
+            return i-1;
+        }
+    }
+
+    void create(Tasklet &t) const override {
+        size_t idx_, from_,to_;
+        idx_ = idx;
+        from_ = from;
+        to_ = to;
+        auto group_ = group;
+        t.set([group_, idx_, from_, to_](Tasklet*) {
+            MLOG_ERROR(mlog::boot, DVAR(idx_), DVAR(from_), DVAR(to_));
+            TypedCap<ISignalable> own(group_->getMember(idx_)->cap());
+            ASSERT(own);
+            ASSERT(group_ != nullptr);
+            ASSERT(to_ > 0);
+            auto to_tmp = to_;
+            
+            // Signal own EC, will be scheduled after kernel task handling
+            own->signal(0);
+            while (true) {
+                uint64_t n = to_tmp - from_ + 1;
+                if ( n < 2) {
+                    return;
+                }
+                uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
+                if (j+from_ > 59) {
+                    MLOG_ERROR(mlog::boot, DVAR(j+from_));
+                }
+                TreeCastStrategy tcs(group_, j + from_, j + from_, to_tmp);
+                TypedCap<ISignalable> dest(group_->getMember(j + from_)->cap());
+                if (dest) {
+                    dest->multicast(tcs);
+                }
+                to_tmp = from_ + j - 1;
+            }
+        });
+    }
+
+};
 
 class SignalableGroup;
 std::atomic<uint64_t> counter {0};
@@ -75,32 +120,10 @@ public:
         ASSERT(group != nullptr);
         TypedCap<ISignalable> signalable(group->getMember(0)->cap());
         if (signalable) {
-            signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
+            //signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
+            TreeCastStrategy tcs(group, 0, 0, groupSize - 1);
+            signalable->multicast(tcs);
         }
-        /* OLD VERSION
-        //MLOG_ERROR(mlog::boot, "signalAll()", DVAR(group), DVAR(groupSize));
-
-        uint64_t start, end, tmp = 0;
-        start = getTime();
-
-        TypedCap<ISignalable> signalable(group[0].cap());
-        if (signalable) {
-            signalable->bc.set(group, groupSize, 0, N_ARY_TREE);
-            signalable->signal(0);
-        }
-        while (counter.load() < groupSize) {
-            hwthread_pause();
-            if (tmp != counter.load()) {
-                tmp = counter.load();
-                //MLOG_ERROR(mlog::boot, DVAR(tmp));
-            }
-
-        }
-
-        end = getTime();
-        MLOG_ERROR(mlog::boot, DVAR(end - start));
-        counter.store(0);
-        */
         return Error::SUCCESS;
     }
 private:

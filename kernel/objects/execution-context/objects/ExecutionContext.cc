@@ -438,12 +438,23 @@ void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx,
                 if (signalable) {
                     //MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
                     signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
-                    signalable->signal(0);
+                    //signalable->signal(0);
                 } else {
                     PANIC("Signalable not valid anymore");
                 }
             }
         }));
+    }
+}
+
+void ExecutionContext::multicast(const CastStrategy &cs) {
+    auto sched = _sched.get();
+    if (sched) {
+        auto *tasklet = cs.group->getTasklet(cs.idx);
+        ASSERT(tasklet != nullptr);
+        cs.create(*tasklet);
+        MLOG_ERROR(mlog::boot, "Run Tasklet on", cs.idx);
+        sched->run(tasklet);
     }
 }
 

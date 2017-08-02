@@ -31,8 +31,14 @@
 namespace mythos {
   class SignalableGroup;
 
+  // Prepares tasklet with strategy, which can then be send to destination hardware thread
   struct CastStrategy {
-    virtual void cast(SignalableGroup *group, size_t idx, size_t groupSize) = 0;
+    SignalableGroup *group;
+    size_t idx;
+    CastStrategy(SignalableGroup *group_, size_t idx_)
+      :group(group_), idx(idx_) {}
+      
+    virtual void create(Tasklet &t) const = 0;
   };
 
   class ISignalable
@@ -42,6 +48,7 @@ namespace mythos {
 
     virtual optional<void> signal(CapData data) = 0;
     virtual void broadcast(Tasklet* t, SignalableGroup *group, size_t idx, size_t groupSize) = 0;
+    virtual void multicast(const CastStrategy &cs) = 0;
   };
 
 } // namespace mythos
