@@ -46,6 +46,7 @@ class SchedulingCoordinator
   enum Policy {
     SLEEP = 0,
     SPIN  = 1,
+    DELAYS = 3,
   };
 
 //IKernelObject interface
@@ -70,20 +71,22 @@ public:
     ASSERT(localPlace != nullptr);
     ASSERT(localSchedulingContext != nullptr);
     switch (policy) {
-      case SLEEP : runSleep();
-      case SPIN  : runSpin();
-      default    : runSleep();
+      case SLEEP  : runSleep();
+      case SPIN   : runSpin();
+      case DELAYS : runConfigurableDelays();
+      default     : runSleep();
     }
   }
 
 
   NORETURN void sleep() {
-    MLOG_DETAIL(mlog::boot, "going to sleep now");
+    MLOG_ERROR(mlog::boot, "going to sleep now");
     mythos::idle::sleep(); // resets the kernel stack!
   }
 
   NORETURN void runSleep();
   NORETURN void runSpin();
+  NORETURN void runConfigurableDelays();
 
   void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
     MLOG_DETAIL(mlog::boot, "Init", DVAR(p), DVAR(sc));
@@ -103,7 +106,9 @@ private:
   mythos::async::Place *localPlace = nullptr;
   mythos::SchedulingContext *localSchedulingContext = nullptr;
 
-  Policy policy = {SLEEP};
+  Policy policy = {DELAYS};
+
+  std::atomic<bool> timer {false};
 };
 
 } // namespace mythos

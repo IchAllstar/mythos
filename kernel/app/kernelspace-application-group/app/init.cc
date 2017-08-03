@@ -73,10 +73,10 @@ std::atomic<uint64_t> counter {0};
 void* thread_main(void* ctx)
 {
   while (true) {
-    //MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
+    MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
     mythos::ISysretHandler::handle(mythos::syscall_wait());
     counter.fetch_add(1);
-    //MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+    MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
   }
   return 0;
 }
@@ -139,7 +139,7 @@ void test_signalable_group() {
                          thread2stack_top, &thread_main, (void*)2).wait();
   TEST(res3);
   mythos::ExecutionContext ec3(caps());
-  auto res4 = ec3.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 3,
+  auto res4 = ec3.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 4,
                          thread3stack_top, &thread_main, (void*)3).wait();
   TEST(res4);
   mythos::ExecutionContext ec4(caps());
@@ -152,6 +152,10 @@ void test_signalable_group() {
   TEST(group.addMember(pl, ec4.cap()).wait());
 
   TEST(group.signalAll(pl));
+  mythos::ExecutionContext ec(caps());
+  auto res6 = ec.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + 30,
+                         thread4stack_top, &thread_main, (void*)4).wait();
+  TEST(res6);
   MLOG_ERROR(mlog::app, "end test signalable group");
 }
 
@@ -160,8 +164,9 @@ int main()
   char const end[] = "Application exited.";
   MLOG_ERROR(mlog::app, "Application started.");
 
-  //test_signalable_group();
-  init_threads();
+  test_signalable_group();
+  //init_threads();
+
   mythos::syscall_debug(end, sizeof(end) - 1);
 
   return 0;

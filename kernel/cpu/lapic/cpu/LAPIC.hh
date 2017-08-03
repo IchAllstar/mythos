@@ -45,6 +45,7 @@ namespace mythos {
 
     // TODO change interface to pass divider (3bit) and timer mode, may leave convenience methods
     void enablePeriodicTimer(uint8_t irq, uint32_t count);
+    void enableOneshotTimer(uint8_t irq, uint32_t count);
     void disableTimer();
 
     /** initial count register contains the start value, current count

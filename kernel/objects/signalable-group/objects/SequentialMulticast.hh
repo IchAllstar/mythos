@@ -38,7 +38,7 @@ class SignalableGroup;
 class SequentialMulticast
 {
 public:
-    static Error multicast(SignalableGroup *group, Tasklet* /*tasklets*/, size_t groupSize) {
+    static Error multicast(SignalableGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
 
         for (uint64_t i = 0; i < groupSize; i++) {

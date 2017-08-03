@@ -28,6 +28,7 @@
 #include "util/mstring.hh" // for memcpy
 #include "boot/memory-layout.h" // for KNC MMIO
 #include "cpu/ctrlregs.hh"
+#include "util/Time.hh"
 
 #define SBOX_C6_SCRATCH0 0x0000C000
 #define MSR_CC6_STATUS 0x342
@@ -68,7 +69,7 @@ void sleep()
     auto prev = coreStates[apicID / 4].cc6ready.fetch_or(uint8_t(1 << (apicID % 4)));
     /// @todo is this really needed if we always go into cc6?
     if ((prev | (1 << (apicID % 4))) == 0xf) { // enable cc6
-        MLOG_INFO(mlog::boot, "idle: enable CC6", DVARhex(prev), DVAR(apicID));
+        MLOG_ERROR(mlog::boot, "idle: enable CC6", DVARhex(prev), DVAR(apicID));
         x86::setMSR(MSR_CC6_STATUS, x86::getMSR(MSR_CC6_STATUS) | 0x1f);
     }
 
@@ -97,8 +98,11 @@ void wokeupFromInterrupt()
 
     auto prev = coreStates[apicID / 4].cc6ready.fetch_and(uint8_t(~(1u << (apicID % 4))));
     if (prev == 0xf) { // disable cc6
-        MLOG_INFO(mlog::boot, "idle: disable CC6", DVARhex(prev), DVAR(apicID));
+        MLOG_ERROR(mlog::boot, "idle: disable CC6", DVARhex(prev), DVAR(apicID));
         x86::setMSR(MSR_CC6_STATUS, x86::getMSR(MSR_CC6_STATUS) & (~0x1Ful));
+        coreStates[apicID / 4].lock = false;
+        emulateCC6Delay();
+        return;
     }
 
     coreStates[apicID / 4].lock = false;

@@ -73,5 +73,10 @@ namespace mythos {
     /** sleep management event: entered kernel from interrupting the user mode */
     void enteredFromInterrupt() {}
 
+    /**
+     * emulate the CC6 exit delay. Exit time from Linux Driver Nehalem Exit
+     * time
+     */
+    void emulateCC6Delay() { mythos::hwthread_pause(200000); }
   } // namespace idle
 } // namespace mythos

@@ -55,6 +55,7 @@
 #include "objects/InterruptControl.hh"
 #include "boot/memory-root.hh"
 #include "objects/SchedulingCoordinator.hh"
+#include "util/Time.hh"
 
 ALIGN_4K uint8_t boot_stack[BOOT_STACK_SIZE] SYMBOL("BOOT_STACK");
 extern char CLM_ADDR;
@@ -164,7 +165,6 @@ void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
     ASSERT(ctx->irq < 256);
     mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
   }
-
   if (!nested) runUser();
   // else simply return and let the interrupted kernel continue
 }

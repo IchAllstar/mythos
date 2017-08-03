@@ -119,6 +119,13 @@ namespace mythos {
     write(REG_LVT_TIMER, read(REG_LVT_TIMER).timer_mode(PERIODIC).masked(0).vector(irq));
   }
 
+  void LAPIC::enableOneshotTimer(uint8_t irq, uint32_t count) {
+    MLOG_INFO(mlog::boot, "enable oneshot APIC timer", DVAR(irq), DVAR(count));
+    write(REG_TIMER_DCR, 0x0b);  // divide bus clock by 0xa=128 or 0xb=1
+    setInitialCount(count);
+    write(REG_LVT_TIMER, read(REG_LVT_TIMER).timer_mode(ONESHOT).masked(0).vector(irq));
+  }
+
   void LAPIC::disableTimer() {
     MLOG_INFO(mlog::boot, "disable APIC timer");
     write(REG_LVT_TIMER, read(REG_LVT_TIMER).timer_mode(ONESHOT).masked(1).vector(0));

@@ -27,6 +27,8 @@
 #include "cpu/hwthreadid.hh"
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/mlog.hh"
+#include "util/Time.hh"
+#include "cpu/LAPIC.hh"
 
 namespace mythos {
 
@@ -105,6 +107,51 @@ void SchedulingCoordinator::runSleep() {
   while (not localPlace->releaseKernel()) {
     localPlace->processTasks();
   }
+  sleep();
+}
+
+void SchedulingCoordinator::runConfigurableDelays() {
+  if (timer.exchange(false) == true) {
+    MLOG_ERROR(mlog::boot, "Deep Sleep now");
+    sleep();
+  }
+  localPlace->processTasks(); // executes all available kernel tasks
+  auto *ec = localSchedulingContext->tryRunUser();
+  if (ec) {
+    if (ec->prepareResume()) {
+      while (not localPlace->releaseKernel()) { // new kernel tasks
+        localPlace->processTasks();
+        hwthread_pause(100);
+      }
+      ec->doResume(); //does not return (hopefully)
+      MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
+      sleep();
+    }
+  }
+  uint64_t start = getTime();
+  while (start + 1000000 > getTime()) { // poll configured delay
+    //MLOG_ERROR(mlog::boot, "Delay");
+    localPlace->processTasks();
+    auto *ec = localSchedulingContext->tryRunUser();
+    if (ec) {
+      if (ec->prepareResume()) {
+        while (not localPlace->releaseKernel()) { // new kernel tasks
+          localPlace->processTasks();
+          hwthread_pause(100);
+        }
+        ec->doResume(); //does not return (hopefully)
+        MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
+        sleep();
+      }
+    }
+    hwthread_pause(100);
+  }
+  while (not localPlace->releaseKernel()) { // release kernel
+    localPlace->processTasks();
+  }
+  timer.store(true);
+  MLOG_ERROR(mlog::boot, "Sleeping lite");
+  mythos::lapic.enableOneshotTimer(0x22, 10000000);
   sleep();
 }
 
