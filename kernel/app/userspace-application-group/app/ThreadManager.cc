@@ -91,3 +91,11 @@ void ThreadManager::deleteThread(Thread &t) {
 	auto res = capmap.deleteCap(pl, t.ec).wait();
 	ASSERT(res);
 }
+
+void ThreadManager::cleanup() {
+	for (uint64_t i = 0; i < NUM_THREADS; ++i) {
+		auto *t = getThread(i);
+		ASSERT(t);
+		deleteThread(*t);
+	}
+}

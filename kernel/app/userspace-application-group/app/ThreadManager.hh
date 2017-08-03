@@ -22,6 +22,7 @@ public:
 	void startThread(Thread &t);
 	void startAll();
 	void deleteThread(Thread &t);
+	void cleanup();
 	uint64_t getNumThreads() { return NUM_THREADS; }
 
 	Thread* getThread(uint64_t id);

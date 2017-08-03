@@ -5,7 +5,19 @@ extern std::atomic<uint64_t> counter;
 
 class TreeMulticastBenchmark {
 public:
-	void test_multicast() {
+	void test_multicast();
+
+private:
+	void cleanup() {
+		for (uint64_t i = 0; i < NUM_THREADS; ++i) {
+			auto *t = manager.getThread(i);
+			ASSERT(t);
+			manager.deleteThread(*t);
+		}
+	}
+};
+
+void TreeMulticastBenchmark::test_multicast() {
 		manager.init([](void *data) -> void* {
 			ASSERT(data != nullptr);
 			auto *thread = reinterpret_cast<Thread*>(data);
@@ -36,5 +48,5 @@ public:
 
 		end = mythos::getTime();
 		MLOG_ERROR(mlog::app, DVAR(group.count()),  DVAR(end - start));
+		manager.cleanup();
 	}
-};

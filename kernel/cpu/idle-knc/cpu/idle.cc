@@ -84,7 +84,7 @@ namespace mythos {
     {
       MLOG_INFO(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
       if (reason == 1) {
-	MLOG_INFO(mlog::boot, "idle: woke up from CC6");
+	MLOG_ERROR(mlog::boot, "idle: woke up from CC6");
 	cpu_idle_halt(); // woke up from CC6 => just sleep again
       }
     }

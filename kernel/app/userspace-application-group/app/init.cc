@@ -64,8 +64,6 @@ std::atomic<uint64_t> counter {0};
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
 
 
-
-
 int main()
 {
   MLOG_ERROR(mlog::app, "START application");
@@ -74,6 +72,7 @@ int main()
   //htb.test_helper();
 
   TreeMulticastBenchmark tmb;
+  tmb.test_multicast();
   tmb.test_multicast();
 
   MLOG_ERROR(mlog::app, "END application");
