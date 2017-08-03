@@ -86,7 +86,7 @@ private:
   uint64_t num_helper(uint64_t groupSize) {
     uint64_t value {0};
     uint64_t i {0};
-    while (value < groupSize) {
+    while (value <= groupSize) {
       i++;
       value = (i * (i + 1)) / 2;
     }

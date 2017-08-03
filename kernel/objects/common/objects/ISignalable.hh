@@ -29,30 +29,31 @@
 #include <atomic>
 
 namespace mythos {
-  class SignalableGroup;
+class SignalableGroup;
 
-  // Prepares tasklet with strategy, which can then be send to destination hardware thread
-  struct CastStrategy {
+// Prepares tasklet with strategy, which can then be send to destination hardware thread
+struct CastStrategy {
     SignalableGroup *group;
     size_t idx;
     CastStrategy(SignalableGroup *group_, size_t idx_)
-      :group(group_), idx(idx_) {}
+        : group(group_), idx(idx_) {}
 
+    // Take tasklet and inject strategy 
     virtual void create(Tasklet &t) const = 0;
-  };
+};
 
-  /**
-   * Interface for signalable objects. 
-   * Those objects also have to define methods to forward multicasts.
-   */
-  class ISignalable
-  {
-  public:
+/**
+ * Interface for signalable objects.
+ * Those objects also have to define methods to forward multicasts.
+ */
+class ISignalable
+{
+public:
     virtual ~ISignalable() {}
 
     virtual optional<void> signal(CapData data) = 0;
     virtual void broadcast(Tasklet* t, SignalableGroup *group, size_t idx, size_t groupSize) = 0;
     virtual void multicast(const CastStrategy &cs) = 0;
-  };
+};
 
 } // namespace mythos

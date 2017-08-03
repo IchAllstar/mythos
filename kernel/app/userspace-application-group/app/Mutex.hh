@@ -1,4 +1,6 @@
 #pragma once
+#include "cpu/hwthread_pause.hh"
+#include <atomic>
 
 class SpinMutex {
 public:

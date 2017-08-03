@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace mythos {
 
 uint64_t getTime() {

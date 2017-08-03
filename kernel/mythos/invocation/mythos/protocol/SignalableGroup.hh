@@ -38,28 +38,17 @@ namespace mythos {
       enum Methods : uint8_t {
         SIGNAL_ALL,
         ADD_MEMBER,
-        REMOVE_MEMBER,
       };
 
       struct SignalAll : public InvocationBase {
         constexpr static uint16_t label = (proto<<8) + SIGNAL_ALL;
         SignalAll() : InvocationBase(label,getLength(this)) {}
-
-        uint64_t data;
       };
 
       struct AddMember : public InvocationBase {
         constexpr static uint16_t label = (proto<<8) + ADD_MEMBER;
         AddMember(CapPtr signalable) : InvocationBase(label,getLength(this)) {
            addExtraCap(signalable);
-        }
-        CapPtr signalable() const { return this->capPtrs[0]; }
-      };
-
-      struct RemoveMember : public InvocationBase {
-        constexpr static uint16_t label = (proto<<8) + REMOVE_MEMBER;
-        RemoveMember(CapPtr signalable) : InvocationBase(label,getLength(this)) {
-          addExtraCap(signalable);
         }
         CapPtr signalable() const { return this->capPtrs[0]; }
       };
@@ -76,7 +65,6 @@ namespace mythos {
         switch(Methods(m)) {
           case SIGNAL_ALL: return obj->signalAll(args...);
           case ADD_MEMBER: return obj->addMember(args...);
-          case REMOVE_MEMBER: return obj->removeMember(args...);
           default: return Error::NOT_IMPLEMENTED;
         }
       }

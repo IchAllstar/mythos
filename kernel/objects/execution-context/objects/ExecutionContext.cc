@@ -448,7 +448,7 @@ void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx,
 }
 
 void ExecutionContext::multicast(const CastStrategy &cs) {
-    auto sched = _sched.get();
+    auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
     if (sched) {
         auto *tasklet = cs.group->getTasklet(cs.idx);
         ASSERT(tasklet != nullptr);

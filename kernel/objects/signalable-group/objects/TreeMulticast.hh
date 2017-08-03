@@ -38,9 +38,13 @@ namespace mythos {
 
 /**
  * Strategy implementation, which constructs a "fibonacci" multicast tree of the group members.
- * 
  */
 struct TreeCastStrategy : public CastStrategy {
+    // Latency is ratio between (message sending cycles) / (overhead cycles)
+    // on KNC: ~4000 cycles for delivering signal which includes ~1000 cycles of overhead
+
+    // Test Result:
+    // 0: user app [app/init.cc:123] end - start=119470 counter.load()=59 with latency = 4
     static const uint64_t LATENCY = 4;
 
     size_t from;
@@ -89,7 +93,7 @@ struct TreeCastStrategy : public CastStrategy {
             MLOG_ERROR(mlog::boot, DVAR(idx_), DVAR(from_), DVAR(to_));
             TypedCap<ISignalable> own(group_->getMember(idx_)->cap());
             ASSERT(own);
-            ASSERT(group_ != nullptr);
+            ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
             ASSERT(to_ > 0);
             auto to_tmp = to_;
             
@@ -106,9 +110,9 @@ struct TreeCastStrategy : public CastStrategy {
                 MLOG_ERROR(mlog::boot, idx_, "sends to", j+from_);
                 TypedCap<ISignalable> dest(group_->getMember(j + from_)->cap());
                 if (dest) {
-                    if (j + from_ < to_tmp) { // if leaf node, which does not forward, just signal it
+                    if (j + from_ < to_tmp) { 
                         dest->multicast(tcs);
-                    } else {
+                    } else { // if leaf node, which does not forward, just signal it
                         dest->signal(0);
                     }
                 }
@@ -116,7 +120,6 @@ struct TreeCastStrategy : public CastStrategy {
             }
         });
     }
-
 };
 
 class SignalableGroup;
@@ -127,14 +130,11 @@ public:
         ASSERT(group != nullptr);
         TypedCap<ISignalable> signalable(group->getMember(0)->cap());
         if (signalable) {
-            //signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
             TreeCastStrategy tcs(group, 0, 0, groupSize - 1); // from and to are included
             signalable->multicast(tcs);
         }
         return Error::SUCCESS;
     }
-private:
-    static constexpr uint64_t N_ARY_TREE = 2;
 };
 
 

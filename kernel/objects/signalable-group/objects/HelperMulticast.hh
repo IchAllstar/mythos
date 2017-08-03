@@ -35,22 +35,100 @@
 
 namespace mythos {
 
+/**
+ * Helper Strategy, which tells the target helper thread which application threads it has to signal.
+ */
+struct HelperCastStrategy : public CastStrategy {
+	size_t from;
+	size_t to;
+
+	HelperCastStrategy(SignalableGroup *group_, size_t idx_, size_t from_, size_t to_)
+		: CastStrategy(group_, idx_), from(from_), to(to_)
+	{}
+
+
+	void create(Tasklet &t) const override {
+		// Need to copy variables for capturing in lambda
+		auto group_ = group;
+		size_t from_, to_;
+		from_ = from;
+		to_ = to;
+		// Create Tasklet which will be send to destination hardware thread
+		t.set([group_, from_, to_](Tasklet*) {
+			MLOG_ERROR(mlog::boot, "In Helper Thread:", DVAR(from_), DVAR(to_));
+			ASSERT(group_ != nullptr);
+			ASSERT(to_ > 0);
+
+			for (uint64_t i = from_; i <= to_; i++) {
+				MLOG_ERROR(mlog::boot, "Wakeup", DVAR(i));
+				TypedCap<ISignalable> dest(group_->getMember(i)->cap());
+				if (dest) {
+					dest->signal(0);
+				}
+			}
+		});
+	}
+
+};
+
+
+
+std::array<uint64_t, 5> helper = {1, 2, 3, 4, 5};
 
 class SignalableGroup;
-
 class HelperMulticast
 {
 public:
-    static Error multicast(SignalableGroup *group, size_t idx, size_t groupSize) {
-        ASSERT(group != nullptr);
-        TypedCap<ISignalable> signalable(group->getMember(0)->cap());
-        if (signalable) {
-            signalable->broadcast(group->getTasklet(0), group, 0, groupSize);
-        }
-        return Error::SUCCESS;
-    }
+	static Error multicast(SignalableGroup *group, size_t groupSize) {
+		ASSERT(group != nullptr);
+		uint64_t threads = groupSize - 1;
+		uint64_t availableHelper = sizeof(helper) / sizeof(uint64_t);
+		uint64_t optimalHelper = num_helper(threads);
+		uint64_t usedHelper = (availableHelper < optimalHelper) ? availableHelper : optimalHelper;
+		uint64_t optimalThreadNumber = (usedHelper * (usedHelper + 1)) / 2;
+		int64_t  diffThreads = threads - optimalThreadNumber;
+		uint64_t current = 0;
+		uint64_t diff = diffThreads / usedHelper;
+		uint64_t mod = diffThreads % usedHelper; // never bigger than usedHelper
+
+		HelperCastStrategy hcs(group, 0, 0, groupSize - 1);
+		for (uint64_t i = 0; i < usedHelper; i++) {
+			TypedCap<ISignalable> signalable(group->getMember(helper[i])->cap());
+			if (!signalable) {
+				PANIC("Signalable not valid anymore.");
+			}
+			uint64_t base = usedHelper - i;
+			if (diffThreads > 0) {
+				uint64_t tmp = diff;
+				if (mod > 0) {
+					tmp++;
+					mod--;
+				}
+				base += tmp;
+				diffThreads -= tmp;
+			}
+			hcs.from = current;
+			hcs.to = current + base;
+			hcs.idx = i;
+			MLOG_ERROR(mlog::boot, "helper ", i, " from:", current, " to: ", current + base);
+			signalable->multicast(hcs);
+			current += base;
+		}
+
+
+		return Error::SUCCESS;
+	}
+
 private:
-    static constexpr uint64_t N_ARY_TREE = 2;
+	static uint64_t num_helper(uint64_t groupSize) {
+		uint64_t value {0};
+		uint64_t i {0};
+		while (value <= groupSize) {
+			i++;
+			value = (i * (i + 1)) / 2;
+		}
+		return (i - 1 > 0) ? i - 1 : 0;
+	}
 };
 
 } // namespace mythos

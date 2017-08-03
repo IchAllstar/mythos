@@ -98,7 +98,7 @@ void init_threads() {
   TEST(group.create(pl, kmem, 100).wait());
 
   auto addr = reinterpret_cast<uint8_t*>(VADDR);
-  for (uint64_t i = 1; i < NUM_THREADS; ++i) {
+  for (uint64_t i = 6; i < NUM_THREADS; ++i) {
     addr += STACK_SIZE;
     mythos::ExecutionContext ec(caps());
     auto res2 = ec.create(pl, kmem, as, cs, mythos::init::SCHEDULERS_START + i,

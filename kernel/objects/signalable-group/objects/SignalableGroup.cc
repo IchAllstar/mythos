@@ -28,6 +28,7 @@
 #include "objects/mlog.hh"
 #include "objects/TreeMulticast.hh"
 #include "objects/SequentialMulticast.hh"
+#include "objects/HelperMulticast.hh"
 
 namespace mythos {
 
@@ -47,7 +48,6 @@ SignalableGroup::SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISigna
         tasklet = new (&tasklets[i]) Tasklet();
     }
 }
-
 
 optional<void> SignalableGroup::deleteCap(Cap self, IDeleter& del) {
     if (self.isOriginal()) {
@@ -144,7 +144,7 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);
-    return TreeMulticast::multicast(this, actualSize);
+    return HelperMulticast::multicast(this, actualSize);
 }
 
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
@@ -170,30 +170,6 @@ Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
         }
     }
     return Error::INSUFFICIENT_RESOURCES;
-}
-
-Error SignalableGroup::removeMember(Tasklet *t, Cap self, IInvocation *msg) {
-
-    MLOG_DETAIL(mlog::boot, "addMember()", DVAR(t), DVAR(self), DVAR(msg));
-    auto data = msg->getMessage()->read<protocol::SignalableGroup::RemoveMember>();
-    optional<CapEntry*> entry = msg->lookupEntry(data.signalable());
-    TypedCap<ISignalable> obj(entry);
-    if (!obj) {
-        return Error::INVALID_CAPABILITY;
-    }
-    for (uint64_t i = 0; i < groupSize; i++) {
-        if (member[i].isUsable()) {
-            // TODO: this can probably be done better. Check if object to unregister is registered object in array
-            if (member[i].cap().getPtr() == obj.cap().getPtr()) {
-                MLOG_ERROR(mlog::boot, "Remove member from SignalableGroup", DVAR(obj.cap()));
-                member[i].reset();
-                actualSize--;
-                return Error::SUCCESS;
-            }
-        }
-    }
-    return Error::INVALID_ARGUMENT;
-
 }
 
 } // namespace mythos

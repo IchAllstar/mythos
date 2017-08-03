@@ -43,6 +43,7 @@ namespace mythos {
  * Always use the tasklet of the receiver node, because I need to send to multiple children, so cannot use my own
  * tasklet.
  * TODO handle correct deletion of kernel object -> free the array
+ * TODO what to do, if SignalableGroup is destroyed while cast is ongoing
  */
 class SignalableGroup
     : public IKernelObject
@@ -62,7 +63,6 @@ public: // protocol
     Error getDebugInfo(Cap self, IInvocation* msg);
     Error signalAll(Tasklet *t, Cap self, IInvocation *msg);
     Error addMember(Tasklet *t, Cap self, IInvocation *msg);
-    Error removeMember(Tasklet *t, Cap self, IInvocation *msg);
 
 public:
     void bind(optional<ISignalable*>);

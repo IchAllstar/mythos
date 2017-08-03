@@ -46,10 +46,6 @@ public:
       return pr.invoke<protocol::SignalableGroup::AddMember>(_cap, signalable);
     }
 
-    PortalFuture<void> removeMember(PortalLock pr, CapPtr signalable) {
-      return pr.invoke<protocol::SignalableGroup::RemoveMember>(_cap, signalable);
-    }
-
     PortalFuture<void> signalAll(PortalLock pr) {
         return pr.invoke<protocol::SignalableGroup::SignalAll>(_cap);
     }
