@@ -61,8 +61,14 @@ void init_global()
 
 NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
-void sleep()
+void sleep(uint8_t depth)
 {
+    if (depth == 0) return; // CC0 poll
+    if (depth == 1) {       // CC1 lite sleep
+        boot::getLocalIdleManagement().sleepIntention(depth);
+        cpu_idle_halt(); // no return
+    }
+    // deep sleep
     size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID
     while (coreStates[apicID / 4].lock.exchange(true) == true);
 
@@ -78,6 +84,7 @@ void sleep()
     MLOG_INFO(mlog::boot, "idle: cores halted", DVARhex(*chlt));
 
     coreStates[apicID / 4].lock = false;
+    boot::getLocalIdleManagement().sleepIntention(depth);
     cpu_idle_halt();
 }
 
@@ -90,7 +97,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
     }
 }
 
-void wokeupFromInterrupt()
+void wokeupFromInterrupt(uint8_t irq)
 {
     MLOG_INFO(mlog::boot, "idle: woke up from irq");
     size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID

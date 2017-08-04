@@ -1,4 +1,4 @@
 # -*- mode:toml; -*-
 [module.objects-scheduling-coordinator]
-    incfiles = [ "objects/SchedulingCoordinator.hh" ]
+    incfiles = [ "objects/SchedulingCoordinator.hh", "objects/IdleManagement.hh" ]
     kernelfiles = [ "objects/SchedulingCoordinator.cc" ]

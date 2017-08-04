@@ -52,8 +52,8 @@ public:
     virtual ~ISignalable() {}
 
     virtual optional<void> signal(CapData data) = 0;
-    virtual void broadcast(Tasklet* t, SignalableGroup *group, size_t idx, size_t groupSize) = 0;
-    virtual void multicast(const CastStrategy &cs) = 0;
+    virtual void broadcast(Tasklet* /*t*/, SignalableGroup* /*group*/, size_t /*idx*/, size_t /*groupSize*/) {};
+    virtual void multicast(const CastStrategy& /*cs*/) {};
 };
 
 } // namespace mythos

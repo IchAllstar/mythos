@@ -29,6 +29,8 @@
 #include "objects/mlog.hh"
 #include "util/Time.hh"
 #include "cpu/LAPIC.hh"
+#include "objects/IdleManagement.hh"
+#include "cpu/idle.hh"
 
 namespace mythos {
 
@@ -88,7 +90,6 @@ Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
     return Error::SUCCESS;
 }
 
-
 // actual functionality
 
 void SchedulingCoordinator::runSleep() {
@@ -104,55 +105,29 @@ void SchedulingCoordinator::runSleep() {
             MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
         }
     }
-    while (not localPlace->releaseKernel()) {
-        localPlace->processTasks();
-    }
-    sleep();
+    releaseKernel();
+    mythos::idle::sleep(1);
 }
 
 void SchedulingCoordinator::runConfigurableDelays() {
-    if (timer.exchange(false) == true) {
+    if (mythos::boot::getLocalIdleManagement().shouldDeepSleep()) {
         MLOG_ERROR(mlog::boot, "Deep Sleep now");
-        sleep();
+        releaseKernel();
+        mythos::idle::sleep(6);
     }
     localPlace->processTasks(); // executes all available kernel tasks
-    auto *ec = localSchedulingContext->tryRunUser();
-    if (ec) {
-        if (ec->prepareResume()) {
-            while (not localPlace->releaseKernel()) { // new kernel tasks
-                localPlace->processTasks();
-                hwthread_pause(100);
-            }
-            ec->doResume(); //does not return (hopefully)
-            MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
-            sleep();
-        }
-    }
+    tryRunUser();
     uint64_t start = getTime();
-    while (start + 1000000 > getTime()) { // poll configured delay
-        //MLOG_ERROR(mlog::boot, "Delay");
+    while (start + mythos::boot::getLocalIdleManagement().getDelayPolling() > getTime() || !mythos::boot::getLocalIdleManagement().shouldLiteSleep()) { // poll configured delay
+        localPlace->enterKernel();
         localPlace->processTasks();
-        auto *ec = localSchedulingContext->tryRunUser();
-        if (ec) {
-            if (ec->prepareResume()) {
-                while (not localPlace->releaseKernel()) { // new kernel tasks
-                    localPlace->processTasks();
-                    hwthread_pause(100);
-                }
-                ec->doResume(); //does not return (hopefully)
-                MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
-                sleep();
-            }
-        }
+        tryRunUser();
         hwthread_pause(100);
+        preemption_point(); // allows interrupts even if polling only policy
     }
-    while (not localPlace->releaseKernel()) { // release kernel
-        localPlace->processTasks();
-    }
-    timer.store(true);
+    releaseKernel();
     MLOG_ERROR(mlog::boot, "Sleeping lite");
-    mythos::lapic.enableOneshotTimer(0x22, 10000000);
-    sleep();
+    mythos::idle::sleep(1);
 }
 
 void SchedulingCoordinator::runSpin() {
@@ -162,17 +137,25 @@ void SchedulingCoordinator::runSpin() {
         auto *ec = localSchedulingContext->tryRunUser();
         if (ec) {
             if (ec->prepareResume()) {
-                while (not localPlace->releaseKernel()) {
-                    MLOG_DETAIL(mlog::boot, "Could not release kernel");
-                    localPlace->processTasks();
-                    // pause seems to be very slow on qemu !!
-                    //hwthread_pause(1);
-                }
+                releaseKernel();
                 ec->doResume(); //does not return (hopefully)
                 MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
             }
         }
+        preemption_point();
     }
+}
+
+void SchedulingCoordinator::tryRunUser() {
+  auto *ec = localSchedulingContext->tryRunUser();
+  if (ec) {
+    if (ec->prepareResume()) {
+      releaseKernel();
+      ec->doResume(); //does not return (hopefully)
+      MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
+      mythos::idle::sleep(1);
+    }
+  }
 }
 
 } // namespace mythos

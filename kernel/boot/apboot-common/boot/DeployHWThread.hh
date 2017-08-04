@@ -45,6 +45,8 @@
 #include "boot/DeployKernelSpace.hh"
 #include "boot/mlog.hh"
 
+#include "objects/IdleManagement.hh"
+
 namespace mythos {
   namespace boot {
 
@@ -67,6 +69,12 @@ namespace mythos {
 
     InterruptControl& getInterruptController(cpu::ThreadID threadID) { return interruptController[threadID]; }
     InterruptControl& getLocalInterruptController() { return *localInterruptController.get(); }
+
+    extern IdleManagement idleManagement[MYTHOS_MAX_THREADS];
+    extern CoreLocal<IdleManagement*> localIdleManagement KERNEL_CLM;
+
+    IdleManagement& getIdleManagement(cpu::ThreadID threadID) { return idleManagement[threadID]; }
+    IdleManagement& getLocalIdleManagement() { return *localIdleManagement.get(); }
 
 struct DeployHWThread
 {
@@ -107,6 +115,7 @@ struct DeployHWThread
     localInterruptController.setAt(threadID, &getInterruptController(threadID));
     getScheduler(threadID).init(async::getPlace(threadID));
     localSchedulingCoordinator_.setAt(threadID, &getSchedulingCoordinator(threadID));
+    localIdleManagement.setAt(threadID, &getIdleManagement(threadID));
     getSchedulingCoordinator(threadID).init(async::getPlace(threadID), &getScheduler(threadID));
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),

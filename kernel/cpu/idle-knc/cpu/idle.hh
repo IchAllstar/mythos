@@ -54,12 +54,7 @@ namespace mythos {
      * High level idle governers may replace this function. (somehow)
      * resets the kernel stack.
      */
-    NORETURN void sleep();
-
-    /**
-     * Go into lite sleep, which has a very short latency for wakeup.
-     */
-    NORETURN void lite_sleep() { cpu_idle_halt(); }
+    NORETURN void sleep(uint8_t depth);
 
     /** sleep management event: awakened by booting or from deep sleep (CC6).
      *
@@ -70,13 +65,13 @@ namespace mythos {
     void wokeup(size_t apicID, size_t reason);
 
     /** sleep management event: awakened by interrupt, possibly from light sleep (CC1) */
-    void wokeupFromInterrupt();
+    void wokeupFromInterrupt(uint8_t irq);
 
     /** sleep management event: entered kernel from syscall */
     void enteredFromSyscall() {}
 
     /** sleep management event: entered kernel from interrupting the user mode */
-    void enteredFromInterrupt() {}
+    void enteredFromInterrupt(uint8_t irq) {}
 
     /**
      * Emulate the CC6 exit delay. Exit time from Linux Driver Nehalem Exit

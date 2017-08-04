@@ -46,7 +46,7 @@ class SchedulingCoordinator
   enum Policy {
     SLEEP = 0,
     SPIN  = 1,
-    DELAYS = 3,
+    DELAYS = 2,
   };
 
 //IKernelObject interface
@@ -78,12 +78,6 @@ public:
     }
   }
 
-
-  NORETURN void sleep() {
-    MLOG_ERROR(mlog::boot, "going to sleep now");
-    mythos::idle::sleep(); // resets the kernel stack!
-  }
-
   NORETURN void runSleep();
   NORETURN void runSpin();
   NORETURN void runConfigurableDelays();
@@ -95,6 +89,21 @@ public:
     localPlace = p;
     localSchedulingContext = sc;
     monitor.setHome(p);
+  }
+
+private:
+  // allows handling of interrupts at certain points even when not leaving the kernel
+  void preemption_point() {
+    asm volatile("sti;nop;cli;");
+  }
+
+  // try to find EC, release kernel, run it; returns if no EC; sleep if fails to run EC
+  void tryRunUser();
+
+  void releaseKernel() {
+    while (not localPlace->releaseKernel()) { // release kernel
+        localPlace->processTasks();
+    }
   }
 
 private:

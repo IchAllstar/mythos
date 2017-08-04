@@ -92,8 +92,8 @@ public:
     return true;
   }
 
-  /** Processes tasks until the queue is empty and the atomic
-   * unlocking was successfull. Hence, the next sender will detect
+  /** Processes tasks until the queue is empty. Atomic unlocking must be made explicitly via releaseKernel
+   * Hence, the next sender will detect
    * that he has to wakeup this place.
    */
   void processTasks();

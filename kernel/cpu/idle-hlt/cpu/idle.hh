@@ -28,19 +28,19 @@
 #include "util/compiler.hh"
 #include "cpu/hwthreadid.hh"
 
+
 namespace mythos {
   namespace idle {
 
     /** called once on bootup by the BSP. Initialises the trampoline and core states. */
-    void init_global() {}
+    void init_global();
 
     /** called once on bootup on each AP to initialise the processor, if needed. */
-    void init_thread() {}
+    void init_thread();
 
     /** dependency: has to be implemented by kernel */
     NORETURN void sleeping_failed() SYMBOL("sleeping_failed");
 
-    /** low level assembler routine that halts the hardware thread. */
     NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
     /** The kernel has nothing to do, thus go sleeping.
@@ -48,21 +48,19 @@ namespace mythos {
      * High level idle governers may replace this function. (somehow)
      * resets the kernel stack.
      */
-    NORETURN void sleep() { cpu_idle_halt(); }
-
-    NORETURN void lite_sleep() { cpu_idle_halt(); }
+    NORETURN void sleep(uint8_t depth);
 
     /** sleep management event: awakened by booting or from deep sleep. */
-    void wokeup(size_t /*apicID*/, size_t /*reason*/) {}
+    void wokeup(size_t apicID, size_t reason);
 
     /** sleep management event: awakened by interrupt, possibly from light sleep */
-    void wokeupFromInterrupt() {}
+    void wokeupFromInterrupt(uint8_t irq);
 
     /** sleep management event: entered kernel from syscall */
-    void enteredFromSyscall() {}
+    void enteredFromSyscall();
 
     /** sleep management event: entered kernel from interrupting the user mode */
-    void enteredFromInterrupt() {}
+    void enteredFromInterrupt(uint8_t irq);
 
   } // namespace idle
 } // namespace mythos

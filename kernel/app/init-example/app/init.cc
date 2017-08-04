@@ -44,224 +44,89 @@
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = 4*4096;
+constexpr uint64_t stacksize = 4 * 4096;
 char initstack[stacksize];
-char* initstack_top = initstack+stacksize;
+char* initstack_top = initstack + stacksize;
 
 mythos::Portal portal(mythos::init::PORTAL, msg_ptr);
 mythos::CapMap myCS(mythos::init::CSPACE);
 mythos::PageMap myAS(mythos::init::PML4);
 mythos::KernelMemory kmem(mythos::init::KM);
 mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
-                                  mythos::init::SIZE-mythos::init::APP_CAP_START);
+                                   mythos::init::SIZE - mythos::init::APP_CAP_START);
 
 char threadstack[stacksize];
-char* thread1stack_top = threadstack+stacksize/2;
-char* thread2stack_top = threadstack+stacksize;
+char* thread1stack_top = threadstack + stacksize / 2;
+char* thread2stack_top = threadstack + stacksize;
 
 char threadstack2[stacksize];
-char* thread3stack_top = threadstack2+stacksize/2;
-char* thread4stack_top = threadstack2+stacksize;
+char* thread3stack_top = threadstack2 + stacksize / 2;
+char* thread4stack_top = threadstack2 + stacksize;
 
 void* thread_main(void* ctx)
 {
-  MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
-  mythos::ISysretHandler::handle(mythos::syscall_wait());
-  MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+  while(true) {
+    MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
+    mythos::ISysretHandler::handle(mythos::syscall_wait());
+    MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+  }
   return 0;
 }
-
-void test_Example()
-{
-  char const obj[] = "hello object!";
-  MLOG_ERROR(mlog::app, "test_Example begin");
-  mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
-  mythos::Example example(capAlloc());
-  TEST(example.create(pl, kmem).wait()); // use default mythos::init::EXAMPLE_FACTORY
-  // wait() waits until the result is ready and returns a copy of the data and state.
-  // hence, the contents of res1 are valid even after the next use of the portal
-  TEST(example.printMessage(pl, obj, sizeof(obj)-1).wait());
-  TEST(capAlloc.free(example,pl));
-  // pl.release(); // implicit by PortalLock's destructor
-  MLOG_ERROR(mlog::app, "test_Example end");
-}
-
-void test_Portal()
-{
-  MLOG_ERROR(mlog::app, "test_Portal begin");
-  mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
-  MLOG_INFO(mlog::app, "test_Portal: allocate portal");
-  uintptr_t vaddr = 22*1024*1024; // choose address different from invokation buffer
-  // allocate a portal
-  mythos::Portal p2(capAlloc(), (void*)vaddr);
-  auto res1 = p2.create(pl, kmem).wait();
-  TEST(res1);
-  // allocate a 2MiB frame
-  MLOG_INFO(mlog::app, "test_Portal: allocate frame");
-  mythos::Frame f(capAlloc());
-  auto res2 = f.create(pl, kmem, 2*1024*1024, 2*1024*1024).wait();
-  MLOG_INFO(mlog::app, "alloc frame", DVAR(res2.state()));
-  TEST(res2);
-  // map the frame into our address space
-  MLOG_INFO(mlog::app, "test_Portal: map frame");
-  auto res3 = myAS.mmap(pl, f, vaddr, 2*1024*1024, 0x1).wait();
-  MLOG_INFO(mlog::app, "mmap frame", DVAR(res3.state()),
-            DVARhex(res3->vaddr), DVARhex(res3->size), DVAR(res3->level));
-  TEST(res3);
-  // bind the portal in order to receive responses
-  MLOG_INFO(mlog::app, "test_Portal: configure portal");
-  auto res4 = p2.bind(pl, f, 0, mythos::init::EC).wait();
-  TEST(res4);
-  // and delete everything again
-  MLOG_INFO(mlog::app, "test_Portal: delete frame");
-  TEST(capAlloc.free(f, pl));
-  MLOG_INFO(mlog::app, "test_Portal: delete portal");
-  TEST(capAlloc.free(p2, pl));
-  MLOG_ERROR(mlog::app, "test_Portal end");
-}
-
-void test_float()
-{
-  MLOG_INFO(mlog::app, "testing user-mode floating point");
-
-  volatile float x = 5.5;
-  volatile float y = 0.5;
-
-  float z = x*y;
-
-  TEST_EQ(int(z), 2);
-  TEST_EQ(int(1000*(z-float(int(z)))), 750);
-  MLOG_INFO(mlog::app, "float z:", int(z), ".", int(1000*(z-float(int(z)))));
-}
-
-void test_signalable_group() {
-  MLOG_ERROR(mlog::app, "begin test signalable group");
-  mythos::PortalLock pl(portal);
-  mythos::SignalableGroup group(capAlloc());
-  auto res1 = group.create(pl, kmem, 5);
-  TEST(res1);
-
-  mythos::ExecutionContext ec1(capAlloc());
-  auto res2 = ec1.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 2,
-                           thread1stack_top, &thread_main, (void*)1).wait();
-  TEST(res2);
-  mythos::ExecutionContext ec2(capAlloc());
-  auto res3 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 3,
-                           thread2stack_top, &thread_main, (void*)2).wait();
-  TEST(res3);
-  mythos::ExecutionContext ec3(capAlloc());
-  auto res4 = ec3.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 3,
-                           thread3stack_top, &thread_main, (void*)3).wait();
-  TEST(res4);
-  mythos::ExecutionContext ec4(capAlloc());
-  auto res5 = ec4.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 1,
-                           thread4stack_top, &thread_main, (void*)4).wait();
-  TEST(res5);
-  TEST(group.addMember(pl, ec1.cap()).wait());
-  TEST(group.addMember(pl, ec2.cap()).wait());
-  TEST(group.addMember(pl, ec3.cap()).wait());
-  TEST(group.addMember(pl, ec4.cap()).wait());
-
-  TEST(group.signalAll(pl));
-  //TEST(group.removeMember(pl, ec1.cap()).wait());
-  MLOG_ERROR(mlog::app, "end test signalable group");
-}
-
-struct HostChannel {
-  void init() { ctrlToHost.init(); ctrlFromHost.init(); }
-  typedef mythos::PCIeRingChannel<128,8> CtrlChannel;
-  CtrlChannel ctrlToHost;
-  CtrlChannel ctrlFromHost;
-};
-
-mythos::PCIeRingProducer<HostChannel::CtrlChannel> app2host;
-mythos::PCIeRingConsumer<HostChannel::CtrlChannel> host2app;
 
 int main()
 {
   char const str[] = "hello world!";
   char const end[] = "bye, cruel world!";
-  mythos::syscall_debug(str, sizeof(str)-1);
+  mythos::syscall_debug(str, sizeof(str) - 1);
   MLOG_ERROR(mlog::app, "application is starting :)", DVARhex(msg_ptr), DVARhex(initstack_top));
 
-  test_float();
-  test_Example();
-  test_Portal();
-  test_signalable_group();
-/*
-  {
-    mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
-    // allocate a 2MiB frame
-    mythos::Frame hostChannelFrame(capAlloc());
-    auto res1 = hostChannelFrame.create(pl, kmem, 2*1024*1024, 2*1024*1024).wait();
-    MLOG_INFO(mlog::app, "alloc hostChannel frame", DVAR(res1.state()));
-    TEST(res1);
-
-    // map the frame into our address space
-    uintptr_t vaddr = 22*1024*1024;
-    auto res2 = myAS.mmap(pl, hostChannelFrame, vaddr, 2*1024*1024, 0x1).wait();
-    MLOG_INFO(mlog::app, "mmap hostChannel frame", DVAR(res2.state()),
-              DVARhex(res2.get().vaddr), DVARhex(res2.get().size), DVAR(res2.get().level));
-    TEST(res2);
-
-    // initialise the memory
-    HostChannel* hostChannel = reinterpret_cast<HostChannel*>(vaddr);
-    hostChannel->init();
-    host2app.setChannel(&hostChannel->ctrlFromHost);
-    app2host.setChannel(&hostChannel->ctrlToHost);
-
-    // register the frame in the host info table
-    // auto res3 = mythos::PortalFuture<void>(pl.invoke<mythos::protocol::CpuDriverKNC::SetInitMem>(mythos::init::CPUDRIVER, hostChannelFrame.cap())).wait();
-    // MLOG_INFO(mlog::app, "register at host info table", DVAR(res3.state()));
-    //ASSERT(res3.state() == mythos::Error::SUCCESS);
-  }
 
   mythos::ExecutionContext ec1(capAlloc());
   mythos::ExecutionContext ec2(capAlloc());
   mythos::ExecutionContext ec3(capAlloc());
   mythos::ExecutionContext ec4(capAlloc());
-  mythos::InterruptControl intControl1(mythos::init::INTERRUPT_CONTROLLER_START+0);
-  mythos::InterruptControl intControl2(mythos::init::INTERRUPT_CONTROLLER_START+1);
-  mythos::InterruptControl intControl3(mythos::init::INTERRUPT_CONTROLLER_START+2);
-  mythos::InterruptControl intControl4(mythos::init::INTERRUPT_CONTROLLER_START+3);
   {
     MLOG_INFO(mlog::app, "test_EC: create ec1");
     mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
     auto res1 = ec1.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START,
                            thread1stack_top, &thread_main, nullptr).wait();
     TEST(res1);
+
     MLOG_INFO(mlog::app, "test_EC: create ec2");
-    auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+1,
+    auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 1,
                            thread2stack_top, &thread_main, (void*)1).wait();
     TEST(res2);
-    auto res3 = ec3.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+2,
+    auto res3 = ec3.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 2,
                            thread3stack_top, &thread_main, (void*)2).wait();
     TEST(res3);
-    auto res4 = ec4.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+3,
+    auto res4 = ec4.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START + 3,
                            thread4stack_top, &thread_main, (void*)3).wait();
     TEST(res4);
-    mythos::InterruptControl intControl(mythos::init::INTERRUPT_CONTROLLER_START+1);
-    //intControl1.registerForInterrupt(pl, ec1.cap(), 10);
-    //intControl2.registerForInterrupt(pl, ec2.cap(), 32);
-    //intControl2.registerForInterrupt(pl, ec3.cap(), 10);
-    //intControl2.registerForInterrupt(pl, ec4.cap(), 10);
-    //intControl1.unregisterForInterrupt(pl, ec2.cap(), 10);
-    
+
   }
 
 
 
-  for (volatile int i=0; i<100000; i++) {
-    for (volatile int j=0; j<1000; j++) {}
+  for (volatile int i = 0; i < 100000; i++) {
+    for (volatile int j = 0; j < 1000; j++) {}
   }
 
-  MLOG_INFO(mlog::app, "sending notifications");
+  MLOG_ERROR(mlog::app, "sending notifications");
   mythos::syscall_signal(ec1.cap());
+  for (volatile int i = 0; i < 100000; i++) {
+    for (volatile int j = 0; j < 1000; j++) {}
+  }
   mythos::syscall_signal(ec2.cap());
+  for (volatile int i = 0; i < 100000; i++) {
+    for (volatile int j = 0; j < 1000; j++) {}
+  }
   mythos::syscall_signal(ec3.cap());
+  for (volatile int i = 0; i < 100000; i++) {
+    for (volatile int j = 0; j < 1000; j++) {}
+  }
   mythos::syscall_signal(ec4.cap());
-*/
-  mythos::syscall_debug(end, sizeof(end)-1);
+
+  mythos::syscall_debug(end, sizeof(end) - 1);
 
   return 0;
 }
