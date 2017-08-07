@@ -41,6 +41,9 @@
 #include <cstdint>
 #include "util/optional.hh"
 #include "util/Time.hh"
+#include "app/Thread.hh"
+#include "app/ThreadManager.hh"
+#include "app/TreeMulticastBenchmark.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -64,11 +67,13 @@ char threadstack2[stacksize];
 char* thread3stack_top = threadstack2 + stacksize / 2;
 char* thread4stack_top = threadstack2 + stacksize;
 
-uint64_t NUM_THREADS = 60;
-const uint64_t PAGE_SIZE  = 2 * 1024 * 1024; // 2 MB
-const uint64_t STACK_SIZE = 1 * PAGE_SIZE;
+//uint64_t NUM_THREADS = 60;
+//const uint64_t PAGE_SIZE  = 2 * 1024 * 1024; // 2 MB
+//const uint64_t STACK_SIZE = 1 * PAGE_SIZE;
 
 std::atomic<uint64_t> counter {0};
+
+ThreadManager manager(portal, cs, as, kmem, caps);
 
 void* thread_main(void* ctx)
 {
