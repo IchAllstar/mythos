@@ -56,6 +56,11 @@ namespace mythos {
      */
     NORETURN void sleep();
 
+    /**
+     * Go into lite sleep, which has a very short latency for wakeup.
+     */
+    NORETURN void lite_sleep() { cpu_idle_halt(); }
+
     /** sleep management event: awakened by booting or from deep sleep (CC6).
      *
      * When waking up from CC6, this call will not return. Instead the
@@ -74,8 +79,8 @@ namespace mythos {
     void enteredFromInterrupt() {}
 
     /**
-     * emulate the CC6 exit delay. Exit time from Linux Driver Nehalem Exit
-     * time
+     * Emulate the CC6 exit delay. Exit time from Linux Driver Nehalem Exit
+     * time. CC6 does not seem to work on KNC due to Intel erata
      */
     void emulateCC6Delay() { mythos::hwthread_pause(200000); }
   } // namespace idle

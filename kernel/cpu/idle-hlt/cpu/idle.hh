@@ -50,6 +50,8 @@ namespace mythos {
      */
     NORETURN void sleep() { cpu_idle_halt(); }
 
+    NORETURN void lite_sleep() { cpu_idle_halt(); }
+
     /** sleep management event: awakened by booting or from deep sleep. */
     void wokeup(size_t /*apicID*/, size_t /*reason*/) {}
 
