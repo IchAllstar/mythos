@@ -38,11 +38,14 @@ namespace mythos {
 
 /**
  * Strategy implementation, which constructs a "fibonacci" multicast tree of the group members.
+ * Tree roughly looks like:
+ * The first nodes receiving its Signal have the most time to distribute it further. 
+ * Therefore they get a bigger range of nodes to transfer the Signal to.
+ * Treeconstruction is dependent on the LATENCY parameter, which has to be adapted for different hardware.
  */
 struct TreeCastStrategy : public CastStrategy {
-    // Latency is ratio between (message sending cycles) / (overhead cycles)
+    // Latency: inverse ratio of sending overhead and complete transfer time 
     // on KNC: ~4000 cycles for delivering signal which includes ~1000 cycles of overhead
-
     // Test Result:
     // 0: user app [app/init.cc:123] end - start=119470 counter.load()=59 with latency = 4
     static const uint64_t LATENCY = 4;
@@ -81,6 +84,8 @@ struct TreeCastStrategy : public CastStrategy {
         }
     }
 
+    // create the tasklet, which contains the necessary information to distribute a signal further.
+    // Also serves as interface, so the EC does not need to provide the necessary functionality.
     void create(Tasklet &t) const override {
         // Need to copy variables for capturing in lambda
         auto group_ = group;

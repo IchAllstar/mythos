@@ -11,15 +11,15 @@ void init_global() {
 void init_thread() {
 }
 
-void sleep(uint8_t depth)
+void sleep(uint8_t /*depth*/)
 {
-	boot::getLocalIdleManagement().sleepIntention(depth);
+	//boot::getLocalIdleManagement().sleepIntention(depth);
     cpu_idle_halt();
 }
 
-void wokeup(size_t /*apicID*/, size_t /*reason*/)
+void wokeup(size_t /*apicID*/, size_t reason)
 {
-    boot::getLocalIdleManagement().wokeup();
+    boot::getLocalIdleManagement().wokeup(reason);
 }
 
 void wokeupFromInterrupt(uint8_t irq)

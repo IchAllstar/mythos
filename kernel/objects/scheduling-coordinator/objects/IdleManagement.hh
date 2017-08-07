@@ -8,7 +8,7 @@
 namespace mythos {
 
 class IIdleManagement {
-	virtual void wokeup() = 0; //wokeup from CC6 as side effect of other HWT wakeup
+	virtual void wokeup(size_t reason) = 0; //wokeup from CC6 as side effect of other HWT wakeup
 	virtual void wokeupFromInterrupt(uint8_t irq) = 0; // callback when wokeup from interrupt
 	virtual void enteredFromSyscall() = 0; // callback when entered from syscall
 	virtual void enteredFromInterrupt(uint8_t irq) = 0; // callback when entered from interrupt
@@ -37,8 +37,8 @@ public:
 	uint32_t getDelayPolling() { return delay_polling; }
 	uint32_t getDelayLiteSleep() { return delay_lite_sleep; }
 public: // IIdleManagement Interface
-	void wokeup() override {
-		MLOG_ERROR(mlog::boot, "wokeup because other HWT on core woke up from cc6");
+	void wokeup(size_t reason) override {
+		MLOG_DETAIL(mlog::boot, "wokeup because other HWT on core woke up from cc6", DVAR(reason));
 	}
 
 	void wokeupFromInterrupt(uint8_t irq) override {
@@ -49,18 +49,18 @@ public: // IIdleManagement Interface
 				mythos::lapic.disableTimer();
 			}
 		}
-		MLOG_ERROR(mlog::boot, "wokeupFromInterrupt", DVAR(irq));
+		MLOG_DETAIL(mlog::boot, "wokeupFromInterrupt", DVAR(irq));
 	}
 	void enteredFromSyscall() override {
-		MLOG_ERROR(mlog::boot, "enteredFromSyscall");
+		MLOG_DETAIL(mlog::boot, "enteredFromSyscall");
 	}
 	void enteredFromInterrupt(uint8_t irq) override {
-		MLOG_ERROR(mlog::boot, "enteredFromInterrupt", DVAR(irq));
+		MLOG_DETAIL(mlog::boot, "enteredFromInterrupt", DVAR(irq));
 	}
 	void sleepIntention(uint8_t depth) override {
-		MLOG_ERROR(mlog::boot, "received sleep intention", DVAR(depth));
+		MLOG_DETAIL(mlog::boot, "received sleep intention", DVAR(depth));
 		if (depth == 1 && getDelayLiteSleep() != MAX_UINT32) {
-			MLOG_ERROR(mlog::boot, "set timer interrupt", DVAR(getDelayLiteSleep()));
+			MLOG_DETAIL(mlog::boot, "set timer interrupt", DVAR(getDelayLiteSleep()));
 			timer.store(true);
 			mythos::lapic.enableOneshotTimer(0x22, getDelayLiteSleep());
 		}
@@ -92,7 +92,7 @@ private:
 	uint32_t delay_polling = 5000;
 
   // time we wait in lite sleep before going to deep sleep
-	uint32_t delay_lite_sleep = 10000000;
+	uint32_t delay_lite_sleep = 10000;
 
   // indicates a timer interrupt was set
 	std::atomic<bool> timer {false};

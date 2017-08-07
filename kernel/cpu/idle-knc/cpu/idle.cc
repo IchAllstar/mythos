@@ -65,7 +65,7 @@ NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 void sleep(uint8_t depth)
 {
     if (depth == 1) {       // CC1 lite sleep
-        boot::getLocalIdleManagement().sleepIntention(depth);
+        //boot::getLocalIdleManagement().sleepIntention(depth);
         cpu_idle_halt(); // no return
     }
     // deep sleep
@@ -84,7 +84,7 @@ void sleep(uint8_t depth)
     MLOG_INFO(mlog::boot, "idle: cores halted", DVARhex(*chlt));
 
     coreStates[apicID / 4].lock = false;
-    boot::getLocalIdleManagement().sleepIntention(depth);
+    //boot::getLocalIdleManagement().sleepIntention(depth);
     cpu_idle_halt();
 }
 
@@ -93,7 +93,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
     MLOG_INFO(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
     if (reason == 1) {
         MLOG_ERROR(mlog::boot, "idle: woke up from CC6");
-        boot::getLocalIdleManagement().wokeup();
+        boot::getLocalIdleManagement().wokeup(reason);
         cpu_idle_halt(); // woke up from CC6 => just sleep again
     }
 }

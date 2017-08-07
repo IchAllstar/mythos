@@ -112,8 +112,9 @@ void SchedulingCoordinator::runSleep() {
 void SchedulingCoordinator::runConfigurableDelays() {
   auto &idle = mythos::boot::getLocalIdleManagement();
     if (idle.shouldDeepSleep()) {
-        MLOG_ERROR(mlog::boot, "Deep Sleep now");
+        MLOG_DETAIL(mlog::boot, "Deep Sleep now");
         releaseKernel();
+        boot::getLocalIdleManagement().sleepIntention(6);
         mythos::idle::sleep(6);
     }
     localPlace->processTasks(); // executes all available kernel tasks
@@ -128,9 +129,11 @@ void SchedulingCoordinator::runConfigurableDelays() {
     }
     releaseKernel();
     if (idle.alwaysDeepSleep()) {
+        boot::getLocalIdleManagement().sleepIntention(6);
       mythos::idle::sleep(6);
     }
-    MLOG_ERROR(mlog::boot, "Sleeping lite");
+    MLOG_DETAIL(mlog::boot, "Sleeping lite");
+    boot::getLocalIdleManagement().sleepIntention(1);
     mythos::idle::sleep(1);
 }
 
