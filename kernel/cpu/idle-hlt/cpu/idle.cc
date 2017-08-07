@@ -9,7 +9,6 @@ void init_global() {
 }
 
 void init_thread() {
-    boot::getLocalIdleManagement().init_thread();
 }
 
 void sleep(uint8_t depth)
@@ -18,9 +17,9 @@ void sleep(uint8_t depth)
     cpu_idle_halt();
 }
 
-void wokeup(size_t apicID, size_t reason)
+void wokeup(size_t /*apicID*/, size_t /*reason*/)
 {
-    boot::getLocalIdleManagement().wokeup(apicID, reason);
+    boot::getLocalIdleManagement().wokeup();
 }
 
 void wokeupFromInterrupt(uint8_t irq)
