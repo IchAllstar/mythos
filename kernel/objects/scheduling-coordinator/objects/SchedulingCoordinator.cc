@@ -110,7 +110,8 @@ void SchedulingCoordinator::runSleep() {
 }
 
 void SchedulingCoordinator::runConfigurableDelays() {
-    if (mythos::boot::getLocalIdleManagement().shouldDeepSleep()) {
+  auto &idle = mythos::boot::getLocalIdleManagement();
+    if (idle.shouldDeepSleep()) {
         MLOG_ERROR(mlog::boot, "Deep Sleep now");
         releaseKernel();
         mythos::idle::sleep(6);
@@ -118,7 +119,7 @@ void SchedulingCoordinator::runConfigurableDelays() {
     localPlace->processTasks(); // executes all available kernel tasks
     tryRunUser();
     uint64_t start = getTime();
-    while (start + mythos::boot::getLocalIdleManagement().getDelayPolling() > getTime() || !mythos::boot::getLocalIdleManagement().shouldLiteSleep()) { // poll configured delay
+    while (start + idle.getDelayPolling() > getTime() || idle.alwaysPoll()) { // poll configured delay
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
@@ -126,6 +127,9 @@ void SchedulingCoordinator::runConfigurableDelays() {
         preemption_point(); // allows interrupts even if polling only policy
     }
     releaseKernel();
+    if (idle.alwaysDeepSleep()) {
+      mythos::idle::sleep(6);
+    }
     MLOG_ERROR(mlog::boot, "Sleeping lite");
     mythos::idle::sleep(1);
 }

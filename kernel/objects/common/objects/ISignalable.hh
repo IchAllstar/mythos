@@ -27,6 +27,8 @@
 
 #include "cpu/CoreLocal.hh"
 #include <atomic>
+#include "util/optional.hh"
+#include "mythos/caps.hh"
 
 namespace mythos {
 class SignalableGroup;
@@ -38,7 +40,7 @@ struct CastStrategy {
     CastStrategy(SignalableGroup *group_, size_t idx_)
         : group(group_), idx(idx_) {}
 
-    // Take tasklet and inject strategy 
+    // Take tasklet and inject strategy
     virtual void create(Tasklet &t) const = 0;
 };
 

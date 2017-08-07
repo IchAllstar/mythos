@@ -2,19 +2,17 @@
 
 #include "objects/ISignalable.hh"
 #include "boot/DeployHWThread.hh"
-#include "objects/mlog.hh"
+#include "boot/mlog.hh"
 #include <atomic>
 
 namespace mythos {
 
 class IIdleManagement {
-	virtual void init_thread() = 0;
-	virtual void wokeup(size_t apicID, size_t reason) = 0;
-	virtual void wokeupFromInterrupt(uint8_t irq) = 0;
-	virtual void enteredFromSyscall() = 0;
-	virtual void enteredFromInterrupt(uint8_t irq) = 0;
-	virtual void sleepIntention(uint8_t depth) = 0;
-	//NORETURN virtual  void sleep() = 0;
+	virtual void wokeup() = 0; //wokeup from CC6 as side effect of other HWT wakeup
+	virtual void wokeupFromInterrupt(uint8_t irq) = 0; // callback when wokeup from interrupt
+	virtual void enteredFromSyscall() = 0; // callback when entered from syscall
+	virtual void enteredFromInterrupt(uint8_t irq) = 0; // callback when entered from interrupt
+	virtual void sleepIntention(uint8_t depth) = 0; // callback when HWT goes to sleep
 };
 
 constexpr uint32_t MAX_UINT32 = (uint32_t) - 1;
@@ -39,16 +37,10 @@ public:
 	uint32_t getDelayPolling() { return delay_polling; }
 	uint32_t getDelayLiteSleep() { return delay_lite_sleep; }
 public: // IIdleManagement Interface
-	void wokeup(size_t apicID, size_t reason) override {
-		MLOG_ERROR(mlog::boot, "idle wokeup");
-		if (reason == 1) {
-			MLOG_ERROR(mlog::boot, "exit cc6", DVAR(apicID));
-		}
+	void wokeup() override {
+		MLOG_ERROR(mlog::boot, "wokeup because other HWT on core woke up from cc6");
 	}
 
-	void init_thread() override {
-		MLOG_ERROR(mlog::boot, "init_thread");
-	}
 	void wokeupFromInterrupt(uint8_t irq) override {
 		if (timer.exchange(false) == true) {
 			if (irq == 0x22) {
@@ -82,8 +74,12 @@ public:
 		return false;
 	}
 
-	bool shouldLiteSleep() {
-		return delay_polling != MAX_UINT32;
+  bool alwaysDeepSleep() {
+    return delay_lite_sleep == 0;
+  }
+
+	bool alwaysPoll() {
+		return delay_polling == MAX_UINT32;
 	}
 
 	uint8_t getSleepDepth() {
@@ -92,10 +88,15 @@ public:
 		}
 	}
 private:
-	uint32_t delay_polling = 10000; // MAX_UINT32 for polling only
-	uint32_t delay_lite_sleep = 10000000; // 0 for always deep sleep, MAX_UINT32 for no deep sleep
+  // time in cycles we spend polling before going to sleep
+	uint32_t delay_polling = 5000;
 
+  // time we wait in lite sleep before going to deep sleep
+	uint32_t delay_lite_sleep = 10000000;
+
+  // indicates a timer interrupt was set
 	std::atomic<bool> timer {false};
+  // indicates a timer interrupt actually triggered
 	std::atomic<bool> timer_interrupt {false};
 };
 

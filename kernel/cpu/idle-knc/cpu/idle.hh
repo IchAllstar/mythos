@@ -27,6 +27,7 @@
 
 #include "cpu/CoreLocal.hh"
 #include "util/compiler.hh"
+#include "objects/IdleManagement.hh"
 #include <atomic>
 #include <cstdint> // for uint32_t etc
 
@@ -68,11 +69,10 @@ namespace mythos {
     void wokeupFromInterrupt(uint8_t irq);
 
     /** sleep management event: entered kernel from syscall */
-    void enteredFromSyscall() {}
+    void enteredFromSyscall();
 
     /** sleep management event: entered kernel from interrupting the user mode */
-    void enteredFromInterrupt(uint8_t irq) {}
-
+    void enteredFromInterrupt(uint8_t irq);
     /**
      * Emulate the CC6 exit delay. Exit time from Linux Driver Nehalem Exit
      * time. CC6 does not seem to work on KNC due to Intel erata

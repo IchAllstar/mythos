@@ -29,6 +29,7 @@
 #include "boot/memory-layout.h" // for KNC MMIO
 #include "cpu/ctrlregs.hh"
 #include "util/Time.hh"
+#include "boot/DeployHWThread.hh"
 
 #define SBOX_C6_SCRATCH0 0x0000C000
 #define MSR_CC6_STATUS 0x342
@@ -63,7 +64,6 @@ NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
 void sleep(uint8_t depth)
 {
-    if (depth == 0) return; // CC0 poll
     if (depth == 1) {       // CC1 lite sleep
         boot::getLocalIdleManagement().sleepIntention(depth);
         cpu_idle_halt(); // no return
@@ -93,6 +93,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
     MLOG_INFO(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
     if (reason == 1) {
         MLOG_ERROR(mlog::boot, "idle: woke up from CC6");
+        boot::getLocalIdleManagement().wokeup();
         cpu_idle_halt(); // woke up from CC6 => just sleep again
     }
 }
@@ -100,6 +101,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
 void wokeupFromInterrupt(uint8_t irq)
 {
     MLOG_INFO(mlog::boot, "idle: woke up from irq");
+    boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
     size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID
     while (coreStates[apicID / 4].lock.exchange(true) == true);
 
@@ -114,6 +116,11 @@ void wokeupFromInterrupt(uint8_t irq)
 
     coreStates[apicID / 4].lock = false;
 }
+
+void enteredFromSyscall() { boot::getLocalIdleManagement().enteredFromSyscall(); }
+
+void enteredFromInterrupt(uint8_t irq) { boot::getLocalIdleManagement().enteredFromInterrupt(irq); }
+
 
 } // namespace idle
 } // namespace mythos
