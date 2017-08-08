@@ -31,8 +31,8 @@ void TreeMulticastBenchmark::test_multicast() {
 		};
 
 		MLOG_ERROR(mlog::app, "Signalable Group Test");
-		SignalableGroup<100> group;
-		//SignalableGroup<100, TreeStrategy> group;
+		//SignalableGroup<100> group;
+		SignalableGroup<100, TreeStrategy> group;
 		for (int i = 1; i < manager.getNumThreads(); ++i) {
 			group.addMember(manager.getThread(i));
 		}

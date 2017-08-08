@@ -49,8 +49,9 @@ void ThreadManager::initThreads(void*(*fun_)(void*)) {
 }
 
 void ThreadManager::startThreadRange(uint64_t from, uint64_t to) {
+  ASSERT(to < NUM_THREADS);
 	for (uint64_t i = from; i < to; i++) {
-		startThread(*getThread(i));
+    startThread(*getThread(i));
 	}
 }
 

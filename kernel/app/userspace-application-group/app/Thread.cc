@@ -1,5 +1,7 @@
 #include "app/Thread.hh"
 
+SpinMutex global;
+
 void Thread::forwardMulticast() {
 	auto &mc = this->cast;
 	//Multicast mc;
@@ -28,7 +30,8 @@ void* Thread::run(void *data) {
 	ASSERT(thread != nullptr);
 	//MLOG_INFO(mlog::app, "Started Thread", thread->id);
 	while (true) {
-		auto prev = thread->SIGNALLED.exchange(false);
+		//MLOG_ERROR(mlog::app, "Thread loop", DVAR(thread->id));
+    auto prev = thread->SIGNALLED.exchange(false);
 		if (prev) {
 			if (thread->cast.onGoing.load() == true) {
 				thread->forwardMulticast();
@@ -45,17 +48,20 @@ void* Thread::run(void *data) {
 }
 
 void Thread::wait(Thread &t) {
-	if (t.SIGNALLED.load()) {
-		return;
+
+  if (t.SIGNALLED.load()) {
+    return;
 	}
 	//t.state.store(STOP);
 	t.state.store(STOP);
+
 	mythos::syscall_wait();
 }
 
 void Thread::signal(Thread &t) {
 	//MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
-	t.state.store(RUN);
+
+  //t.state.store(RUN);
 	auto prev = t.SIGNALLED.exchange(true);
 	if (not prev) {
 		//LockGuard<SpinMutex> g(global);

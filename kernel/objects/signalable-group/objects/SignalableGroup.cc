@@ -35,7 +35,7 @@ namespace mythos {
 SignalableGroup::SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_)
     : _mem(mem), member(arr), tasklets(tasklets_), groupSize(groupSize_)
 {
-    MLOG_ERROR(mlog::boot, "Create Group with size", groupSize);
+    MLOG_DETAIL(mlog::boot, "Create Group with size", groupSize);
 
     // initialize arrays in place
     CapRef<SignalableGroup, ISignalable>* obj IGNORE_UNUSED;
@@ -90,11 +90,11 @@ void SignalableGroup::invoke(Tasklet* t, Cap self, IInvocation* msg)
 }
 
 void SignalableGroup::bind(optional<ISignalable*>) {
-    MLOG_ERROR(mlog::boot, "bind");
+    MLOG_DETAIL(mlog::boot, "bind");
 }
 
 void SignalableGroup::unbind(optional<ISignalable*>) {
-    MLOG_ERROR(mlog::boot, "unbind");
+    MLOG_DETAIL(mlog::boot, "unbind");
 }
 
 Error SignalableGroup::getDebugInfo(Cap self, IInvocation* msg)
@@ -142,7 +142,7 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 }
 
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
-    MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
+    MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);
     return TreeMulticast::multicast(this, actualSize);
 }

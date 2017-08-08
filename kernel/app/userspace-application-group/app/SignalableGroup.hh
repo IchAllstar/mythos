@@ -105,11 +105,15 @@ public:
 private:
 	std::array<ISignalable*, MAX> member{{nullptr}};
 	uint64_t size {0};
+
+  std::array<Multicast, MAX> casts;
+  SpinMutex mtx;
 };
 
 template<size_t MAX, typename MULTICAST_STRATEGY>
 void SignalableGroup<MAX, MULTICAST_STRATEGY>::addMember(ISignalable *t) {
-	for (int i = 0; i < MAX; i++) {
+	LockGuard<SpinMutex> g(mtx);
+  for (int i = 0; i < MAX; i++) {
 		if (member[i] == nullptr) {
 			member[i] = t;
 			size++;

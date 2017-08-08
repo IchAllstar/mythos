@@ -89,10 +89,10 @@ public:
 	}
 private:
   // time in cycles we spend polling before going to sleep
-	uint32_t delay_polling = 5000;
+	uint32_t delay_polling = 10000;
 
   // time we wait in lite sleep before going to deep sleep
-	uint32_t delay_lite_sleep = 10000;
+	uint32_t delay_lite_sleep = MAX_UINT32;
 
   // indicates a timer interrupt was set
 	std::atomic<bool> timer {false};

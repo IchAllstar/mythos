@@ -39,16 +39,16 @@ namespace mythos {
 /**
  * Strategy implementation, which constructs a "fibonacci" multicast tree of the group members.
  * Tree roughly looks like:
- * The first nodes receiving its Signal have the most time to distribute it further. 
+ * The first nodes receiving its Signal have the most time to distribute it further.
  * Therefore they get a bigger range of nodes to transfer the Signal to.
  * Treeconstruction is dependent on the LATENCY parameter, which has to be adapted for different hardware.
  */
 struct TreeCastStrategy : public CastStrategy {
-    // Latency: inverse ratio of sending overhead and complete transfer time 
+    // Latency: inverse ratio of sending overhead and complete transfer time
     // on KNC: ~4000 cycles for delivering signal which includes ~1000 cycles of overhead
-    // Test Result:
-    // 0: user app [app/init.cc:123] end - start=119470 counter.load()=59 with latency = 4
-    static const uint64_t LATENCY = 4;
+    // LATENCY = 2 optimal on KNC if no deep sleep
+    // higher latency better if threads are in deep sleep
+    static const uint64_t LATENCY = 2;
 
     size_t from;
     size_t to;
@@ -95,13 +95,13 @@ struct TreeCastStrategy : public CastStrategy {
         to_ = to;
         // Create Tasklet which will be send to destination hardware thread
         t.set([group_, idx_, from_, to_](Tasklet*) {
-            MLOG_ERROR(mlog::boot, DVAR(idx_), DVAR(from_), DVAR(to_));
+            MLOG_DETAIL(mlog::boot, DVAR(idx_), DVAR(from_), DVAR(to_));
             TypedCap<ISignalable> own(group_->getMember(idx_)->cap());
             ASSERT(own);
             ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
             ASSERT(to_ > 0);
             auto to_tmp = to_;
-            
+
             // Signal own EC, will be scheduled after kernel task handling
             own->signal(0);
 
@@ -112,10 +112,10 @@ struct TreeCastStrategy : public CastStrategy {
                 }
                 uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
                 TreeCastStrategy tcs(group_, j + from_, j + from_, to_tmp);
-                MLOG_ERROR(mlog::boot, idx_, "sends to", j+from_);
+                MLOG_DETAIL(mlog::boot, idx_, "sends to", j+from_);
                 TypedCap<ISignalable> dest(group_->getMember(j + from_)->cap());
                 if (dest) {
-                    if (j + from_ < to_tmp) { 
+                    if (j + from_ < to_tmp) {
                         dest->multicast(tcs);
                     } else { // if leaf node, which does not forward, just signal it
                         dest->signal(0);

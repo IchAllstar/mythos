@@ -130,9 +130,9 @@ void SchedulingCoordinator::runConfigurableDelays() {
     releaseKernel();
     if (idle.alwaysDeepSleep()) {
         boot::getLocalIdleManagement().sleepIntention(6);
-      mythos::idle::sleep(6);
+        mythos::idle::sleep(6);
     }
-    MLOG_DETAIL(mlog::boot, "Sleeping lite");
+    //MLOG_ERROR(mlog::boot, "Sleeping lite");
     boot::getLocalIdleManagement().sleepIntention(1);
     mythos::idle::sleep(1);
 }
