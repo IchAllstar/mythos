@@ -1,5 +1,5 @@
 /* -*- mode:C++; indent-tabs-mode:nil; -*- */
-/* MIT License -- MyThOS: The Many-Threads Operating System
+/* MyThOS: The Many-Threads Operating System
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,36 +25,38 @@
  */
 #pragma once
 
-#include <cstdint>
-#include "mythos/InvocationBuf.hh"
-#include "mythos/Error.hh"
+#include "async/NestedMonitorDelegating.hh"
+#include "objects/IKernelObject.hh"
+#include "objects/IFactory.hh"
+#include "mythos/protocol/KernelObject.hh"
+#include "mythos/protocol/HelperThreadManager.hh"
+#include "boot/mlog.hh"
 
 namespace mythos {
 
-  namespace protocol {
+class HelperThreadManager
+  : public IKernelObject {
 
-    enum CoreProtocols : uint8_t {
-      KERNEL_OBJECT = 1,
-      UNTYPED_MEMORY,
-      FRAME,
-      PAGEMAP,
-      CAPMAP,
-      EXECUTION_CONTEXT,
-      PORTAL,
-      EXAMPLE,
-      SCHEDULING_COORDINATOR,
-      CPUDRIVERKNC,
-      INTERRUPT_CONTROL,
-      SIGNALABLE_GROUP,
-      HELPER_THREAD_MANAGER,
-    };
+//IKernelObject interface
+public:
+  optional<void> deleteCap(Cap self, IDeleter& del) override;
+  void invoke(Tasklet* t, Cap self, IInvocation* msg) override;
+  optional<void const*> vcast(TypeId id) const override;
+  friend struct protocol::KernelObject;
+  Error getDebugInfo(Cap self, IInvocation* msg);
+  Error registerHelper(Tasklet*, Cap self, IInvocation* msg);
+public: // CapRef interface
+  void bind(optional<IScheduler*>);
+  void unbind(optional<IScheduler*>);
 
-  } // namespace protocol
+private:
+  // kernel object stuff
+  IDeleter::handle_t del_handle = {this};
+  async::NestedMonitorDelegating monitor;
 
-enum MappingRequest : uint8_t {
-  MAPPING_PROPERTIES,
-  MAP_FRAME,
-  MAP_TABLE,
+  // possible helpers
+  bool member[MYTHOS_MAX_THREADS];
+  uint64_t actualSize {0};
 };
 
 } // namespace mythos

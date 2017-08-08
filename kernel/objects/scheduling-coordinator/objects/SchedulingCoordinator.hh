@@ -42,7 +42,7 @@ namespace mythos {
  */
 class SchedulingCoordinator
   : public IKernelObject {
-
+public:
   enum Policy {
     SLEEP = 0,
     SPIN  = 1,
@@ -89,6 +89,10 @@ public:
     localPlace = p;
     localSchedulingContext = sc;
     monitor.setHome(p);
+  }
+
+  void setPolicy(Policy p) {
+    policy = p;
   }
 
 private:

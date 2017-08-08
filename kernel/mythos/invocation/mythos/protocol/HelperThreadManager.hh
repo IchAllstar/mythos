@@ -1,5 +1,5 @@
 /* -*- mode:C++; indent-tabs-mode:nil; -*- */
-/* MIT License -- MyThOS: The Many-Threads Operating System
+/* MyThOS: The Many-Threads Operating System
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,36 +25,37 @@
  */
 #pragma once
 
-#include <cstdint>
-#include "mythos/InvocationBuf.hh"
-#include "mythos/Error.hh"
+#include <cstring>
+#include "mythos/protocol/common.hh"
+#include "mythos/protocol/KernelMemory.hh"
 
 namespace mythos {
+namespace protocol {
 
-  namespace protocol {
+struct HelperThreadManager {
+  constexpr static uint8_t proto = HELPER_THREAD_MANAGER;
 
-    enum CoreProtocols : uint8_t {
-      KERNEL_OBJECT = 1,
-      UNTYPED_MEMORY,
-      FRAME,
-      PAGEMAP,
-      CAPMAP,
-      EXECUTION_CONTEXT,
-      PORTAL,
-      EXAMPLE,
-      SCHEDULING_COORDINATOR,
-      CPUDRIVERKNC,
-      INTERRUPT_CONTROL,
-      SIGNALABLE_GROUP,
-      HELPER_THREAD_MANAGER,
-    };
+  enum Methods : uint8_t {
+    REGISTER_HELPER,
+  };
 
-  } // namespace protocol
+  struct RegisterHelper : public InvocationBase {
+    typedef InvocationBase response_type;
+    constexpr static uint16_t label = (proto << 8) + REGISTER_HELPER;
+    RegisterHelper(CapPtr sc_) : InvocationBase(label, getLength(this)) {
+      sc= sc_;
+    }
+    uint64_t sc;
+  };
 
-enum MappingRequest : uint8_t {
-  MAPPING_PROPERTIES,
-  MAP_FRAME,
-  MAP_TABLE,
+  template<class IMPL, class... ARGS>
+  static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
+    switch (Methods(m)) {
+      case REGISTER_HELPER: return obj->registerHelper(args...);
+      default: return Error::NOT_IMPLEMENTED;
+    }
+  }
 };
 
+} // namespace protocol
 } // namespace mythos

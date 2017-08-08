@@ -13,4 +13,5 @@
              "mythos/protocol/SchedulingCoordinator.hh",
              "mythos/protocol/InterruptControl.hh",
              "mythos/protocol/SignalableGroup.hh",
+             "mythos/protocol/HelperThreadManager.hh",
              ]

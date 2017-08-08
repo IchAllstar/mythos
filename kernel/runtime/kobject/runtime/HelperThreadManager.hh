@@ -25,36 +25,22 @@
  */
 #pragma once
 
-#include <cstdint>
-#include "mythos/InvocationBuf.hh"
-#include "mythos/Error.hh"
+#include "runtime/PortalBase.hh"
+#include "mythos/protocol/HelperThreadManager.hh"
+#include "runtime/KernelMemory.hh"
+#include "mythos/init.hh"
 
 namespace mythos {
 
-  namespace protocol {
+class HelperThreadManager : public KObject
+{
+public:
+    HelperThreadManager(CapPtr cap) : KObject(cap) {}
 
-    enum CoreProtocols : uint8_t {
-      KERNEL_OBJECT = 1,
-      UNTYPED_MEMORY,
-      FRAME,
-      PAGEMAP,
-      CAPMAP,
-      EXECUTION_CONTEXT,
-      PORTAL,
-      EXAMPLE,
-      SCHEDULING_COORDINATOR,
-      CPUDRIVERKNC,
-      INTERRUPT_CONTROL,
-      SIGNALABLE_GROUP,
-      HELPER_THREAD_MANAGER,
-    };
+    PortalFuture<void> registerHelper(PortalLock pr, uint64_t sc) {
+      return pr.invoke<protocol::HelperThreadManager::RegisterHelper>(_cap, sc);
+    }
 
-  } // namespace protocol
-
-enum MappingRequest : uint8_t {
-  MAPPING_PROPERTIES,
-  MAP_FRAME,
-  MAP_TABLE,
 };
 
 } // namespace mythos

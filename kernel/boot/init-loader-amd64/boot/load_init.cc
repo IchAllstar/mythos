@@ -43,6 +43,7 @@
 #include "objects/Portal.hh"
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/Example.hh"
+#include "objects/HelperThreadManager.hh"
 #include "boot/mlog.hh"
 #include "boot/memory-root.hh"
 
@@ -53,6 +54,7 @@ namespace mythos {
     using namespace mythos::init;
 
 InitLoaderPlugin initloaderplugin;
+HelperThreadManager helperThreadManager;
 
 extern char app_image_start SYMBOL("app_image_start");
 
@@ -174,6 +176,7 @@ optional<void> InitLoader::initCSpace()
   if (res) res = csSet(PAGEMAP_FACTORY, factory::pagemap);
   if (res) res = csSet(SIGNALABLE_GROUP_FACTORY, factory::signalable_group);
   if (res) res = csSet(UNTYPED_MEMORY_FACTORY, factory::untypedMemory);
+  if (res) res = csSet(HELPER_THREAD_MANAGER, helperThreadManager);
   if (!res) RETHROW(res);
 
   MLOG_INFO(mlog::boot, "... create memory regions in caps", STATIC_MEM_START, "till", STATIC_MEM_START+STATIC_MEMORY_REGIONS-1);

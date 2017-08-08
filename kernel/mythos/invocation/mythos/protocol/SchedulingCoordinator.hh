@@ -33,7 +33,7 @@ namespace mythos {
   namespace protocol {
 
     struct SchedulingCoordinator {
-      constexpr static uint8_t proto = EXAMPLE;
+      constexpr static uint8_t proto = SCHEDULING_COORDINATOR;
 
       enum Methods : uint8_t {
         PRINT_MESSAGE,
