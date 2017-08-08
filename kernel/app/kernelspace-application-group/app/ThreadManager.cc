@@ -48,6 +48,12 @@ void ThreadManager::initThreads(void*(*fun_)(void*)) {
 	}
 }
 
+void ThreadManager::startThreadRange(uint64_t from, uint64_t to) {
+	for (uint64_t i = from; i < to; i++) {
+		startThread(*getThread(i));
+	}
+}
+
 void ThreadManager::initThread(uint64_t id, void*(*fun_)(void*)) {
 	initMem();
 	auto &t = threads[id];
@@ -85,11 +91,11 @@ void ThreadManager::startAll() {
 }
 
 void ThreadManager::deleteThread(Thread &t) {
+	MLOG_ERROR(mlog::app, "Try delete", DVAR(t.id));
 	mythos::PortalLock pl(portal);
-	mythos::CapMap capmap(cs);
 	t.state.store(ZOMBIE);
-	auto res = capmap.deleteCap(pl, t.ec).wait();
-	ASSERT(res);
+	ASSERT(caps.free(t.ec, pl));
+	MLOG_ERROR(mlog::app, "Finish delete", DVAR(t.id));
 }
 
 void ThreadManager::cleanup() {

@@ -85,7 +85,7 @@ void* thread_main(void* ctx)
   }
   return 0;
 }
-
+/*
 void init_threads() {
   mythos::PortalLock pl(portal);
   mythos::Frame stackFrame(caps.alloc());
@@ -163,9 +163,12 @@ void test_signalable_group() {
   TEST(res6);
   MLOG_ERROR(mlog::app, "end test signalable group");
 }
-
+*/
 int main()
 {
+  TreeMulticastBenchmark tmb(portal);
+  tmb.test_multicast();
+  /*
   char const end[] = "Application exited.";
   MLOG_ERROR(mlog::app, "Application started.");
 
@@ -173,6 +176,6 @@ int main()
   //init_threads();
 
   mythos::syscall_debug(end, sizeof(end) - 1);
-
+  */
   return 0;
 }

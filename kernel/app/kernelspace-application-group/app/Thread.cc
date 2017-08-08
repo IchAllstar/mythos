@@ -7,15 +7,6 @@ void* Thread::run(void *data) {
 	thread->run();
 }
 
-void* Thread::run() {
-	//MLOG_INFO(mlog::app, "Started Thread", thread->id);
-	while (true) {
-		if (fun != nullptr) {
-			fun(this);
-		}
-		wait();
-	}
-}
 
 void Thread::wait(Thread &t) {
 	mythos::syscall_wait();
@@ -23,6 +14,15 @@ void Thread::wait(Thread &t) {
 
 void Thread::signal(Thread &t) {
 	mythos::syscall_signal(t.ec);
+}
+
+void* Thread::run() {
+	while (true) {
+		if (fun != nullptr) {
+			fun(this);
+		}
+		wait();
+	}
 }
 
 void Thread::wait() {

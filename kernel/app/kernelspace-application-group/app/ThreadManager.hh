@@ -22,6 +22,7 @@ public:
 	{}
 	void init(void*(*fun)(void*) = nullptr);
 	void initThread(uint64_t id, void*(*fun)(void*) = nullptr);
+	void startThreadRange(uint64_t from, uint64_t to);
 	void startThread(Thread &t);
 	void startAll();
 	void deleteThread(Thread &t);

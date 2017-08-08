@@ -4,8 +4,6 @@
 #include <atomic>
 #include "app/mlog.hh"
 
-//SpinMutex global;
-
 enum ThreadState {
 	RUN = 0,
 	SLEEP,
