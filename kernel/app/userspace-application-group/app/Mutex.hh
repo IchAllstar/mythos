@@ -5,11 +5,11 @@
 class SpinMutex {
 public:
 	void lock() {
-		while (flag.test_and_set()) { mythos::hwthread_pause(10); }
+		while (flag.exchange(true) == true) { /*mythos::hwthread_pause();*/ }
 	}
 
 	void unlock() {
-		flag.clear();
+		flag.store(false);
 	}
 
 	template<typename FUNCTOR>
@@ -20,7 +20,7 @@ public:
 	}
 
 private:
-	std::atomic_flag flag;
+	std::atomic<bool> flag;
 };
 
 

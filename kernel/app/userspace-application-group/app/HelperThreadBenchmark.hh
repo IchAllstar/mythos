@@ -21,7 +21,7 @@ public:
 	void test_helper() {
 		HelperThread::init_helper();
 		init_worker();
-		SignalableGroup<100, HelperStrategy> group;
+		SignalableGroup group;
 		for (int i = 1; i < NUM_THREADS; i++) {
 			if (HelperThread::contains(i)) continue;
 			group.addMember(manager.getThread(i));

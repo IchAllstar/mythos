@@ -7,38 +7,96 @@
 #include "app/Thread.hh"
 #include "app/HelperThread.hh"
 #include "util/Time.hh"
+#include "app/Task.hh"
+
+// TODO
+// mutex in addmember seems to lock?
+// keep on using the task abstraction to propagate tree and helper
+class SignalableGroup {
+private:
+  static const size_t MAX = 256;
+public:
+	void addMember(ISignalable *t);
+	void signalAll();
+  uint64_t count() { return size; }
+  ISignalable* getMember(uint64_t i) { return member[i]; }
+  //Multicast& getCast(uint64_t i) { return casts[i]; }
+  Task* getTask(uint64_t i) { return &tasks[i]; }
+
+private:
+  std::array<ISignalable*, MAX> member{{nullptr}};
+  //std::array<Multicast, MAX> casts;
+  std::array<Task, MAX> tasks;
+  //Tasklet t[210];
+  uint64_t size {0};
+  SpinMutex mtx;
+};
 
 class SequentialStrategy {
 public:
-	void operator() (ISignalable **array, uint64_t size) {
-	  MLOG_ERROR(mlog::app, "Start signalAll sequential");
-		for (uint64_t i = 0; i < size; ++i) {
-			if (array[i] != nullptr) {
-				array[i]->signal();
-			}
-		}
-	}
+  void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
+    MLOG_ERROR(mlog::app, "Start signalAll sequential");
+    for (uint64_t i = 0; i < size; ++i) {
+      if (array[i] != nullptr) {
+        array[i]->signal();
+      }
+    }
+  }
 };
 
 class TreeStrategy {
 private:
-	static constexpr uint64_t N_ARY_TREE = 2;
+  static constexpr uint64_t N_ARY_TREE = 2;
 public:
-	void operator() (ISignalable **array, uint64_t size) {
-	  MLOG_ERROR(mlog::app, "Start signalAll Tree");
-		auto signalable = array[0];
-		if (signalable) {
-      signalable->cast.set(array,size,0,N_ARY_TREE);
+    static void prepareTask(SignalableGroup *group, uint64_t idx, uint64_t size) {
+        auto *group_ = group;
+        auto idx_ = idx;
+        auto size_ = size;
+        group->getTask(idx)->set([group_, idx_, size_](Task&) {
+            for (size_t i = 0; i < 2; ++i) { // for all children in tree
+                size_t child_idx = idx_ * 2 + i + 1;
+                if (child_idx >= size_) {
+                  return;
+                }
+                //MLOG_ERROR(mlog::app, DVAR(this->id), DVAR(mc.idx), DVAR(child_idx));
+                ISignalable *signalable = group_->getMember(child_idx); // child
+                if (signalable) {
+                  MLOG_ERROR(mlog::app, "Signal", DVAR(child_idx));
+                  TreeStrategy::prepareTask(group_, child_idx, size_);
+                  signalable->addTask(&group_->getTask(child_idx)->list_member);
+                  signalable->signal();
+                } else {
+                  MLOG_ERROR(mlog::app, "Child not there", DVAR(child_idx));
+                }
+            }
+        });
+    }
+
+  void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
+    MLOG_ERROR(mlog::app, "Start signalAll Tree");
+    auto signalable = array[0];
+    if (signalable) {
+      //signalable->cast.set(array,size,0,N_ARY_TREE);
+      //signalable->group = group;
+       /* for (int i = 0; i < size; i++) {
+            auto *sign = group->getMember(i);
+            MLOG_ERROR(mlog::app, i, " ", DVAR(sign));
+            sign->signal();
+        }
+        */
+      TreeStrategy::prepareTask(group, 0, size);
+      signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
     }
-	}
+  }
 };
 
 extern const size_t NUM_HELPER;
 extern HelperThread helpers[];
 class HelperStrategy {
 public:
-  void operator() (ISignalable **array, uint64_t size) {
+
+  void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
     if (size == 0) return;
 
     uint64_t numHelper = (num_helper(size) < NUM_HELPER) ? num_helper(size) : NUM_HELPER;
@@ -95,35 +153,20 @@ private:
 };
 
 
-template<size_t MAX = 100, typename MULTICAST_STRATEGY = SequentialStrategy>
-class SignalableGroup {
-private:
-public:
-	void addMember(ISignalable *t);
-	void signalAll();
-  uint64_t count() { return size; }
-private:
-	std::array<ISignalable*, MAX> member{{nullptr}};
-	uint64_t size {0};
 
-  std::array<Multicast, MAX> casts;
-  SpinMutex mtx;
-};
 
-template<size_t MAX, typename MULTICAST_STRATEGY>
-void SignalableGroup<MAX, MULTICAST_STRATEGY>::addMember(ISignalable *t) {
-	LockGuard<SpinMutex> g(mtx);
-  for (int i = 0; i < MAX; i++) {
-		if (member[i] == nullptr) {
-			member[i] = t;
-			size++;
-			return;
-		}
-	}
-	MLOG_ERROR(mlog::app, "Group full");
-}
+void SignalableGroup::addMember(ISignalable *t) {
+      for (int i = 0; i < MAX; i++) {
+        //MLOG_ERROR(mlog::app, "Add ", i);
+            if (member[i] == nullptr) {
+                member[i] = t;
+                size++;
+                return;
+            }
+        }
+        MLOG_ERROR(mlog::app, "Group full");  
+  }
 
-template<size_t MAX, typename MULTICAST_STRATEGY>
-void SignalableGroup<MAX, MULTICAST_STRATEGY>::signalAll() {
-	MULTICAST_STRATEGY()(&member[0], size);
+void SignalableGroup::signalAll() {
+	TreeStrategy()(this, &member[0], size);
 }

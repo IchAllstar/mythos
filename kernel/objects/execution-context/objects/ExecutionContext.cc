@@ -542,6 +542,7 @@ optional<void> ExecutionContext::deleteCap(Cap self, IDeleter& del)
 
 void ExecutionContext::deleteObject(Tasklet* t, IResult<void>* r)
 {
+    MLOG_ERROR(mlog::boot, "Delete EC");
     monitor.doDelete(t, [ = ](Tasklet * t) { this->memory->free(t, r, this, sizeof(ExecutionContext)); });
 }
 

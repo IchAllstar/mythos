@@ -2,10 +2,13 @@
 
 #include "app/Thread.hh"
 #include "app/Mutex.hh"
+#include "app/Task.hh"
 #include <array>
 
 class ISignalable;
 class Thread;
+
+class SignalableGroup;
 
 struct Multicast {
 	std::atomic<bool> onGoing {false};
@@ -50,7 +53,6 @@ struct Multicast {
 class ISignalable {
 public:
 	virtual void signal() = 0;
-  virtual void forwardMulticast() = 0;
-public:
-	Multicast cast;
+  virtual void addTask(Task::list_t::Queueable *q) = 0;
+  virtual ~ISignalable() {}
 };

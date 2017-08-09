@@ -49,7 +49,7 @@
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = 4 * 4096;
+constexpr uint64_t stacksize = 8 * 4096;
 char initstack[stacksize];
 char* initstack_top = initstack + stacksize;
 
@@ -73,7 +73,7 @@ int main()
 
   TreeMulticastBenchmark tmb;
   tmb.test_multicast();
-  tmb.test_multicast();
+  //tmb.test_multicast();
 
   MLOG_ERROR(mlog::app, "END application");
   return 0;

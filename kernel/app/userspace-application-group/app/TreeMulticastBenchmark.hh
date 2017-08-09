@@ -30,12 +30,15 @@ void TreeMulticastBenchmark::test_multicast() {
 			mythos::hwthread_pause(100);
 		};
 
+
 		MLOG_ERROR(mlog::app, "Signalable Group Test");
 		//SignalableGroup<100> group;
-		SignalableGroup<100, TreeStrategy> group;
+		SignalableGroup group;
+		MLOG_ERROR(mlog::app, "HERE");
 		for (int i = 1; i < manager.getNumThreads(); ++i) {
 			group.addMember(manager.getThread(i));
 		}
+
 
 		counter.store(0);
 
@@ -48,5 +51,5 @@ void TreeMulticastBenchmark::test_multicast() {
 
 		end = mythos::getTime();
 		MLOG_ERROR(mlog::app, DVAR(group.count()),  DVAR(end - start));
-		manager.cleanup();
+		//manager.cleanup();
 	}
