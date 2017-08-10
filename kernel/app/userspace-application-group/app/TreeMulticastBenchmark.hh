@@ -30,26 +30,34 @@ void TreeMulticastBenchmark::test_multicast() {
 			mythos::hwthread_pause(100);
 		};
 
+    for (volatile uint64_t i=0; i < 1000;i++) {
+      for (volatile uint64_t j=0; j<100000;j++) {}
+    }
+
 
 		MLOG_ERROR(mlog::app, "Signalable Group Test");
 		//SignalableGroup<100> group;
+    static auto threads = 90;
 		SignalableGroup group;
-		MLOG_ERROR(mlog::app, "HERE");
-		for (int i = 1; i < manager.getNumThreads(); ++i) {
+		for (int i = 1; i < threads; ++i) {
 			group.addMember(manager.getThread(i));
 		}
-
 
 		counter.store(0);
 
 		uint64_t start , end;
 		start = mythos::getTime();
 		group.signalAll();
-		while (counter.load() < NUM_THREADS - 1) {
-			mythos::hwthread_pause(100);
+    static uint64_t last_count = counter.load();
+		while (counter.load() < threads - 1) {
+      if (last_count != counter.load()) {
+        last_count = counter.load();
+        //MLOG_ERROR(mlog::app, DVAR(last_count));
+      }
+			mythos::hwthread_pause(10);
 		}
 
 		end = mythos::getTime();
-		MLOG_ERROR(mlog::app, DVAR(group.count()),  DVAR(end - start));
+		MLOG_ERROR(mlog::app, DVAR(counter.load()), DVAR(group.count()),  DVAR(end - start));
 		//manager.cleanup();
 	}

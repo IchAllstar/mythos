@@ -180,7 +180,10 @@ namespace mythos {
     ASSERT(destination<256);
     MLOG_DETAIL(mlog::boot, "write ICR", DVAR(destination), DVARhex(icrlow.value));
 
-    while(read(REG_ICR_LOW).delivery_pending) hwthread_pause();
+    uint64_t bailout = 0;
+    while(read(REG_ICR_LOW).delivery_pending) {
+      hwthread_pause();
+    }
 
     write(REG_ICR_HIGH, Register().destination(destination));
     write(REG_ICR_LOW, icrlow);

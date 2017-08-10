@@ -74,6 +74,8 @@ public:
     ASSERT(msg);
     MLOG_DETAIL(mlog::async, this, "push shared", msg);
     if (queue.push(*msg)) wakeup();
+    //queue.push(*msg);
+    //wakeup();
   }
 
   /** prepare the kernel's task processing. returns true if nested entry. */

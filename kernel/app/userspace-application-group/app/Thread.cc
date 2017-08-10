@@ -5,7 +5,7 @@
 void* Thread::run(void *data) {
 	auto *thread = reinterpret_cast<Thread*>(data);
 	ASSERT(thread != nullptr);
-	MLOG_ERROR(mlog::app, "Started Thread", thread->id);
+	MLOG_DETAIL(mlog::app, "Started Thread", thread->id);
 	while (true) {
 		//MLOG_ERROR(mlog::app, "Thread loop", DVAR(thread->id));
 		while (!thread->taskQueue.empty()) {
@@ -13,7 +13,6 @@ void* Thread::run(void *data) {
 			t->get()->run();
 		}
 		if (thread->SIGNALLED.exchange(false)) {
-
 		}
 
 		if (thread->fun != nullptr) {
@@ -37,7 +36,7 @@ void Thread::wait(Thread &t) {
 void Thread::signal(Thread &t) {
 	//MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
 
-  //t.state.store(RUN);
+  t.state.store(RUN);
 	auto prev = t.SIGNALLED.exchange(true);
 	if (not prev) {
 		//LockGuard<SpinMutex> g(global);

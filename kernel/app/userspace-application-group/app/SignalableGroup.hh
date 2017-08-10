@@ -61,7 +61,7 @@ public:
                 //MLOG_ERROR(mlog::app, DVAR(this->id), DVAR(mc.idx), DVAR(child_idx));
                 ISignalable *signalable = group_->getMember(child_idx); // child
                 if (signalable) {
-                  MLOG_ERROR(mlog::app, "Signal", DVAR(child_idx));
+                  //MLOG_ERROR(mlog::app, "Signal", DVAR(child_idx));
                   TreeStrategy::prepareTask(group_, child_idx, size_);
                   signalable->addTask(&group_->getTask(child_idx)->list_member);
                   signalable->signal();
@@ -164,7 +164,7 @@ void SignalableGroup::addMember(ISignalable *t) {
                 return;
             }
         }
-        MLOG_ERROR(mlog::app, "Group full");  
+        MLOG_ERROR(mlog::app, "Group full");
   }
 
 void SignalableGroup::signalAll() {

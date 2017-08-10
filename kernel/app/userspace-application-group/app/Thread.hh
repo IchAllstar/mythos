@@ -7,7 +7,7 @@
 #include "mythos/syscall.hh"
 
 
-//SpinMutex global;
+static SpinMutex global;
 
 enum ThreadState {
 	RUN = 0,
@@ -17,6 +17,10 @@ enum ThreadState {
 	INIT, //initialized
 };
 
+/**
+ * Simple Thread abstraction which executes a provided function.
+ * Runs in a loop: handles taskqueue->executes user function->wait()
+ */
 struct alignas(64) Thread : public ISignalable {
 public:
 	mythos::CapPtr ec;
@@ -30,6 +34,7 @@ public:
 
 	void*(*fun)(void*) = {nullptr};
 public:
+  // Task Queue which is handled at the beginning of a thread loop
   Task::list_t taskQueue;
 public:
 	static void* run(void *data);
@@ -38,7 +43,8 @@ public:
 
 public: // ISignalable Interface
 	void signal() override {
-		//MLOG_ERROR(mlog::app, "In Signal interface funct");
+    // Fixes the Deadlock situation
+    //LockGuard<SpinMutex> g(global);
 		signal(*this);
 	}
 

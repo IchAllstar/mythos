@@ -457,7 +457,6 @@ void ExecutionContext::multicast(const CastStrategy &cs) {
     }
 }
 
-
 bool ExecutionContext::prepareResume() {
     if (!isReady()) return false;
     auto prevState = clearFlag(IN_WAIT);

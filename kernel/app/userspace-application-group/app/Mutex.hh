@@ -5,7 +5,7 @@
 class SpinMutex {
 public:
 	void lock() {
-		while (flag.exchange(true) == true) { /*mythos::hwthread_pause();*/ }
+		while (flag.exchange(true) == true) { mythos::hwthread_pause(); }
 	}
 
 	void unlock() {
