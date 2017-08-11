@@ -30,6 +30,7 @@
 #include "cpu/ctrlregs.hh"
 #include "util/Time.hh"
 #include "boot/DeployHWThread.hh"
+#include "cpu/SleepEmulator.hh"
 
 #define SBOX_C6_SCRATCH0 0x0000C000
 #define MSR_CC6_STATUS 0x342
@@ -41,6 +42,8 @@ namespace mythos {
 namespace idle {
 
 CoreState coreStates[61];
+
+SleepEmulator emu;
 
 void init_global()
 {
@@ -64,6 +67,7 @@ NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
 void sleep(uint8_t depth)
 {
+    emu.sleep(cpu::getThreadID(), depth);
     if (depth == 1) {       // CC1 lite sleep
         //boot::getLocalIdleManagement().sleepIntention(depth);
         cpu_idle_halt(); // no return
@@ -100,6 +104,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
 
 void wokeupFromInterrupt(uint8_t irq)
 {
+    emu.wakeup(cpu::getThreadID());
     MLOG_INFO(mlog::boot, "idle: woke up from irq");
     boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
     size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID

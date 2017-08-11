@@ -36,7 +36,7 @@ void TreeMulticastBenchmark::setup() {
 
 void TreeMulticastBenchmark::test_multicast() {
 	MLOG_ERROR(mlog::app, "Start Multicast tree test");
-  	setup();
+  setup();
 	for (uint64_t i = 5; i < 200; i += 5) {
     	test_multicast_gen(i);
 	}
