@@ -13,7 +13,7 @@ public:
   typedef mythos::LinkedList<Task*> list_t;
   typedef typename list_t::Queueable handle_t;
 
-  run() {
+  void run() {
     fun(*this);
   }
 

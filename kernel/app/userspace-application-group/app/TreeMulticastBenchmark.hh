@@ -37,7 +37,7 @@ void TreeMulticastBenchmark::test_multicast() {
 
 		MLOG_ERROR(mlog::app, "Signalable Group Test");
 		//SignalableGroup<100> group;
-    	static auto threads = 60;
+    	static auto threads = 50;
 		SignalableGroup group;
 		for (int i = 1; i < threads + 1; ++i) {
 			group.addMember(manager.getThread(i));

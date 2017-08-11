@@ -26,6 +26,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
 
 void wokeupFromInterrupt(uint8_t irq)
 {
+	emu.wakeup(cpu::getThreadID());
     boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
 }
 

@@ -16,18 +16,15 @@ class SignalableGroup {
 private:
   static const size_t MAX = 256;
 public:
-	void addMember(ISignalable *t);
-	void signalAll();
+  void addMember(ISignalable *t);
+  void signalAll();
   uint64_t count() { return size; }
   ISignalable* getMember(uint64_t i) { return member[i]; }
-  //Multicast& getCast(uint64_t i) { return casts[i]; }
   Task* getTask(uint64_t i) { return &tasks[i]; }
 
 private:
   std::array<ISignalable*, MAX> member{{nullptr}};
-  //std::array<Multicast, MAX> casts;
   std::array<Task, MAX> tasks;
-  //Tasklet t[210];
   uint64_t size {0};
   SpinMutex mtx;
 };
@@ -44,47 +41,76 @@ public:
   }
 };
 
+/**
+ * Tree Strategy
+ */
 class TreeStrategy {
 private:
-  static constexpr uint64_t N_ARY_TREE = 2;
+  static const uint64_t LATENCY = 2;
 public:
-    static void prepareTask(SignalableGroup *group, uint64_t idx, uint64_t size) {
-        auto *group_ = group;
-        auto idx_ = idx;
-        auto size_ = size;
-        group->getTask(idx)->set([group_, idx_, size_](Task&) {
-            for (size_t i = 0; i < 2; ++i) { // for all children in tree
-                size_t child_idx = idx_ * 2 + i + 1;
-                if (child_idx >= size_) {
-                  return;
-                }
-                //MLOG_ERROR(mlog::app, DVAR(this->id), DVAR(mc.idx), DVAR(child_idx));
-                ISignalable *signalable = group_->getMember(child_idx); // child
-                if (signalable) {
-                  //MLOG_ERROR(mlog::app, "Signal", DVAR(child_idx));
-                  TreeStrategy::prepareTask(group_, child_idx, size_);
-                  signalable->addTask(&group_->getTask(child_idx)->list_member);
-                  signalable->signal();
-                } else {
-                  MLOG_ERROR(mlog::app, "Child not there", DVAR(child_idx));
-                }
-            }
-        });
+  // Helper functions to calculate fibonacci tree for optimal multicast
+  static size_t F(size_t time) {
+    if (time < LATENCY) {
+      return 1;
     }
+    return F(time - 1) + F(time - LATENCY);
+  }
+
+  // index function for F
+  static uint64_t f(uint64_t n) {
+    if (n == 0) {
+      return 0;
+    }
+    uint64_t i = 1;
+    uint64_t current = F(i);
+    while (current < n) {
+      i++;
+      current = F(i);
+    }
+
+    if (current == n) {
+      return i;
+    } else {
+      return i - 1;
+    }
+  }
+
+  static void prepareTask(SignalableGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+    auto *group_ = group;
+    auto idx_ = idx;
+    auto from_ = from;
+    auto to_  = to;
+    group->getTask(idx)->set([group_, idx_, from_, to_](Task&) {
+      ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
+      ASSERT(to_ > 0);
+      auto to_tmp = to_;
+      while (true) {
+        uint64_t n = to_tmp - from_ + 1;
+        if ( n < 2) {
+          return;
+        }
+        uint64_t j = TreeStrategy::F(TreeStrategy::f(n) - 1);
+        auto child_idx = j + from_;
+        //MLOG_ERROR(mlog::app, idx_, "sends to", j + from_);
+        ISignalable* dest = group_->getMember(child_idx);
+        if (dest) {
+          if (child_idx< to_tmp) {
+            //dest->multicast(tcs);
+            TreeStrategy::prepareTask(group_, child_idx, child_idx, to_tmp);
+            dest->addTask(&group_->getTask(child_idx)->list_member);
+          }
+          dest->signal();
+        }
+        to_tmp = from_ + j - 1;
+      }
+    });
+  }
 
   void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
     MLOG_ERROR(mlog::app, "Start signalAll Tree");
     auto signalable = array[0];
     if (signalable) {
-      //signalable->cast.set(array,size,0,N_ARY_TREE);
-      //signalable->group = group;
-       /* for (int i = 0; i < size; i++) {
-            auto *sign = group->getMember(i);
-            MLOG_ERROR(mlog::app, i, " ", DVAR(sign));
-            sign->signal();
-        }
-        */
-      TreeStrategy::prepareTask(group, 0, size);
+      TreeStrategy::prepareTask(group, 0, 0, size-1);
       signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
     }
@@ -121,13 +147,13 @@ public:
         diff -= times;
       }
 
-/*
-      helper.to = (current + divide) < size? current + divide : size;
-      if (mod > 0) {
-        helper.to++;
-        mod--;
-      }
-*/
+      /*
+            helper.to = (current + divide) < size? current + divide : size;
+            if (mod > 0) {
+              helper.to++;
+              mod--;
+            }
+      */
       if (helper.to > size) helper.to = size;
 
       current = helper.to;
@@ -148,7 +174,7 @@ private:
       i++;
       value = (i * (i + 1)) / 2;
     }
-    return (i-1 > 0) ? i-1 : 0;
+    return (i - 1 > 0) ? i - 1 : 0;
   }
 };
 
@@ -156,17 +182,17 @@ private:
 
 
 void SignalableGroup::addMember(ISignalable *t) {
-      for (int i = 0; i < MAX; i++) {
-        //MLOG_ERROR(mlog::app, "Add ", i);
-            if (member[i] == nullptr) {
-                member[i] = t;
-                size++;
-                return;
-            }
-        }
-        MLOG_ERROR(mlog::app, "Group full");
+  for (int i = 0; i < MAX; i++) {
+    //MLOG_ERROR(mlog::app, "Add ", i);
+    if (member[i] == nullptr) {
+      member[i] = t;
+      size++;
+      return;
+    }
   }
+  MLOG_ERROR(mlog::app, "Group full");
+}
 
 void SignalableGroup::signalAll() {
-	TreeStrategy()(this, &member[0], size);
+  TreeStrategy()(this, &member[0], size);
 }
