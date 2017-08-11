@@ -27,6 +27,7 @@
 
 #include "util/compiler.hh"
 #include "cpu/hwthreadid.hh"
+#include "cpu/SleepEmulator.hh"
 
 
 namespace mythos {

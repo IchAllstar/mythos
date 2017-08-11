@@ -1,0 +1,4 @@
+# -*- mode:toml; -*-
+[module.idle-emulation]
+    incfiles = [ "cpu/SleepEmulator.hh" ]
+    kernelfiles = [ "cpu/SleepEmulator.cc" ]

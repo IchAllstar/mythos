@@ -37,9 +37,9 @@ void TreeMulticastBenchmark::test_multicast() {
 
 		MLOG_ERROR(mlog::app, "Signalable Group Test");
 		//SignalableGroup<100> group;
-    static auto threads = 90;
+    	static auto threads = 60;
 		SignalableGroup group;
-		for (int i = 1; i < threads; ++i) {
+		for (int i = 1; i < threads + 1; ++i) {
 			group.addMember(manager.getThread(i));
 		}
 
@@ -49,7 +49,7 @@ void TreeMulticastBenchmark::test_multicast() {
 		start = mythos::getTime();
 		group.signalAll();
     static uint64_t last_count = counter.load();
-		while (counter.load() < threads - 1) {
+		while (counter.load() < threads) {
       if (last_count != counter.load()) {
         last_count = counter.load();
         //MLOG_ERROR(mlog::app, DVAR(last_count));
