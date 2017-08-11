@@ -167,13 +167,13 @@ void test_signalable_group() {
 */
 int main()
 {
-  mythos::PortalLock pl(portal);
-  mythos::HelperThreadManager hpm(mythos::init::HELPER_THREAD_MANAGER);
+  //mythos::PortalLock pl(portal);
+  //mythos::HelperThreadManager hpm(mythos::init::HELPER_THREAD_MANAGER);
 
-  hpm.registerHelper(pl, 63).wait();
-  pl.release();
-  //TreeMulticastBenchmark tmb(portal);
-  //tmb.test_multicast();
+  //hpm.registerHelper(pl, 63).wait();
+  //pl.release();
+  TreeMulticastBenchmark tmb(portal);
+  tmb.test_multicast();
   /*
   char const end[] = "Application exited.";
   MLOG_ERROR(mlog::app, "Application started.");

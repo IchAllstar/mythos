@@ -92,7 +92,7 @@ private:
 	uint32_t delay_polling = 0;
 
   // time we wait in lite sleep before going to deep sleep
-	uint32_t delay_lite_sleep = 5000;
+	uint32_t delay_lite_sleep = MAX_UINT32;
 
   // indicates a timer interrupt was set
 	std::atomic<bool> timer {false};

@@ -74,28 +74,28 @@ namespace mythos {
 
     /** sleep management event: entered kernel from interrupting the user mode */
     void enteredFromInterrupt(uint8_t irq);
-    
+
     /**
      * Emulate the CC6 exit delay. Exit time from Linux Driver Nehalem Exit
      * time. CC6 does not seem to work on KNC due to Intel erata
      * Latencys from Intel MPSS Linux kernel
-     * 
+     *
      *       * +static struct mic_cpuidle_states mic_cpuidle_data[MAX_KNC_CSTATES] = {
-     *  +   {           // data for Core C1      
+     *  +   {           // data for Core C1
      *  +    .latency = 20,
      *  +    .power = 0,
      *  +    .desc = "CC1 :Core C1 idle state"},
-     *  +   {            // data for Core C6 state       
+     *  +   {            // data for Core C6 state
      *  +    .latency = 4000,
      *  +    .power = 0,
      *  +    .desc = "CC6: Core C6 idle state"},
-     *  +   {           // data for Package C6   
+     *  +   {           // data for Package C6
      *  +    .latency = 800000,
      *  +    .power = 0,
      *  +    .desc = "PC3: Package C3 idle state"},
      *  +
      *  +};
      */
-    void emulateCC6Delay() { mythos::hwthread_pause(200000); }
+    void emulateCC6Delay() { /* mythos::hwthread_pause(200000);*/ }
   } // namespace idle
 } // namespace mythos
