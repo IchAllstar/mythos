@@ -180,7 +180,7 @@ namespace mythos {
     ASSERT(destination<256);
     MLOG_DETAIL(mlog::boot, "write ICR", DVAR(destination), DVARhex(icrlow.value));
 
-    //MLOG_ERROR(mlog::boot, "Comment in to workaround problem");
+    //MLOG_ERROR(mlog::boot, "Remove comment to workaround problem");
     uint64_t counter {0};
     while(read(REG_ICR_LOW).delivery_pending) {
       if (counter++ > 1000000) MLOG_ERROR(mlog::boot, "Waiting for LAPIC", DVAR(destination));
