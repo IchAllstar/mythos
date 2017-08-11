@@ -50,8 +50,7 @@ namespace mythos {
     std::atomic_flag flag;
   };
 
-  /** intrusive linked FIFO queue with enqueue, dequeue and delete of
-   * elements */
+  /** LinkedList taken from Mythos and replaced with Userspace compatbile lock. */
   template<class T>
   class LinkedList
   {

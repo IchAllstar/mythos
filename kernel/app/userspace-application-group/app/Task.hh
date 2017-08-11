@@ -4,31 +4,23 @@
 #include <cstddef>
 #include <utility>
 
+/**
+ * Simplified Task inspired from Tasklet. Queueable in a simply locked queue.
+ */
 struct Task {
 public:
   typedef void(*FunPtr)(Task&);
   typedef mythos::LinkedList<Task*> list_t;
   typedef typename list_t::Queueable handle_t;
-  /*
-    template<typename FUNCTOR>
-    void set(FUNCTOR fun_) {
-      fun = fun_;
-    }
-  */
-  void operator() () {
-    fun(*this);
-  }
 
-  void run() {
+  run() {
     fun(*this);
   }
 
   template<class FUNCTOR>
   void set(FUNCTOR const&& fun_) {
     static_assert(sizeof(FUNCTOR) <= sizeof(PAYLOAD), "tasklet payload is too big");
-    //ASSERT(isUnused());
-    //setInit();
-    new(PAYLOAD) FUNCTOR(std::move(fun_)); // copy-construct
+    new(PAYLOAD) FUNCTOR(std::move(fun_));
     fun = &wrapper<FUNCTOR>;
   }
 

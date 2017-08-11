@@ -45,7 +45,6 @@ namespace mythos {
  */
 struct TreeCastStrategy : public CastStrategy {
     // Latency: inverse ratio of sending overhead and complete transfer time
-    // on KNC: ~4000 cycles for delivering signal which includes ~1000 cycles of overhead
     // LATENCY = 2 optimal on KNC if no deep sleep
     // higher latency better if threads are in deep sleep
     static const uint64_t LATENCY = 2;
@@ -85,7 +84,7 @@ struct TreeCastStrategy : public CastStrategy {
     }
 
     // create the tasklet, which contains the necessary information to distribute a signal further.
-    // Also serves as interface, so the EC does not need to provide the necessary functionality.
+    // Also serves as interface, so the EC just calls creates and executes the tasklet on its hardware thread.
     void create(Tasklet &t) const override {
         // Need to copy variables for capturing in lambda
         auto group_ = group;
