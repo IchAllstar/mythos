@@ -68,7 +68,8 @@ NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 void sleep(uint8_t depth)
 {
     emu.sleep(cpu::getThreadID(), depth);
-    if (depth == 1) {       // CC1 lite sleep
+    cpu_idle_halt();
+    /*if (depth == 1) {       // CC1 lite sleep
         //boot::getLocalIdleManagement().sleepIntention(depth);
         cpu_idle_halt(); // no return
     }
@@ -90,6 +91,7 @@ void sleep(uint8_t depth)
     coreStates[apicID / 4].lock = false;
     //boot::getLocalIdleManagement().sleepIntention(depth);
     cpu_idle_halt();
+    */
 }
 
 void wokeup(size_t /*apicID*/, size_t reason)
@@ -105,7 +107,8 @@ void wokeup(size_t /*apicID*/, size_t reason)
 void wokeupFromInterrupt(uint8_t irq)
 {
     emu.wakeup(cpu::getThreadID());
-    MLOG_INFO(mlog::boot, "idle: woke up from irq");
+    boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
+    /*MLOG_INFO(mlog::boot, "idle: woke up from irq");
     boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
     size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID
     while (coreStates[apicID / 4].lock.exchange(true) == true);
@@ -120,6 +123,7 @@ void wokeupFromInterrupt(uint8_t irq)
     }
 
     coreStates[apicID / 4].lock = false;
+    */
 }
 
 void enteredFromSyscall() { boot::getLocalIdleManagement().enteredFromSyscall(); }
