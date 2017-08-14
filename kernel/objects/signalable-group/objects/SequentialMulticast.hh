@@ -45,6 +45,8 @@ public:
             TypedCap<ISignalable> signalable(group->getMember(i)->cap());
             if (signalable) {
                 signalable->signal(0);
+            } else {
+              PANIC("Signalaable not valid anymore");
             }
         }
         return Error::SUCCESS;

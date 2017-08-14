@@ -36,50 +36,14 @@
 
 namespace mythos {
 
-/**
- * Helper Strategy, which tells the target helper thread which application threads it has to signal.
- */
-struct HelperCastStrategy : public CastStrategy {
-	size_t from;
-	size_t to;
-
-	HelperCastStrategy(SignalableGroup *group_, size_t idx_, size_t from_, size_t to_)
-		: CastStrategy(group_, idx_), from(from_), to(to_)
-	{}
-
-
-	void create(Tasklet &t) const override {
-		// Need to copy variables for capturing in lambda
-		auto group_ = group;
-		size_t from_, to_;
-		from_ = from;
-		to_ = to;
-		// Create Tasklet which will be send to destination hardware thread
-		t.set([group_, from_, to_](Tasklet*) {
-			MLOG_ERROR(mlog::boot, "In Helper Thread:", DVAR(from_), DVAR(to_));
-			ASSERT(group_ != nullptr);
-			ASSERT(to_ > 0);
-
-			for (uint64_t i = from_; i <= to_; i++) {
-				MLOG_ERROR(mlog::boot, "Wakeup", DVAR(i));
-				TypedCap<ISignalable> dest(group_->getMember(i)->cap());
-				if (dest) {
-					dest->signal(0);
-				}
-			}
-		});
-	}
-
-};
-
 
 class HelperMulticast
 {
 public:
-	
+
 	static Error multicast(SignalableGroup *group, size_t groupSize) {
 		ASSERT(group != nullptr);
-		uint64_t threads = groupSize - 1;
+		uint64_t threads = groupSize/* - 1*/;
 		uint64_t availableHelper = mythos::boot::helperThreadManager.numHelper();
 		if (availableHelper == 0) {
 			return Error::INSUFFICIENT_RESOURCES;
@@ -106,33 +70,34 @@ public:
 				base += tmp;
 				diffThreads -= tmp;
 			}
-			//hcs.from = current;
-			//hcs.to = current + base;
-			//hcs.idx = i;
-			MLOG_ERROR(mlog::boot, "helper ", i, " from:", current, " to: ", current + base);
+
 			auto *tasklet = group->getTasklet(i);
-			tasklet->set([group, i, current, base](Tasklet*) {
+			//MLOG_ERROR(mlog::boot, "send to Helper Thread:", DVAR(current), DVAR(current + base-1));
+      tasklet->set([group, i, current, base](Tasklet*) {
 				//MLOG_ERROR(mlog::boot, "In Helper Thread:", DVAR(current), DVAR(current + base));
 				ASSERT(group != nullptr);
 
-				for (uint64_t i = current; i <= current + base; i++) {
+				for (uint64_t i = current; i < current + base; i++) {
 					//MLOG_ERROR(mlog::boot, "Wakeup", DVAR(i));
 					TypedCap<ISignalable> dest(group->getMember(i)->cap());
 					if (dest) {
 						dest->signal(0);
-					}
+					} else {
+            PANIC("Could not reach signalable.");
+          }
 				}
+        //MLOG_ERROR(mlog::boot, "finished signaling from",current, "to", current+base-1);
 			});
-			sched->run(tasklet);
 
+			sched->run(tasklet);
 			current += base;
 		}
-
 
 		return Error::SUCCESS;
 	}
 
 private:
+  // Calculates optimal number of helper threads for given number of threads
 	static uint64_t num_helper(uint64_t groupSize) {
 		uint64_t value {0};
 		uint64_t i {0};

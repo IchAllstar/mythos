@@ -140,16 +140,10 @@ void SchedulingCoordinator::runConfigurableDelays() {
 void SchedulingCoordinator::runSpin() {
     while (true) {
         localPlace->enterKernel();
-        localPlace->processTasks(); // executes all available kernel tasks
-        auto *ec = localSchedulingContext->tryRunUser();
-        if (ec) {
-            if (ec->prepareResume()) {
-                releaseKernel();
-                ec->doResume(); //does not return (hopefully)
-                MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
-            }
-        }
-        preemption_point();
+        localPlace->processTasks();
+        tryRunUser();
+        hwthread_pause(100);
+        preemption_point(); // allows interrupts even if polling only policy
     }
 }
 
@@ -159,7 +153,7 @@ void SchedulingCoordinator::tryRunUser() {
     if (ec->prepareResume()) {
       releaseKernel();
       ec->doResume(); //does not return (hopefully)
-      MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
+      MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
       mythos::idle::sleep(1);
     }
   }

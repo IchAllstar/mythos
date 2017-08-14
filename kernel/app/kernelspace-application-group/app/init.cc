@@ -173,11 +173,11 @@ int main()
 
   //hpm.registerHelper(pl, 63).wait();
   //pl.release();
-  //TreeMulticastBenchmark tmb(portal);
-  //tmb.test_multicast();
+  TreeMulticastBenchmark tmb(portal);
+  tmb.test_multicast();
 
-  HelperMulticastBenchmark hmb(portal);
-  hmb.test_multicast();
+  //HelperMulticastBenchmark hmb(portal);
+  //hmb.test_multicast();
   /*
   char const end[] = "Application exited.";
   MLOG_ERROR(mlog::app, "Application started.");

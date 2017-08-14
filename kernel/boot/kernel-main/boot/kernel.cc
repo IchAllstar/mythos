@@ -167,5 +167,5 @@ void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
   }
   if (!nested) runUser();
   // else simply return and let the interrupted kernel continue
-  MLOG_ERROR(mlog::boot, "Returned from kernel interrupt");
+  MLOG_ERROR(mlog::boot, "Returned from kernel interrupt", DVARhex(ctx->irq));
 }

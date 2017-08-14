@@ -51,15 +51,16 @@ SignalableGroup::SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISigna
 
 optional<void> SignalableGroup::deleteCap(Cap self, IDeleter& del) {
     if (self.isOriginal()) {
-        del.deleteObject(del_handle);
+        //del.deleteObject(del_handle);
     }
     RETURN(Error::SUCCESS);
 }
 
 void SignalableGroup::deleteObject(Tasklet* t, IResult<void>* r)  {
     monitor.doDelete(t, [ = ](Tasklet * t) {
-        for (uint64_t i = 0; i < groupSize; i++) {
+        for (uint64_t i = 0; i < actualSize; i++) {
             member[i].reset();
+            //MLOG_ERROR(mlog::boot, "Reset", i);
         }
         _mem->free(t, r, this, sizeof(SignalableGroup));
     });
@@ -142,9 +143,9 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 }
 
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
-    MLOG_ERROR(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
+    MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);
-    return HelperMulticast::multicast(this, actualSize);
+    return TreeMulticast::multicast(this, actualSize);
 }
 
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {

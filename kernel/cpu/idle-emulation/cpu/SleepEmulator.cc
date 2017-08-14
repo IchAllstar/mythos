@@ -10,18 +10,20 @@ void SleepEmulator::delay(uint64_t depth) {
         auto state = getStateWithID(depth);
         if (state && state->exit_latency > 0) {
         	MLOG_DETAIL(mlog::boot, "Simulate exit latency of C-state", depth);
-            mythos::hwthread_pause(state->exit_latency);
+          uint64_t start = getTime();
+          while(start + state->exit_latency > getTime()) {}
+          //mythos::hwthread_pause(state->exit_latency);
         }
 	}
 
 void SleepEmulator::sleep(uint64_t threadID, uint64_t depth) {
 	auto core = SleepEmulator::getCore(threadID);
 	states[core].lock();
-    auto prev = setState(threadID, depth);
-    uint64_t min = minState(core);
+  auto prev = setState(threadID, depth);
+  uint64_t min = minState(core);
 	MLOG_DETAIL(mlog::boot, "Sleep", DVAR(threadID), DVAR(prev), DVAR(depth), DVAR(min));
 	if (min > 0) { // every hw thread wants to join a sleep state
-	   MLOG_DETAIL(mlog::boot, "Go to sleep state", DVAR(min));
+	   MLOG_DETAIL(mlog::boot, "Go to sleep state",DVAR(core), DVAR(min));
 	   states[core].sleep.store(true);
 	}
 	states[core].unlock();
@@ -30,15 +32,15 @@ void SleepEmulator::sleep(uint64_t threadID, uint64_t depth) {
 void SleepEmulator::wakeup(uint64_t threadID) {
 	auto core = SleepEmulator::getCore(threadID);
 	states[core].lock();
-    auto min = minState(core);
+  auto min = minState(core);
 	auto prev = setState(threadID, 0);
 	MLOG_DETAIL(mlog::boot, "wakeup", DVAR(threadID), DVAR(prev), DVAR(min));
-  	if (prev > 0) { // wakeup from deep sleep sets other hwthreads into CC1 Lite Sleep
-        if (min > 0) {
+  	if (prev > 0) {
+      if (min > 0) {
             states[core].unlock();
-            MLOG_DETAIL(mlog::boot, "Wakeup from sleep state", DVAR(min));
+            //MLOG_ERROR(mlog::boot, "Wakeup from sleep state",DVAR(core), DVAR(min));
             delay(min);
-            states[core].sleep.store(true);
+            states[core].sleep.store(false);
             return;
         }
 	}

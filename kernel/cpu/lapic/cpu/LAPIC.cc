@@ -181,7 +181,8 @@ namespace mythos {
     MLOG_DETAIL(mlog::boot, "write ICR", DVAR(destination), DVARhex(icrlow.value));
 
     while(read(REG_ICR_LOW).delivery_pending) {
-      hwthread_pause();
+      //MLOG_ERROR(mlog::boot, "Hanign");
+      hwthread_pause(100);
     }
 
     write(REG_ICR_HIGH, Register().destination(destination));

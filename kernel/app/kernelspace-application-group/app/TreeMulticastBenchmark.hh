@@ -28,6 +28,7 @@ private:
 void TreeMulticastBenchmark::setup() {
 	manager.init([](void *data) -> void* {
 		counter.fetch_add(1);
+    //MLOG_ERROR(mlog::app, "Here");
 	});
 	manager.startAll();
   while (counter.load() != manager.getNumThreads() - 1) {}
