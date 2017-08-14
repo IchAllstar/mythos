@@ -14,7 +14,7 @@ void init_thread() {
 
 void sleep(uint8_t depth)
 {
-	emu.sleep(cpu::getThreadID(), depth);
+	//emu.sleep(cpu::getThreadID(), depth);
 	//boot::getLocalIdleManagement().sleepIntention(depth);
     cpu_idle_halt();
 }
@@ -26,7 +26,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
 
 void wokeupFromInterrupt(uint8_t irq)
 {
-	emu.wakeup(cpu::getThreadID());
+	//emu.wakeup(cpu::getThreadID());
     boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
 }
 

@@ -31,6 +31,7 @@
 #include "objects/CapRef.hh"
 #include "objects/mlog.hh"
 #include "util/Time.hh"
+#include "boot/DeployHWThread.hh"
 
 
 namespace mythos {
@@ -72,17 +73,17 @@ struct HelperCastStrategy : public CastStrategy {
 };
 
 
-
-std::array<uint64_t, 5> helper = {1, 2, 3, 4, 5};
-
-class SignalableGroup;
 class HelperMulticast
 {
 public:
+	
 	static Error multicast(SignalableGroup *group, size_t groupSize) {
 		ASSERT(group != nullptr);
 		uint64_t threads = groupSize - 1;
-		uint64_t availableHelper = sizeof(helper) / sizeof(uint64_t);
+		uint64_t availableHelper = mythos::boot::helperThreadManager.numHelper();
+		if (availableHelper == 0) {
+			return Error::INSUFFICIENT_RESOURCES;
+		}
 		uint64_t optimalHelper = num_helper(threads);
 		uint64_t usedHelper = (availableHelper < optimalHelper) ? availableHelper : optimalHelper;
 		uint64_t optimalThreadNumber = (usedHelper * (usedHelper + 1)) / 2;
@@ -91,12 +92,10 @@ public:
 		uint64_t diff = diffThreads / usedHelper;
 		uint64_t mod = diffThreads % usedHelper; // never bigger than usedHelper
 
-		HelperCastStrategy hcs(group, 0, 0, groupSize - 1);
+
 		for (uint64_t i = 0; i < usedHelper; i++) {
-			TypedCap<ISignalable> signalable(group->getMember(helper[i])->cap());
-			if (!signalable) {
-				PANIC("Signalable not valid anymore.");
-			}
+			auto *sched = mythos::boot::helperThreadManager.getHelper(i);
+
 			uint64_t base = usedHelper - i;
 			if (diffThreads > 0) {
 				uint64_t tmp = diff;
@@ -107,11 +106,25 @@ public:
 				base += tmp;
 				diffThreads -= tmp;
 			}
-			hcs.from = current;
-			hcs.to = current + base;
-			hcs.idx = i;
+			//hcs.from = current;
+			//hcs.to = current + base;
+			//hcs.idx = i;
 			MLOG_ERROR(mlog::boot, "helper ", i, " from:", current, " to: ", current + base);
-			signalable->multicast(hcs);
+			auto *tasklet = group->getTasklet(i);
+			tasklet->set([group, i, current, base](Tasklet*) {
+				//MLOG_ERROR(mlog::boot, "In Helper Thread:", DVAR(current), DVAR(current + base));
+				ASSERT(group != nullptr);
+
+				for (uint64_t i = current; i <= current + base; i++) {
+					//MLOG_ERROR(mlog::boot, "Wakeup", DVAR(i));
+					TypedCap<ISignalable> dest(group->getMember(i)->cap());
+					if (dest) {
+						dest->signal(0);
+					}
+				}
+			});
+			sched->run(tasklet);
+
 			current += base;
 		}
 

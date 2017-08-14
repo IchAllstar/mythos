@@ -44,7 +44,8 @@
 #include "app/Thread.hh"
 #include "app/ThreadManager.hh"
 #include "app/TreeMulticastBenchmark.hh"
-#include "runtime/HelperThreadManager.hh"
+#include "app/HelperMulticastBenchmark.hh"
+
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -172,8 +173,11 @@ int main()
 
   //hpm.registerHelper(pl, 63).wait();
   //pl.release();
-  TreeMulticastBenchmark tmb(portal);
-  tmb.test_multicast();
+  //TreeMulticastBenchmark tmb(portal);
+  //tmb.test_multicast();
+
+  HelperMulticastBenchmark hmb(portal);
+  hmb.test_multicast();
   /*
   char const end[] = "Application exited.";
   MLOG_ERROR(mlog::app, "Application started.");

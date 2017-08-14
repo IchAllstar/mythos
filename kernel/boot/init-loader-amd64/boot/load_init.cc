@@ -54,7 +54,7 @@ namespace mythos {
     using namespace mythos::init;
 
 InitLoaderPlugin initloaderplugin;
-HelperThreadManager helperThreadManager;
+extern HelperThreadManager helperThreadManager;
 
 extern char app_image_start SYMBOL("app_image_start");
 

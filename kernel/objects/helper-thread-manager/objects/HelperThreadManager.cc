@@ -76,14 +76,26 @@ Error HelperThreadManager::getDebugInfo(Cap self, IInvocation* msg)
 
 Error HelperThreadManager::registerHelper(Tasklet*, Cap self, IInvocation* msg) {
     auto data = msg->getMessage()->read<protocol::HelperThreadManager::RegisterHelper>();
+    MLOG_DETAIL(mlog::boot, "registerHelper", DVAR(data.sc));
     if (not member[data.sc]) {
         member[data.sc] = true;
         auto &scheduler = mythos::boot::getSchedulingCoordinator(data.sc);
-        scheduler.setPolicy(SchedulingCoordinator::SPIN);
+        scheduler.setPolicy(SchedulingCoordinator::SLEEP);
     }
     
     return Error::SUCCESS;
 }
+
+SchedulingContext* HelperThreadManager::getHelper(uint64_t i) {
+    uint64_t tmp = 0;
+    for (uint64_t j = 0; j < MYTHOS_MAX_THREADS; j++) {
+      if (member[j] == true) tmp++;
+      if (tmp == i) {
+        return &mythos::boot::getScheduler(j);
+      }
+    }
+    return nullptr;
+  }
 
 
 } // namespace mythos

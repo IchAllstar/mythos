@@ -40,6 +40,7 @@
 #include "objects/DeleteBroadcast.hh"
 #include "objects/SchedulingContext.hh"
 #include "objects/SchedulingCoordinator.hh"
+#include "objects/HelperThreadManager.hh"
 #include "objects/InterruptControl.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
@@ -57,6 +58,8 @@ namespace mythos {
 
     extern SchedulingCoordinator coordinators[MYTHOS_MAX_THREADS];
     extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM_HOT;
+
+    extern HelperThreadManager helperThreadManager;
 
     SchedulingContext& getScheduler(size_t index) { return schedulers[index]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler; }

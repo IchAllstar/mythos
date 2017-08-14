@@ -39,6 +39,8 @@ namespace mythos {
     uintptr_t DeployHWThread::stacks[MYTHOS_MAX_APICID];
     IdtAmd64 DeployHWThread::idt;
 
+    HelperThreadManager helperThreadManager;
+
     SchedulingContext schedulers[MYTHOS_MAX_THREADS];
     CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
 

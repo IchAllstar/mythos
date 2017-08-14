@@ -31,6 +31,7 @@
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/HelperThreadManager.hh"
 #include "boot/mlog.hh"
+#include "boot/DeployHWThread.hh"
 
 namespace mythos {
 
@@ -48,6 +49,15 @@ public:
 public: // CapRef interface
   void bind(optional<IScheduler*>);
   void unbind(optional<IScheduler*>);
+  uint64_t numHelper() {
+    uint64_t tmp = 0;
+    for (auto b : member) {
+      if (b) tmp++;
+    }
+    return tmp;
+  }
+
+  SchedulingContext* getHelper(uint64_t i);
 
 private:
   // kernel object stuff
@@ -55,7 +65,7 @@ private:
   async::NestedMonitorDelegating monitor;
 
   // possible helpers
-  bool member[MYTHOS_MAX_THREADS];
+  bool member[MYTHOS_MAX_THREADS] {false};
   uint64_t actualSize {0};
 };
 

@@ -37,6 +37,7 @@ class HelperThreadManager : public KObject
 public:
     HelperThreadManager(CapPtr cap) : KObject(cap) {}
 
+    // workarount with id of SC, because SC capability does not seem to work in lookup in EC
     PortalFuture<void> registerHelper(PortalLock pr, uint64_t sc) {
       return pr.invoke<protocol::HelperThreadManager::RegisterHelper>(_cap, sc);
     }

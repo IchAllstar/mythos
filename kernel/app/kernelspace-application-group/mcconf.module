@@ -1,7 +1,7 @@
 # -*- mode:toml; -*-
 [module.kernelspace-application-group]
     initappfiles = [ "app/init.cc", "app/Thread.cc", "app/ThreadManager.cc"]
-	incfiles = [ "app/Thread.hh", "app/ThreadManager.hh", "app/TreeMulticastBenchmark.hh"]
+	incfiles = [ "app/Thread.hh", "app/ThreadManager.hh", "app/TreeMulticastBenchmark.hh", "app/HelperMulticastBenchmark.hh"]
 	srcfiles = []
     provides = [ "app/init.elf" ]
     requires = [ "crtbegin" ]
