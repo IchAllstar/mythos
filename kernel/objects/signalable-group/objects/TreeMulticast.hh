@@ -42,30 +42,47 @@ namespace mythos {
  * The first nodes receiving its Signal have the most time to distribute it further.
  * Therefore they get a bigger range of nodes to transfer the Signal to.
  * Treeconstruction is dependent on the LATENCY parameter, which has to be adapted for different hardware.
+ *
+ * Can be seen as shared context to hold necessary values, that are needed to
+ * transfer to the dest node.
  */
+
 struct TreeCastStrategy : public CastStrategy {
     // Latency: inverse ratio of sending overhead and complete transfer time
     // LATENCY = 2 optimal on KNC if no deep sleep
     // higher latency better if threads are in deep sleep
+    // could check everything for deep sleep?
+    // could skip deep sleep nodes and signal children from own context
     static const uint64_t LATENCY = 2;
-
+    static int64_t tmp[20];
     size_t from;
     size_t to;
+
 
     TreeCastStrategy(SignalableGroup *group_, size_t idx_, size_t from_, size_t to_)
         :CastStrategy(group_, idx_), from(from_), to(to_)
     {}
 
     // Helper functions to calculate fibonacci tree for optimal multicast
+    // saves result of previous calcs to optimize expensive recursion
     static size_t F(size_t time) {
         if (time < LATENCY) {
             return 1;
         }
-        return F(time - 1) + F(time - LATENCY);
+        if (time < 20 && tmp[time] > 0) {
+          return tmp[time];
+        }
+        auto ret = F(time - 1) + F(time - LATENCY);
+        if (time < 20) {
+          tmp[time] = ret;
+        }
+        return ret;
     }
 
     // index function for F
     static uint64_t f(uint64_t n) {
+        Timer t;
+        t.start();
         if (n==0) {
             return 0;
         }
@@ -109,6 +126,8 @@ struct TreeCastStrategy : public CastStrategy {
                 if ( n < 2) {
                     return;
                 }
+                // calculates the split of the range depending on LATENCY
+                // left range is handled by this, right by other node
                 uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
                 TreeCastStrategy tcs(group_, j + from_, j + from_, to_tmp);
                 MLOG_DETAIL(mlog::boot, idx_, "sends to", j+from_);
@@ -126,7 +145,54 @@ struct TreeCastStrategy : public CastStrategy {
     }
 };
 
-class SignalableGroup;
+
+/**
+ * N-Ary tree for comparison with the Fibonacci Tree approach
+ */
+struct NaryTree : public CastStrategy {
+    NaryTree(SignalableGroup *group_, uint64_t idx_, uint64_t size_)
+      :CastStrategy(group_, idx_), size(size_)
+    {}
+
+    void create(Tasklet &t) const override {
+        // Need to copy variables for capturing in lambda
+        auto group_ = group;
+        uint64_t idx_ = idx;
+        uint64_t size_ = size;
+        uint64_t N_ = 2;
+        // Create Tasklet which will be send to destination hardware thread
+        t.set([group_, idx_, size_, N_](Tasklet*) {
+            MLOG_DETAIL(mlog::boot, DVAR(group_), DVAR(idx_), DVAR(size_));
+            ASSERT(idx_ < size_);
+            ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
+            TypedCap<ISignalable> own(group_->getMember(idx_)->cap());
+            ASSERT(own);
+
+            // Signal own EC, will be scheduled after kernel task handling
+            own->signal(0);
+
+            for (uint64_t i = 0; i < N_; i++) {
+              auto child_idx = idx_ * N_ + i + 1;
+              if (child_idx >= size_) {
+                return;
+              }
+
+              TypedCap<ISignalable> dest(group_->getMember(child_idx)->cap());
+              if (dest) {
+                MLOG_DETAIL(mlog::boot, idx_, "signals", child_idx);
+                NaryTree nt(group_, child_idx, size_);
+                dest->multicast(nt);
+              } else {
+                PANIC("No Signalable anymore.");
+              }
+            }
+        });
+    }
+
+
+    uint64_t size;
+};
+
 class TreeMulticast
 {
 public:
@@ -136,6 +202,8 @@ public:
         if (signalable) {
             TreeCastStrategy tcs(group, 0, 0, groupSize - 1); // from and to are included
             signalable->multicast(tcs);
+            //NaryTree nt(group, 0, groupSize);
+            //signalable->multicast(nt);
         }
         return Error::SUCCESS;
     }

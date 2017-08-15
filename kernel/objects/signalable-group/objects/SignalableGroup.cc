@@ -142,6 +142,8 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     return *obj;
 }
 
+int64_t TreeCastStrategy::tmp[20] = {0};
+
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);

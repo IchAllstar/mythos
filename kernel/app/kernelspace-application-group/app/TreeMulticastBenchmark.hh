@@ -44,6 +44,7 @@ void TreeMulticastBenchmark::test_multicast() {
 	MLOG_ERROR(mlog::app, "ENd Multicast tree test");
 }
 
+extern uint64_t repetitions;
 void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	mythos::PortalLock pl(portal);
 	mythos::SignalableGroup group(caps());
@@ -51,12 +52,16 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	for (int i = 1; i < numThreads + 1; i++) {
 		group.addMember(pl, manager.getThread(i)->ec).wait();
 	}
-	counter.store(0);
-	mythos::Timer t;
-	t.start();
-	group.signalAll(pl).wait();
-	while (counter.load() != numThreads) { mythos::hwthread_pause(); }
-	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(t.end()));
+  mythos::Timer t;
+  uint64_t sum = 0;
+  for (uint64_t i = 0; i < repetitions; i++) {
+    counter.store(0);
+    t.start();
+    group.signalAll(pl).wait();
+    while (counter.load() != numThreads) { mythos::hwthread_pause(); }
+    sum += t.end();
+  }
+	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/repetitions));
 	caps.free(group, pl);
 	//manager.cleanup();
 }

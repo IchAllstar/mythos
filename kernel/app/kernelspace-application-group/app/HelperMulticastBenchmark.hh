@@ -24,7 +24,7 @@ public:
     void test_multicast_gen(uint64_t);
 
 private:
-    static const uint64_t numHelper = 2;
+    static const uint64_t numHelper = 15;
     mythos::Portal &portal;
     mythos::HelperThreadManager htm {mythos::init::HELPER_THREAD_MANAGER};
 };
@@ -46,6 +46,7 @@ void HelperMulticastBenchmark::setup() {
 void HelperMulticastBenchmark::test_multicast() {
     MLOG_ERROR(mlog::app, "Start Multicast Helper test");
     setup();
+    uint64_t average = 0;
     for (uint64_t i = 5; i <= 200; i += 5) {
         test_multicast_gen(i);
         mythos::hwthread_pause(400000);
@@ -53,6 +54,7 @@ void HelperMulticastBenchmark::test_multicast() {
     MLOG_ERROR(mlog::app, "End Multicast Helper test");
 }
 
+extern uint64_t repetitions;
 void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     mythos::PortalLock pl(portal);
     mythos::SignalableGroup group(caps());
@@ -60,12 +62,17 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     for (int i = 1; i < numThreads + 1; i++) {
         group.addMember(pl, manager.getThread(i)->ec).wait();
     }
-    counter.store(0);
+    uint64_t sum = 0;
     mythos::Timer t;
-    t.start();
-    group.signalAll(pl);
-    while (counter.load() != numThreads) { mythos::hwthread_pause(); }
-    MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(t.end()));
+    for (int j = 0; j < repetitions; j++) {
+      counter.store(0);
+      t.start();
+      group.signalAll(pl);
+      while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
+      sum += t.end();
+    }
+
+    MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/repetitions));
     caps.free(group, pl);
     //manager.cleanup();
 }

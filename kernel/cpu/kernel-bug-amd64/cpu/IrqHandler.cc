@@ -66,10 +66,10 @@ namespace mythos {
 		      DVARhex(ctx->rip), DVARhex(ctx->rsp));
     }
   };
-  
+
   IrqKernelFault irq_kfault;
   IrqKernelNop irq_knop;
-  
+
   IIrqHandler<cpu::KernelIRQFrame*>* irq_kernelbugs[32] = {
     &irq_kfault, &irq_kfault, // 0,1
     &irq_knop, &irq_knop, &irq_knop, // 2,3,4
@@ -87,5 +87,5 @@ namespace mythos {
     irq_kernelbugs[ctx->irq]->process(ctx);
     return true;
   }
-  
+
 } // namespace mythos

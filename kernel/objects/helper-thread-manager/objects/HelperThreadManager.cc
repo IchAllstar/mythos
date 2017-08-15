@@ -96,7 +96,6 @@ SchedulingContext* HelperThreadManager::getHelper(uint64_t i) {
     }
     PANIC("Not enough helper threads.");
     return nullptr;
-  }
-
+}
 
 } // namespace mythos
