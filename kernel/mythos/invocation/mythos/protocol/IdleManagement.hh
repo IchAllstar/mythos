@@ -46,15 +46,15 @@ namespace mythos {
         SetPollingDelay(uint32_t delay_) : InvocationBase(label,getLength(this)) {
           delay = delay_;
         }
-        uint64_t delay;
+        uint32_t delay;
       };
 
       struct SetLiteSleepDelay : public InvocationBase {
         constexpr static uint16_t label = (proto<<8) + SET_LITE_SLEEP_DELAY;
-        SetLiteSleepDelay(uint64_t delay_) : InvocationBase(label,getLength(this)) {
+        SetLiteSleepDelay(uint32_t delay_) : InvocationBase(label,getLength(this)) {
           delay = delay_;
         }
-        uint64_t delay;
+        uint32_t delay;
       };
 
       template<class IMPL, class... ARGS>

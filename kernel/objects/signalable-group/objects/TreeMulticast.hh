@@ -111,7 +111,7 @@ struct TreeCastStrategy : public CastStrategy {
         to_ = to;
         // Create Tasklet which will be send to destination hardware thread
         t.set([group_, idx_, from_, to_](Tasklet*) {
-            MLOG_DETAIL(mlog::boot, DVAR(idx_), DVAR(from_), DVAR(to_));
+            MLOG_DETAIL(mlog::boot,DVAR(group_), DVAR(idx_), DVAR(from_), DVAR(to_));
             TypedCap<ISignalable> own(group_->getMember(idx_)->cap());
             ASSERT(own);
             ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
@@ -130,7 +130,7 @@ struct TreeCastStrategy : public CastStrategy {
                 // left range is handled by this, right by other node
                 uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
                 TreeCastStrategy tcs(group_, j + from_, j + from_, to_tmp);
-                MLOG_DETAIL(mlog::boot, idx_, "sends to", j+from_);
+                MLOG_ERROR(mlog::boot, idx_, "sends to", j+from_);
                 TypedCap<ISignalable> dest(group_->getMember(j + from_)->cap());
                 if (dest) {
                     if (j + from_ < to_tmp) {

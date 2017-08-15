@@ -48,9 +48,12 @@ extern uint64_t repetitions;
 void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	mythos::PortalLock pl(portal);
 	mythos::SignalableGroup group(caps());
+  mythos::SignalableGroup group2(caps());
 	ASSERT(group.create(pl, kmem, numThreads).wait());
+	ASSERT(group2.create(pl, kmem, numThreads).wait());
 	for (int i = 1; i < numThreads + 1; i++) {
 		group.addMember(pl, manager.getThread(i)->ec).wait();
+		group2.addMember(pl, manager.getThread(i)->ec).wait();
 	}
 	mythos::Timer t;
 	uint64_t sum = 0;
@@ -58,6 +61,7 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 		counter.store(0);
 		t.start();
 		group.signalAll(pl).wait();
+    group2.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
 		//mythos::hwthread_pause(1);

@@ -4,7 +4,9 @@
 #include "boot/DeployHWThread.hh"
 #include "boot/mlog.hh"
 #include "objects/IdleManagement.hh"
+#include "objects/IKernelObject.hh"
 #include "mythos/protocol/IdleManagement.hh"
+#include "mythos/protocol/KernelObject.hh"
 #include "async/NestedMonitorDelegating.hh"
 #include <atomic>
 

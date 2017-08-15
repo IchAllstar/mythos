@@ -74,7 +74,7 @@ Error HelperThreadManager::getDebugInfo(Cap self, IInvocation* msg)
     return writeDebugInfo("SchedulingCoordinator", self, msg);
 }
 
-Error HelperThreadManager::registerHelper(Tasklet*, Cap self, IInvocation* msg) {
+Error HelperThreadManager::registerHelper(Tasklet*, Cap, IInvocation* msg) {
     auto data = msg->getMessage()->read<protocol::HelperThreadManager::RegisterHelper>();
     //MLOG_ERROR(mlog::boot, "registerHelper", DVAR(data.sc));
     if (not member[data.sc]) {
