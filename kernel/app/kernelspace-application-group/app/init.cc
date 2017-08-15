@@ -37,6 +37,7 @@
 #include "runtime/KernelMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include "runtime/SignalableGroup.hh"
+#include "runtime/IdleManagement.hh"
 #include "app/mlog.hh"
 #include <cstdint>
 #include "util/optional.hh"
@@ -63,22 +64,15 @@ mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
 
 
 std::atomic<uint64_t> counter {0};
-uint64_t repetitions = 100;
+uint64_t repetitions = 1;
 ThreadManager manager(portal, cs, as, kmem, caps);
-
-void* thread_main(void* ctx)
-{
-  while (true) {
-    MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
-    mythos::ISysretHandler::handle(mythos::syscall_wait());
-    counter.fetch_add(1);
-    MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
-  }
-  return 0;
-}
 
 int main()
 {
+  mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START);
+  mythos::PortalLock pl(portal);
+  //im.setPollingDelay(pl, 1000).wait();
+  pl.release();
   TreeMulticastBenchmark tmb(portal);
   tmb.test_multicast();
 

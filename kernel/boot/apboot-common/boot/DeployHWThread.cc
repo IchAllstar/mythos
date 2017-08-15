@@ -49,7 +49,7 @@ namespace mythos {
     InterruptControl interruptController[MYTHOS_MAX_THREADS];
     CoreLocal<InterruptControl*> localInterruptController KERNEL_CLM;
 
-    IdleManagement idleManagement[MYTHOS_MAX_THREADS];
+    IdleManagement idleManagement[MYTHOS_MAX_THREADS / HWTHREADS];
     CoreLocal<IdleManagement*> localIdleManagement KERNEL_CLM;
 
     void initAPTrampoline(size_t startIP) {

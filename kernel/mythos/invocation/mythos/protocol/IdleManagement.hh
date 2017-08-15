@@ -25,37 +25,47 @@
  */
 #pragma once
 
-#include <cstdint>
-#include "mythos/InvocationBuf.hh"
-#include "mythos/Error.hh"
+#include "mythos/protocol/common.hh"
+#include "mythos/protocol/KernelMemory.hh"
+#include "util/error-trace.hh"
+#include "app/mlog.hh"
 
 namespace mythos {
-
   namespace protocol {
 
-    enum CoreProtocols : uint8_t {
-      KERNEL_OBJECT = 1,
-      UNTYPED_MEMORY,
-      FRAME,
-      PAGEMAP,
-      CAPMAP,
-      EXECUTION_CONTEXT,
-      PORTAL,
-      EXAMPLE,
-      SCHEDULING_COORDINATOR,
-      CPUDRIVERKNC,
-      INTERRUPT_CONTROL,
-      SIGNALABLE_GROUP,
-      HELPER_THREAD_MANAGER,
-      IDLE_MANAGEMENT,
+    struct IdleManagement {
+      constexpr static uint8_t proto = IDLE_MANAGEMENT;
+
+      enum Methods : uint8_t {
+        SET_POLLING_DELAY,
+        SET_LITE_SLEEP_DELAY,
+      };
+
+      struct SetPollingDelay : public InvocationBase {
+        constexpr static uint16_t label = (proto<<8) + SET_POLLING_DELAY;
+        SetPollingDelay(uint32_t delay_) : InvocationBase(label,getLength(this)) {
+          delay = delay_;
+        }
+        uint64_t delay;
+      };
+
+      struct SetLiteSleepDelay : public InvocationBase {
+        constexpr static uint16_t label = (proto<<8) + SET_LITE_SLEEP_DELAY;
+        SetLiteSleepDelay(uint64_t delay_) : InvocationBase(label,getLength(this)) {
+          delay = delay_;
+        }
+        uint64_t delay;
+      };
+
+      template<class IMPL, class... ARGS>
+      static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
+        switch(Methods(m)) {
+          case SET_POLLING_DELAY: return obj->setPollingDelay(args...);
+          case SET_LITE_SLEEP_DELAY: return obj->setLiteSleepDelay(args...);
+          default: return Error::NOT_IMPLEMENTED;
+        }
+      }
     };
 
-  } // namespace protocol
-
-enum MappingRequest : uint8_t {
-  MAPPING_PROPERTIES,
-  MAP_FRAME,
-  MAP_TABLE,
-};
-
-} // namespace mythos
+  }// namespace protocol
+}// namespace mythos

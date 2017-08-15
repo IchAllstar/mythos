@@ -1,5 +1,5 @@
-/* -*- mode:C++; -*- */
-/* MIT License -- MyThOS: The Many-Threads Operating System
+/* -*- mode:C++; indent-tabs-mode:nil; -*- */
+/* MyThOS: The Many-Threads Operating System
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,43 +25,25 @@
  */
 #pragma once
 
-#include <cstddef>
-#include "mythos/caps.hh"
-#include "mythos/InvocationBuf.hh"
+#include "runtime/PortalBase.hh"
+#include "mythos/protocol/IdleManagement.hh"
+#include "runtime/KernelMemory.hh"
+#include "mythos/init.hh"
 
 namespace mythos {
-namespace init {
 
-  enum CSpaceLayout : CapPtr {
-    NULLCAP = 0,
-    KM,
-    CSPACE,
-    EC,
-    PORTAL,
-    EXAMPLE_FACTORY,
-    MEMORY_REGION_FACTORY,
-    EXECUTION_CONTEXT_FACTORY,
-    PORTAL_FACTORY,
-    CAPMAP_FACTORY,
-    PAGEMAP_FACTORY,
-    UNTYPED_MEMORY_FACTORY,
-    SIGNALABLE_GROUP_FACTORY,
-    CAP_ALLOC_START,
-    CAP_ALLOC_END = 250,
-    MSG_FRAME,
-    DYNAMIC_REGION,
-    PML2,
-    PML3,
-    PML4,
-    STATIC_MEM_START,
-    SCHEDULERS_START = 512,
-    CPUDRIVER = 768,
-    HELPER_THREAD_MANAGER = 769,
-    IDLE_MANAGEMENT_START = 770,
-    INTERRUPT_CONTROLLER_START = 1025,
-    APP_CAP_START = 1281,
-    SIZE = 4096
+  class IdleManagement : public KObject
+  {
+  public:
+    IdleManagement(CapPtr cap) : KObject(cap) {}
+
+    PortalFuture<void> setPollingDelay(PortalLock pr, uint32_t delay) {
+      return pr.invoke<protocol::IdleManagement::SetPollingDelay>(_cap, delay);
+    }
+
+    PortalFuture<void> setLiteSleepDelay(PortalLock pr, uint32_t delay) {
+      return pr.invoke<protocol::IdleManagement::SetLiteSleepDelay>(_cap, delay);
+    }
   };
 
-} // namespace init
 } // namespace mythos

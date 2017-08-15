@@ -1,0 +1,4 @@
+# -*- mode:toml; -*-
+[module.objects-idle-management]
+    incfiles = [ "objects/IdleManagement.hh"]
+    kernelfiles = [ "objects/IdleManagement.cc" ]

@@ -17,7 +17,7 @@ public:
 	TreeMulticastBenchmark(mythos::Portal &pl_)
 		: portal(pl_) {}
 public:
-  void setup();
+	void setup();
 	void test_multicast();
 	void test_multicast_gen(uint64_t);
 
@@ -28,18 +28,18 @@ private:
 void TreeMulticastBenchmark::setup() {
 	manager.init([](void *data) -> void* {
 		counter.fetch_add(1);
-    //MLOG_ERROR(mlog::app, "Here");
+		//MLOG_ERROR(mlog::app, "Here");
 	});
 	manager.startAll();
-  while (counter.load() != manager.getNumThreads() - 1) {}
-  counter.store(0);
+	while (counter.load() != manager.getNumThreads() - 1) {}
+	counter.store(0);
 }
 
 void TreeMulticastBenchmark::test_multicast() {
 	MLOG_ERROR(mlog::app, "Start Multicast tree test");
-  setup();
-	for (uint64_t i = 5; i < 200; i += 5) {
-    	test_multicast_gen(i);
+	setup();
+	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
+		test_multicast_gen(i);
 	}
 	MLOG_ERROR(mlog::app, "ENd Multicast tree test");
 }
@@ -52,16 +52,17 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	for (int i = 1; i < numThreads + 1; i++) {
 		group.addMember(pl, manager.getThread(i)->ec).wait();
 	}
-  mythos::Timer t;
-  uint64_t sum = 0;
-  for (uint64_t i = 0; i < repetitions; i++) {
-    counter.store(0);
-    t.start();
-    group.signalAll(pl).wait();
-    while (counter.load() != numThreads) { mythos::hwthread_pause(); }
-    sum += t.end();
-  }
-	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/repetitions));
+	mythos::Timer t;
+	uint64_t sum = 0;
+	for (uint64_t i = 0; i < repetitions; i++) {
+		counter.store(0);
+		t.start();
+		group.signalAll(pl).wait();
+		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
+		sum += t.end();
+		//mythos::hwthread_pause(1);
+	}
+	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum / repetitions));
 	caps.free(group, pl);
 	//manager.cleanup();
 }

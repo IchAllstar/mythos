@@ -42,11 +42,10 @@
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/HelperThreadManager.hh"
 #include "objects/InterruptControl.hh"
+#include "objects/IdleManagement.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
 #include "boot/mlog.hh"
-
-#include "objects/IdleManagement.hh"
 
 namespace mythos {
   namespace boot {
@@ -73,10 +72,11 @@ namespace mythos {
     InterruptControl& getInterruptController(cpu::ThreadID threadID) { return interruptController[threadID]; }
     InterruptControl& getLocalInterruptController() { return *localInterruptController.get(); }
 
-    extern IdleManagement idleManagement[MYTHOS_MAX_THREADS];
+    static const constexpr uint64_t HWTHREADS = 4;
+    extern IdleManagement idleManagement[MYTHOS_MAX_THREADS / HWTHREADS];
     extern CoreLocal<IdleManagement*> localIdleManagement KERNEL_CLM;
 
-    IdleManagement& getIdleManagement(cpu::ThreadID threadID) { return idleManagement[threadID]; }
+    IdleManagement& getIdleManagement(cpu::ThreadID threadID) { return idleManagement[threadID / HWTHREADS]; }
     IdleManagement& getLocalIdleManagement() { return *localIdleManagement.get(); }
 
 struct DeployHWThread

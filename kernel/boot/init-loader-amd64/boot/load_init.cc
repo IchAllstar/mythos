@@ -42,6 +42,7 @@
 #include "objects/SignalableGroup.hh"
 #include "objects/Portal.hh"
 #include "objects/SchedulingCoordinator.hh"
+#include "objects/IdleManagement.hh"
 #include "objects/Example.hh"
 #include "objects/HelperThreadManager.hh"
 #include "boot/mlog.hh"
@@ -193,9 +194,9 @@ optional<void> InitLoader::initCSpace()
     if (!res) RETHROW(res);
   }
   
-  MLOG_INFO(mlog::boot, "... create scheduling coordinator caps in caps", SCHEDULING_COORDINATOR_START, "till", SCHEDULING_COORDINATOR_START+cpu::getNumThreads()-1);
+  MLOG_INFO(mlog::boot, "... create scheduling coordinator caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
   for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
-    auto res = csSet(SCHEDULING_COORDINATOR_START+id, boot::getSchedulingCoordinator(id));
+    auto res = csSet(IDLE_MANAGEMENT_START+id, boot::getIdleManagement(id));
     if (!res) RETHROW(res);
   }
 

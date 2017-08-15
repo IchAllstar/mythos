@@ -47,7 +47,7 @@ void HelperMulticastBenchmark::test_multicast() {
     MLOG_ERROR(mlog::app, "Start Multicast Helper test");
     setup();
     uint64_t average = 0;
-    for (uint64_t i = 5; i <= 200; i += 5) {
+    for (uint64_t i = 5; i <= manager.getNumThreads(); i += 5) {
         test_multicast_gen(i);
         mythos::hwthread_pause(400000);
     }

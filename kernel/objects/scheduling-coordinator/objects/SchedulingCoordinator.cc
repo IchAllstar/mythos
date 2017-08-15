@@ -29,7 +29,6 @@
 #include "objects/mlog.hh"
 #include "util/Time.hh"
 #include "cpu/LAPIC.hh"
-#include "objects/IdleManagement.hh"
 #include "cpu/idle.hh"
 
 namespace mythos {
