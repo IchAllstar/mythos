@@ -49,6 +49,10 @@ public:
     PortalFuture<void> signalAll(PortalLock pr) {
         return pr.invoke<protocol::SignalableGroup::SignalAll>(_cap);
     }
+
+    PortalFuture<void> setCastStrategy(PortalLock pr, uint64_t strategy) {
+        return pr.invoke<protocol::SignalableGroup::SetCastStrategy>(_cap, strategy);
+    }
 };
 
 } // namespace mythos

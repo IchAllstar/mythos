@@ -127,11 +127,11 @@ void SchedulingCoordinator::runConfigurableDelays() {
         preemption_point(); // allows interrupts even if polling only policy
     }
     releaseKernel();
+    MLOG_DETAIL(mlog::boot, DVAR(idle.getDelayLiteSleep()));
     if (idle.alwaysDeepSleep()) {
         boot::getLocalIdleManagement().sleepIntention(6);
         mythos::idle::sleep(6);
     }
-    //MLOG_ERROR(mlog::boot, "Sleeping lite");
     boot::getLocalIdleManagement().sleepIntention(1);
     mythos::idle::sleep(1);
 }
@@ -152,7 +152,7 @@ void SchedulingCoordinator::tryRunUser() {
     if (ec->prepareResume()) {
       releaseKernel();
       ec->doResume(); //does not return (hopefully)
-      MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
+      MLOG_DETAIL(mlog::boot, "Returned even prepareResume was successful");
       mythos::idle::sleep(1);
     }
   }

@@ -53,7 +53,7 @@ struct TreeCastStrategy : public CastStrategy {
     // higher latency better if threads are in deep sleep
     // could check everything for deep sleep?
     // could skip deep sleep nodes and signal children from own context
-    static const uint64_t LATENCY = 2;
+    static const uint64_t LATENCY = 10;
     static int64_t tmp[20];
     size_t from;
     size_t to;
@@ -130,7 +130,7 @@ struct TreeCastStrategy : public CastStrategy {
                 // left range is handled by this, right by other node
                 uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
                 TreeCastStrategy tcs(group_, j + from_, j + from_, to_tmp);
-                MLOG_ERROR(mlog::boot, idx_, "sends to", j+from_);
+                MLOG_DETAIL(mlog::boot, idx_, "sends to", j+from_);
                 TypedCap<ISignalable> dest(group_->getMember(j + from_)->cap());
                 if (dest) {
                     if (j + from_ < to_tmp) {
@@ -143,6 +143,72 @@ struct TreeCastStrategy : public CastStrategy {
             }
         });
     }
+
+    static void multicast(SignalableGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+        auto t = group->getTasklet(idx);
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        if (not own) PANIC("signalable not valid anymore");
+        auto sleepState = own->getSleepState();
+        if (sleepState < 2) {
+            t->set([group, idx, from, to](Tasklet*) {
+                MLOG_DETAIL(mlog::boot,DVAR(group), DVAR(idx), DVAR(from), DVAR(to));
+                TypedCap<ISignalable> own(group->getMember(idx)->cap());
+                ASSERT(own);
+                ASSERT(group != nullptr); // TODO: handle case when group is not valid anymore
+                ASSERT(to > 0);
+                auto to_tmp = to;
+
+                // Signal own EC, will be scheduled after kernel task handling
+                own->signal(0);
+
+                while (true) {
+                    uint64_t n = to_tmp - from + 1;
+                    if ( n < 2) {
+                        return;
+                    }
+                    // calculates the split of the range depending on LATENCY
+                    // left range is handled by this, right by other node
+                    uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
+                    auto destID = j+from;
+                    if (destID < to_tmp) {
+                        multicast(group, destID, destID, to_tmp);
+                    } else { // if leaf node, which does not forward, just signal it
+                        TypedCap<ISignalable> dest(group->getMember(destID)->cap());
+                        dest->signal(0);
+                    }
+                    to_tmp = destID - 1;
+                }
+            });
+            auto sched = own->getScheduler();
+            if (sched) {
+                sched->run(t);
+            }
+        } else {
+            auto to_tmp = to;
+
+            // Signal own EC, will be scheduled after kernel task handling
+            own->signal(0);
+
+            while (true) {
+                uint64_t n = to_tmp - from + 1;
+                if ( n < 2) {
+                    return;
+                }
+                // calculates the split of the range depending on LATENCY
+                // left range is handled by this, right by other node
+                uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
+                auto destID = j+from;
+                if (destID < to_tmp) {
+                    multicast(group, destID, destID, to_tmp);
+                } else { // if leaf node, which does not forward, just signal it
+                    TypedCap<ISignalable> dest(group->getMember(destID)->cap());
+                    dest->signal(0);
+                }
+                to_tmp = destID - 1;
+            }
+        }
+    }
+
 };
 
 
@@ -159,7 +225,7 @@ struct NaryTree : public CastStrategy {
         auto group_ = group;
         uint64_t idx_ = idx;
         uint64_t size_ = size;
-        uint64_t N_ = 2;
+        uint64_t N_ = 5;
         // Create Tasklet which will be send to destination hardware thread
         t.set([group_, idx_, size_, N_](Tasklet*) {
             MLOG_DETAIL(mlog::boot, DVAR(group_), DVAR(idx_), DVAR(size_));
@@ -198,13 +264,17 @@ class TreeMulticast
 public:
     static Error multicast(SignalableGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
+        /*
         TypedCap<ISignalable> signalable(group->getMember(0)->cap());
+
         if (signalable) {
             TreeCastStrategy tcs(group, 0, 0, groupSize - 1); // from and to are included
             signalable->multicast(tcs);
             //NaryTree nt(group, 0, groupSize);
             //signalable->multicast(nt);
         }
+        */
+        TreeCastStrategy::multicast(group, 0, 0, groupSize-1);
         return Error::SUCCESS;
     }
 };

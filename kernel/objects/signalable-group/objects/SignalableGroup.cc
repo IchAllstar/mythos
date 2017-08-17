@@ -141,12 +141,28 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     return *obj;
 }
 
+// recursive memorize
 int64_t TreeCastStrategy::tmp[20] = {0};
 
 Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);
-    return TreeMulticast::multicast(this, actualSize);
+    switch (strategy) {
+      case SEQUENTIAL:
+        return SequentialMulticast::multicast(this, actualSize);
+      case TREE:
+        return TreeMulticast::multicast(this, actualSize);
+      case HELPER:
+        return HelperMulticast::multicast(this, actualSize);
+      default:
+        return SequentialMulticast::multicast(this, actualSize);
+    }
+}
+
+Error SignalableGroup::setCastStrategy(Tasklet*, Cap, IInvocation *msg) {
+  auto data = msg->getMessage()->read<protocol::SignalableGroup::SetCastStrategy>();
+  strategy = data.strategy;
+  return Error::SUCCESS;
 }
 
 Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {

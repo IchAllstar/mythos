@@ -52,7 +52,6 @@ namespace mythos {
     , public IPortalUser
   {
   public:
-
     enum Flags : uint8_t
     {
       IS_WAITING = 1<<0, // used by wait() syscall
@@ -101,8 +100,9 @@ namespace mythos {
     void doResume() override;
   public: // ISignalable interface
     optional<void> signal(CapData data) override;
-    void broadcast(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) override;
     void multicast(const CastStrategy &cs) override;
+    uint64_t getSleepState() override;
+    IScheduler* getScheduler() override;
   public: // IPortalUser interface
     optional<CapEntryRef> lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writeable) override;
 

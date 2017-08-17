@@ -38,6 +38,7 @@ namespace mythos {
       enum Methods : uint8_t {
         SIGNAL_ALL,
         ADD_MEMBER,
+        SET_CAST_STRATEGY,
       };
 
       struct SignalAll : public InvocationBase {
@@ -53,9 +54,17 @@ namespace mythos {
         CapPtr signalable() const { return this->capPtrs[0]; }
       };
 
+      struct SetCastStrategy : public InvocationBase {
+        constexpr static uint16_t label = (proto<<8) + SET_CAST_STRATEGY;
+        SetCastStrategy(uint64_t strategy_) :
+          InvocationBase(label,getLength(this)), strategy(strategy_) {
+        }
+        uint64_t strategy;
+      };
+
       struct Create : public KernelMemory::CreateBase {
-        Create(CapPtr dst, CapPtr factory, size_t groupSize)
-          : CreateBase(dst, factory), groupSize(groupSize)
+        Create(CapPtr dst, CapPtr factory, size_t groupSize_)
+          : CreateBase(dst, factory), groupSize(groupSize_)
         {}
         size_t groupSize;
       };
@@ -65,6 +74,7 @@ namespace mythos {
         switch(Methods(m)) {
           case SIGNAL_ALL: return obj->signalAll(args...);
           case ADD_MEMBER: return obj->addMember(args...);
+          case SET_CAST_STRATEGY: return obj->setCastStrategy(args...);
           default: return Error::NOT_IMPLEMENTED;
         }
       }

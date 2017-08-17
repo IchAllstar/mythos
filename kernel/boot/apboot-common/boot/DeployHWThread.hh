@@ -75,7 +75,6 @@ namespace mythos {
     static const constexpr uint64_t HWTHREADS = 4;
     extern IdleManagement idleManagement[MYTHOS_MAX_THREADS / HWTHREADS];
     extern CoreLocal<IdleManagement*> localIdleManagement KERNEL_CLM;
-
     IdleManagement& getIdleManagement(cpu::ThreadID threadID) { return idleManagement[threadID / HWTHREADS]; }
     IdleManagement& getLocalIdleManagement() { return *localIdleManagement.get(); }
 
@@ -116,10 +115,10 @@ struct DeployHWThread
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
     localInterruptController.setAt(threadID, &getInterruptController(threadID));
-    getScheduler(threadID).init(async::getPlace(threadID));
+    getScheduler(threadID).init(async::getPlace(threadID),&getSchedulingCoordinator(threadID));
     localSchedulingCoordinator_.setAt(threadID, &getSchedulingCoordinator(threadID));
     localIdleManagement.setAt(threadID, &getIdleManagement(threadID));
-    getSchedulingCoordinator(threadID).init(async::getPlace(threadID), &getScheduler(threadID));
+    getSchedulingCoordinator(threadID).init(threadID, async::getPlace(threadID), &getScheduler(threadID));
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),
                 DVARhex(stacks[apicID]), DVARhex(stackphys), DVARhex(tss_kernel.ist[1]),

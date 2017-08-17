@@ -36,13 +36,12 @@ namespace mythos {
 
 
 /**
- * A Group of ISignalable objects with a maximum group size. When signalAll() is invoked, a signal is somehow 
+ * A Group of ISignalable objects with a maximum group size. When signalAll() is invoked, a signal is somehow
  * send to all group members. The group is constructed with a maximum group size and members can just be added,
  * not deleted. Max Groupsize Tasklets are allocated and serve as function objects to send to the destination
  * hardware threads. They can be used to implemented broadcasts, where nodes are used to forward the cast.
  * Always use the tasklet of the receiver node, because I need to send to multiple children, so cannot use my own
  * tasklet.
- * TODO handle correct deletion of kernel object -> free the array
  * TODO what to do, if SignalableGroup is destroyed while cast is ongoing
  */
 class SignalableGroup
@@ -51,6 +50,14 @@ class SignalableGroup
 public: // Constructor
     SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_);
 
+public:
+    enum CastStrategy {
+      SEQUENTIAL = 0,
+      TREE,
+      HELPER,
+
+      SIZE,
+    };
 public: // IKernelObject interface
     optional<void const*> vcast(TypeId id) const override;
     optional<void> deleteCap(Cap self, IDeleter& del) override;
@@ -63,7 +70,7 @@ public: // protocol
     Error getDebugInfo(Cap self, IInvocation* msg);
     Error signalAll(Tasklet *t, Cap self, IInvocation *msg);
     Error addMember(Tasklet *t, Cap self, IInvocation *msg);
-
+    Error setCastStrategy(Tasklet *t, Cap self, IInvocation *msg);
 public:
     void bind(optional<ISignalable*>);
     void unbind(optional<ISignalable*>);
@@ -85,6 +92,8 @@ private:
     Tasklet *tasklets;
     size_t groupSize {0};
     size_t actualSize {0};
+
+    uint64_t strategy {SEQUENTIAL};
 };
 
 class SignalableGroupFactory : public FactoryBase

@@ -39,11 +39,13 @@ extern char _setup_ap_cc6;
 extern char _setup_ap_end_cc6;
 
 namespace mythos {
+
+SleepEmulator emu;
+
 namespace idle {
 
 CoreState coreStates[61];
 
-SleepEmulator emu;
 
 void init_global()
 {

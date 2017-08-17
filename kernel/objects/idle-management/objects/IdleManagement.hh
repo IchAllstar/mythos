@@ -46,8 +46,8 @@ public:
 	Error getDebugInfo(Cap self, IInvocation* msg);
 	Error registerHelper(Tasklet*, Cap self, IInvocation* msg);
 public:
-	uint32_t getDelayPolling() { return delay_polling; }
-	uint32_t getDelayLiteSleep() { return delay_lite_sleep; }
+	uint32_t getDelayPolling() { return delay_polling.load(); }
+	uint32_t getDelayLiteSleep() { return delay_lite_sleep.load(); }
 public: // IIdleManagement Interface
 	void wokeup(size_t reason) override;
 	void wokeupFromInterrupt(uint8_t irq) override;
@@ -66,10 +66,11 @@ private:
 	IDeleter::handle_t del_handle = {this};
 	async::NestedMonitorDelegating monitor;
 	// time in cycles we spend polling before going to sleep
-	uint32_t delay_polling = 0;
+  std::atomic<uint32_t> delay_polling = {0};
 
 	// time we wait in lite sleep before going to deep sleep
-	uint32_t delay_lite_sleep = MAX_UINT32;
+  //std::atomic<uint32_t> delay_lite_sleep = {MAX_UINT32};
+	std::atomic<uint32_t> delay_lite_sleep = {0};
 
 	// indicates a timer interrupt was set
 	std::atomic<bool> timer {false};

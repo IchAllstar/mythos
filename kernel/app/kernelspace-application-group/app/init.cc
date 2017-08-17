@@ -46,6 +46,7 @@
 #include "app/ThreadManager.hh"
 #include "app/TreeMulticastBenchmark.hh"
 #include "app/HelperMulticastBenchmark.hh"
+#include "app/SequentialMulticastBenchmark.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -64,19 +65,22 @@ mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
 
 
 std::atomic<uint64_t> counter {0};
-uint64_t repetitions = 1;
+uint64_t repetitions = 10;
 ThreadManager manager(portal, cs, as, kmem, caps);
 
 int main()
 {
-  mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START);
-  mythos::PortalLock pl(portal);
+  //mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START);
+  //mythos::PortalLock pl(portal);
   //im.setPollingDelay(pl, 1000).wait();
-  pl.release();
+  //pl.release();
   TreeMulticastBenchmark tmb(portal);
   tmb.test_multicast();
 
   //HelperMulticastBenchmark hmb(portal);
   //hmb.test_multicast();
+
+  //SequentialMulticastBenchmark smb(portal);
+  //smb.test_multicast();
   return 0;
 }

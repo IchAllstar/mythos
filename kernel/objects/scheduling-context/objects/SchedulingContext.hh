@@ -33,6 +33,7 @@
 #include "util/error-trace.hh"
 
 namespace mythos {
+class SchedulingCoordinator;
 
   /** Scheduler for multiple application threads on a single hardware
    * thread. It implements an cooperative FIFO strategy that switches only
@@ -76,7 +77,7 @@ namespace mythos {
     };
   public:
     SchedulingContext() { current_ec = (handle_t*)REMOVED; }
-    void init(async::Place* home) { this->home = home; }
+    void init(async::Place* home, SchedulingCoordinator *sc) { this->home = home; schedCoord = sc; }
     virtual ~SchedulingContext() {}
 
     /**
@@ -89,6 +90,8 @@ namespace mythos {
     void run(Tasklet* t) override {
       home->run(t);
     }
+
+    SchedulingCoordinator* getSchedCoord() override { return schedCoord; }
 
   public: // IScheduler interface
     void bind(handle_t*) override {}
@@ -111,6 +114,7 @@ namespace mythos {
     std::atomic<handle_t*> current_ec; //< the currently selected execution context
     std::atomic_flag preempting = ATOMIC_FLAG_INIT; //< true if preemption is sent off
     Tasklet tasklet; //< used for the preemption
+    SchedulingCoordinator *schedCoord {nullptr};
   };
 
 } // namespace mythos

@@ -24,5 +24,11 @@ private:
 	uint64_t start_;
 };
 
+void delay(uint64_t cycles) {
+  uint64_t start = getTime();
+  while (getTime() - start < cycles) {
+  }
+}
+
 } // namespace mythos
 

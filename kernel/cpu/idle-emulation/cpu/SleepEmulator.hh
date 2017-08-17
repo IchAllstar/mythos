@@ -60,7 +60,7 @@ class SleepEmulator {
   public:
     void sleep(uint64_t threadID, uint64_t depth);
     void wakeup(uint64_t threadID);
-
+    uint64_t getSleepState(uint64_t threadID);
   public:
     // HW threads per core, maybe dynamically detectable? cpuid?
     static const uint64_t HWTHREADS = 4;

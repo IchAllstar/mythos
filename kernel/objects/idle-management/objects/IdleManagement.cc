@@ -82,24 +82,24 @@ bool IdleManagement::shouldDeepSleep() {
 }
 
 bool IdleManagement::alwaysDeepSleep() {
-	return delay_lite_sleep == 0;
+	return delay_lite_sleep.load() == 0;
 }
 
 bool IdleManagement::alwaysPoll() {
-	return delay_polling == MAX_UINT32;
+	return delay_polling.load() == MAX_UINT32;
 }
 
 Error IdleManagement::setPollingDelay(Tasklet*, Cap /*self*/, IInvocation* msg) {
 	auto data = msg->getMessage()->cast<protocol::IdleManagement::SetPollingDelay>();
-	delay_polling = data->delay;
-	MLOG_ERROR(mlog::boot, "Set Polling Delay", DVAR(delay_polling));
+	delay_polling.store(data->delay);
+	MLOG_DETAIL(mlog::boot, "Set Polling Delay", DVAR(this), DVAR(delay_polling));
 	return Error::SUCCESS;
 }
 
 Error IdleManagement::setLiteSleepDelay(Tasklet*, Cap /*self*/, IInvocation* msg) {
 	auto data = msg->getMessage()->cast<protocol::IdleManagement::SetLiteSleepDelay>();
-	delay_lite_sleep = data->delay;
-	MLOG_ERROR(mlog::boot, "Set Lite Sleep Delay", DVAR(delay_lite_sleep));
+	delay_lite_sleep.store(data->delay);
+	MLOG_DETAIL(mlog::boot, "Set Lite Sleep Delay", DVAR(this), DVAR(delay_lite_sleep));
 	return Error::SUCCESS;
 }
 

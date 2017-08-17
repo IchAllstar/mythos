@@ -13,23 +13,23 @@ extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
 extern uint64_t repetitions;
 
-class TreeMulticastBenchmark {
+class SequentialMulticastBenchmark {
 public:
-	TreeMulticastBenchmark(mythos::Portal &pl_)
+	SequentialMulticastBenchmark(mythos::Portal &pl_)
 		: portal(pl_) {}
 public:
 	void setup();
 	void test_multicast();
+	void test_multicast_gen(uint64_t);
   void test_multicast_no_deep_sleep();
   void test_multicast_always_deep_sleep();
-	void test_multicast_gen(uint64_t);
 
 private:
 	mythos::Portal &portal;
-  static const constexpr uint64_t TREE = 1;
+  static const constexpr uint64_t SEQUENTIAL = 0;
 };
 
-void TreeMulticastBenchmark::setup() {
+void SequentialMulticastBenchmark::setup() {
 	manager.init([](void *data) -> void* {
 		counter.fetch_add(1);
 		//MLOG_ERROR(mlog::app, "Here");
@@ -39,14 +39,14 @@ void TreeMulticastBenchmark::setup() {
 	counter.store(0);
 }
 
-void TreeMulticastBenchmark::test_multicast() {
+void SequentialMulticastBenchmark::test_multicast() {
 	setup();
   test_multicast_no_deep_sleep();
   test_multicast_always_deep_sleep();
 }
 
-void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
-	MLOG_ERROR(mlog::app, "Start Tree Multicast tree test always deep sleep");
+void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
+	MLOG_ERROR(mlog::app, "Start Sequential Multicast tree test always deep sleep");
   mythos::PortalLock pl(portal);
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
@@ -60,17 +60,17 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
     manager.getThread(i)->signal();
   }
   mythos::delay(10000000);
-  for (uint64_t i = 2; i < 5; i++) {
+  for (uint64_t i = 2; i < 5; i++) { // does start with i+4th HWT
     test_multicast_gen(i);
   }
 	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
 	  test_multicast_gen(i);
 	}
-	MLOG_ERROR(mlog::app, "End Tree Multicast tree test");
+	MLOG_ERROR(mlog::app, "End Sequential Multicast tree test");
 }
 
-void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
-	MLOG_ERROR(mlog::app, "Start Tree Multicast tree test no deep sleep");
+void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
+	MLOG_ERROR(mlog::app, "Start Sequential Multicast tree test no deep sleep");
   mythos::PortalLock pl(portal);
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
@@ -90,19 +90,18 @@ void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
 		test_multicast_gen(i);
 	}
-	MLOG_ERROR(mlog::app, "End Tree Multicast tree test");
+	MLOG_ERROR(mlog::app, "End Sequential Multicast tree test");
 }
 
-void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
-	if (numThreads + 4 >= manager.getNumThreads()) {
-    MLOG_ERROR(mlog::app, "Cannot run test with", DVAR(numThreads));
-    return;
+void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
+  if (numThreads + 4 >= manager.getNumThreads()) {
+    MLOG_ERROR(mlog::app, "Cannot test with", DVAR(numThreads));
   }
-  mythos::PortalLock pl(portal);
+	mythos::PortalLock pl(portal);
 	mythos::SignalableGroup group(caps());
 	ASSERT(group.create(pl, kmem, numThreads).wait());
-	ASSERT(group.setCastStrategy(pl, TREE));
-  for (int i = 4; i < numThreads + 4; i++) {
+  ASSERT(group.setCastStrategy(pl, SEQUENTIAL).wait());
+	for (int i = 4; i < numThreads + 4; i++) {
 		group.addMember(pl, manager.getThread(i)->ec).wait();
 	}
 	mythos::Timer t;
@@ -113,9 +112,8 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 		group.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
-    mythos::delay(1000000);
-	}
+    mythos::delay(10000000);
+  }
 	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum / repetitions));
 	caps.free(group, pl);
-	//manager.cleanup();
 }

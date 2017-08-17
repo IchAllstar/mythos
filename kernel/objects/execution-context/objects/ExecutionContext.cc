@@ -33,6 +33,7 @@
 #include "objects/DebugMessage.hh"
 #include "objects/IPageMap.hh"
 #include "util/error-trace.hh"
+#include "cpu/SleepEmulator.hh"
 
 namespace mythos {
 
@@ -415,38 +416,7 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
     RETURN(p.sendInvocation(dest, user));
 }
 
-void ExecutionContext::broadcast(Tasklet *t, SignalableGroup *group, size_t idx, size_t groupSize) {
-    // Find hardware thread to execution context and send tasklet to its kernel task scheduler
-    auto sched = _sched.get();
-    if (sched) {
-        sched->run(t->set([=](Tasklet*) {
-            //MLOG_ERROR(mlog::boot, "in Monitor", DVAR(idx), DVAR(groupSize));
-            TypedCap<ISignalable> own(group->getMember(idx)->cap());
-            ASSERT(own);
-            ASSERT(group != nullptr);
-            ASSERT(groupSize > 0);
-            // Signal own EC, will be scheduled after kernel task handling
-            own->signal(0);
-            size_t N = 2;
-            //MLOG_ERROR(mlog::boot, DVAR(idx), DVAR(N));
-            for (size_t i = 0; i < N; ++i) { // for all children in tree
-                ASSERT(N != 0);
-                size_t child_idx = idx * N + i + 1;
-                if (child_idx >= groupSize) return;
-                //MLOG_ERROR(mlog::boot, "broadcast child", DVAR(child_idx), DVAR(groupSize));
-                TypedCap<ISignalable> signalable(group->getMember(child_idx)->cap());
-                if (signalable) {
-                    //MLOG_ERROR(mlog::boot, "forward broadcast", DVAR(groupSize), DVAR(child_idx));
-                    signalable->broadcast(group->getTasklet(child_idx), group, child_idx, groupSize);
-                    //signalable->signal(0);
-                } else {
-                    PANIC("Signalable not valid anymore");
-                }
-            }
-        }));
-    }
-}
-
+extern SleepEmulator emu;
 void ExecutionContext::multicast(const CastStrategy &cs) {
     auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
     if (sched) {
@@ -455,6 +425,27 @@ void ExecutionContext::multicast(const CastStrategy &cs) {
         cs.create(*tasklet);
         sched->run(tasklet);
     }
+}
+
+IScheduler* ExecutionContext::getScheduler() {
+    auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
+    if (sched) {
+        return *sched;
+    }
+    return nullptr;
+}
+
+// little hacky to get sleep state like that
+// could be solved more elegant probably
+uint64_t ExecutionContext::getSleepState() {
+    auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
+    if (sched) {
+        auto *schedCoord = sched->getSchedCoord();
+        auto apicID = schedCoord->getApicID();
+        auto sleepState = emu.getSleepState(apicID);
+        return sleepState;
+    }
+    return 0;
 }
 
 bool ExecutionContext::prepareResume() {

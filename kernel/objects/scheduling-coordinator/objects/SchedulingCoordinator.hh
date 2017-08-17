@@ -82,18 +82,20 @@ public:
   NORETURN void runSpin();
   NORETURN void runConfigurableDelays();
 
-  void init(mythos::async::Place *p, mythos::SchedulingContext *sc) {
+  void init(uint64_t apicID_, mythos::async::Place *p, mythos::SchedulingContext *sc) {
     MLOG_DETAIL(mlog::boot, "Init", DVAR(p), DVAR(sc));
     ASSERT(p != nullptr);
     ASSERT(sc != nullptr);
     localPlace = p;
     localSchedulingContext = sc;
+    apicID = apicID_;
     monitor.setHome(p);
   }
 
   void setPolicy(Policy p) {
     policy = p;
   }
+  uint64_t getApicID() { return apicID; }
 
 private:
   // allows handling of interrupts at certain points even when not leaving the kernel
@@ -114,6 +116,8 @@ private:
   // kernel object stuff
   IDeleter::handle_t del_handle = {this};
   async::NestedMonitorHome monitor;
+
+  uint64_t apicID = {0};
 
   // actual stuff
   mythos::async::Place *localPlace = nullptr;

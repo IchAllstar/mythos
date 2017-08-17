@@ -32,6 +32,7 @@
 
 namespace mythos {
 class SignalableGroup;
+class IScheduler;
 
 // Prepares tasklet with strategy, which can then be send to destination hardware thread
 struct CastStrategy {
@@ -54,8 +55,9 @@ public:
     virtual ~ISignalable() {}
 
     virtual optional<void> signal(CapData data) = 0;
-    virtual void broadcast(Tasklet* /*t*/, SignalableGroup* /*group*/, size_t /*idx*/, size_t /*groupSize*/) {};
     virtual void multicast(const CastStrategy& /*cs*/) {};
+    virtual uint64_t getSleepState() = 0;
+    virtual IScheduler* getScheduler() = 0;
 };
 
 } // namespace mythos
