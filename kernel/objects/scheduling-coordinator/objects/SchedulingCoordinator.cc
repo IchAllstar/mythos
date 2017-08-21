@@ -152,7 +152,7 @@ void SchedulingCoordinator::tryRunUser() {
     if (ec->prepareResume()) {
       releaseKernel();
       ec->doResume(); //does not return (hopefully)
-      MLOG_DETAIL(mlog::boot, "Returned even prepareResume was successful");
+      MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
       mythos::idle::sleep(1);
     }
   }

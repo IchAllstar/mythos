@@ -83,7 +83,7 @@ namespace mythos {
     optional<void> setRegisters(const mythos::protocol::ExecutionContext::Amd64Registers&);
     optional<void> setBaseRegisters(uint64_t fs_base, uint64_t gs_base);
 
-    
+
 
   public: // INotifiable interface
     void notify(INotifiable::handle_t* event) override;
@@ -100,7 +100,6 @@ namespace mythos {
     void doResume() override;
   public: // ISignalable interface
     optional<void> signal(CapData data) override;
-    void multicast(const CastStrategy &cs) override;
     uint64_t getSleepState() override;
     IScheduler* getScheduler() override;
   public: // IPortalUser interface

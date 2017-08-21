@@ -28,7 +28,7 @@ public:
 
 private:
     static const uint64_t numHelper = 15;
-    static const uint64_t HELPER = 2;
+    static const uint64_t HELPER = 2; // identifier for setStrategy of SignalGroup
     mythos::Portal &portal;
     mythos::HelperThreadManager htm {mythos::init::HELPER_THREAD_MANAGER};
 };

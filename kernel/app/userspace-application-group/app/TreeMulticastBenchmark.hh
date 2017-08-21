@@ -59,5 +59,4 @@ void TreeMulticastBenchmark::test_multicast() {
 
 		end = mythos::getTime();
 		MLOG_ERROR(mlog::app, DVAR(counter.load()), DVAR(group.count()),  DVAR(end - start));
-		//manager.cleanup();
 	}

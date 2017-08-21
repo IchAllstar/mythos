@@ -417,16 +417,6 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
 }
 
 extern SleepEmulator emu;
-void ExecutionContext::multicast(const CastStrategy &cs) {
-    auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
-    if (sched) {
-        auto *tasklet = cs.group->getTasklet(cs.idx);
-        ASSERT(tasklet != nullptr);
-        cs.create(*tasklet);
-        sched->run(tasklet);
-    }
-}
-
 IScheduler* ExecutionContext::getScheduler() {
     auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
     if (sched) {

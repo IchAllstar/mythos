@@ -66,7 +66,7 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
 	  test_multicast_gen(i);
 	}
-	MLOG_ERROR(mlog::app, "End Tree Multicast tree test");
+	MLOG_ERROR(mlog::app, "End Tree Multicast always deep sleep tree test");
 }
 
 void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
@@ -90,7 +90,7 @@ void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
 		test_multicast_gen(i);
 	}
-	MLOG_ERROR(mlog::app, "End Tree Multicast tree test");
+	MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
 }
 
 void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
@@ -110,12 +110,11 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	for (uint64_t i = 0; i < repetitions; i++) {
 		counter.store(0);
 		t.start();
-		group.signalAll(pl).wait();
+    group.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
-    mythos::delay(1000000);
+    mythos::delay(1000000); // Tree cast does lock when not here
 	}
-	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum / repetitions));
+	MLOG_ERROR(mlog::app, DVAR(numThreads),"Avg. Cycles: ", sum / repetitions);
 	caps.free(group, pl);
-	//manager.cleanup();
 }
