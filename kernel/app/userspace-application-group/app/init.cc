@@ -68,11 +68,11 @@ int main()
 {
   MLOG_ERROR(mlog::app, "START application");
 
-  //HelperThreadBenchmark htb;
-  //htb.test_helper();
+  HelperThreadBenchmark htb;
+  htb.test_helper();
 
-  TreeMulticastBenchmark tmb(portal);
-  tmb.test_multicast();
+  //TreeMulticastBenchmark tmb(portal);
+  //tmb.test_multicast();
   //tmb.test_multicast();
 
   MLOG_ERROR(mlog::app, "END application");

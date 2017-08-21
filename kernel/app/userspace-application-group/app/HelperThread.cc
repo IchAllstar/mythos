@@ -6,9 +6,11 @@ HelperThread helpers[NUM_HELPER];
 uint64_t helperIDs[NUM_HELPER] = {1, 3, 4, 7, 8, 11, 25, 29, 33, 37};
 
 void HelperThread::init_helper() {
+  MLOG_ERROR(mlog::app, "Init Helper");
 	uint64_t helper_number = 0;
 	for (auto i : helperIDs/*uint64_t i = 1; i < NUM_HELPER + 1; ++i*/) {
-		manager.deleteThread(*manager.getThread(i));
+    MLOG_ERROR(mlog::app, "Init Helper", i);
+//		manager.deleteThread(*manager.getThread(i));
 		manager.initThread(i, &helper_thread);
 		ASSERT(manager.getThread(i));
 		helpers[helper_number].thread = manager.getThread(i);

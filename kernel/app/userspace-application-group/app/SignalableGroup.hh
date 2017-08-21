@@ -100,13 +100,23 @@ class TreeStrategy {
 private:
   static const uint64_t LATENCY = 2;
 public:
-  // Helper functions to calculate fibonacci tree for optimal multicast
-  static size_t F(size_t time) {
-    if (time < LATENCY) {
-      return 1;
+    static int64_t tmp[20]; //recursive memory
+
+    // Helper functions to calculate fibonacci tree for optimal multicast
+    // saves result of previous calcs to optimize expensive recursion
+    static size_t F(size_t time) {
+        if (time < LATENCY) {
+            return 1;
+        }
+        if (time < 20 && tmp[time] > 0) {
+          return tmp[time];
+        }
+        auto ret = F(time - 1) + F(time - LATENCY);
+        if (time < 20) {
+          tmp[time] = ret;
+        }
+        return ret;
     }
-    return F(time - 1) + F(time - LATENCY);
-  }
 
   // index function for F
   static uint64_t f(uint64_t n) {

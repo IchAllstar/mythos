@@ -20,6 +20,7 @@ public:
 
 	void test_helper() {
 		HelperThread::init_helper();
+    MLOG_ERROR(mlog::app, "Init WOrker");
 		init_worker();
 		SignalableGroup group;
 		for (int i = 1; i < NUM_THREADS; i++) {

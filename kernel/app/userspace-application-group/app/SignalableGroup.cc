@@ -1,5 +1,7 @@
 #include "app/SignalableGroup.hh"
 
+int64_t TreeStrategy::tmp[20] = {0};
+
 void SignalableGroup::addMember(ISignalable *t) {
   for (int i = 0; i < MAX; i++) {
     //MLOG_ERROR(mlog::app, "Add ", i);
@@ -13,5 +15,5 @@ void SignalableGroup::addMember(ISignalable *t) {
 }
 
 void SignalableGroup::signalAll() {
-  SequentialStrategy::cast(this, 0, size);
+  HelperStrategy::cast(this, 0, size);
 }

@@ -54,6 +54,9 @@ void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	};
 	mythos::delay(4000000);
 
+	for (uint64_t i = 2; i < 5; i+=5) {
+		test_multicast_gen(i);
+	}
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
 		test_multicast_gen(i);
 	}
@@ -82,6 +85,9 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	};
 	mythos::delay(4000000);
 
+	for (uint64_t i = 2; i < 5; i+=5) {
+		test_multicast_gen(i);
+	}
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
 		test_multicast_gen(i);
 	}
@@ -97,20 +103,23 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t number) {
 		group.addMember(manager.getThread(i));
 	}
 
-	counter.store(0);
-
-	mythos::Timer t;
-	t.start();
-	group.signalAll();
-	static uint64_t last_count = counter.load();
-	while (counter.load() < number) {
-		if (last_count != counter.load()) {
-			last_count = counter.load();
-			//MLOG_ERROR(mlog::app, DVAR(last_count));
-		}
-		mythos::hwthread_pause(10);
-	}
-	MLOG_ERROR(mlog::app, DVAR(number),  DVAR(t.end()));
+  mythos::Timer t;
+  uint64_t sum = 0;
+  for (uint64_t i = 0; i < REPETITIONS; i++) {
+    counter.store(0);
+    t.start();
+    group.signalAll();
+    static uint64_t last_count = counter.load();
+    while (counter.load() < number) {
+      if (last_count != counter.load()) {
+        last_count = counter.load();
+        //MLOG_ERROR(mlog::app, DVAR(last_count));
+      }
+      mythos::hwthread_pause(10);
+    }
+    sum += t.end();
+  }
+	MLOG_ERROR(mlog::app, DVAR(number),  sum/REPETITIONS);
 }
 
 
