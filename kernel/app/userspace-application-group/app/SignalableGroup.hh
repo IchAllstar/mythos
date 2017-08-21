@@ -5,28 +5,34 @@
 #include "app/Mutex.hh"
 #include "app/mlog.hh"
 #include "app/Thread.hh"
-#include "app/HelperThread.hh"
-//#include "util/Time.hh"
+#include "app/ThreadManager.hh"
 #include "app/Task.hh"
 
 // TODO
 // mutex in addmember seems to lock?
 // keep on using the task abstraction to propagate tree and helper
 class SignalableGroup {
-private:
-  static const size_t MAX = 256;
+public:
+  enum STRATEGY {
+    SEQUENTIAL = 0,
+    TREE,
+    HELPER,
+  };
 public:
   void addMember(ISignalable *t);
   void signalAll();
   uint64_t count() { return size; }
   ISignalable* getMember(uint64_t i) { return member[i]; }
   Task* getTask(uint64_t i) { return &tasks[i]; }
+  void setStrat(STRATEGY strat_) { strat = strat_; }
 
 private:
+  static const size_t MAX = 256;
   std::array<ISignalable*, MAX> member{{nullptr}};
   std::array<Task, MAX> tasks;
   uint64_t size {0};
   SpinMutex mtx;
+  STRATEGY strat = {SEQUENTIAL};
 };
 
 class SequentialStrategy {
@@ -40,48 +46,65 @@ public:
 };
 
 extern const size_t NUM_HELPER;
-extern HelperThread helpers[];
+extern ThreadManager manager;
 class HelperStrategy {
 public:
 
   static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
     if (size == 0) return;
-
-    uint64_t numHelper = (num_helper(size) < NUM_HELPER) ? num_helper(size) : NUM_HELPER;
-    uint64_t numOptimal = (numHelper * (numHelper + 1)) / 2;
-    ASSERT(numOptimal <= size);
-    uint64_t diff = size - numOptimal;
-    //MLOG_ERROR(mlog::app, DVAR(numHelper), DVAR(numOptimal), DVAR(diff));
-    auto divide = size / numHelper;
-    auto mod    = size % numHelper;
-    ASSERT(mod <= numHelper);
+    ASSERT(group != nullptr);
+    uint64_t threads = size/* - 1*/;
+    uint64_t availableHelper = NUM_HELPER;
+    if (availableHelper == 0) {
+      PANIC("No Resources");
+    }
+    uint64_t optimalHelper = num_helper(threads);
+    uint64_t usedHelper = (availableHelper < optimalHelper) ? availableHelper : optimalHelper;
+    uint64_t optimalThreadNumber = (usedHelper * (usedHelper + 1)) / 2;
+    int64_t  diffThreads = threads - optimalThreadNumber;
     uint64_t current = 0;
+    uint64_t diff = diffThreads / usedHelper;
+    uint64_t mod = diffThreads % usedHelper; // never bigger than usedHelper
 
-    for (uint64_t i = 0; i < numHelper; ++i) {
-      auto &helper = helpers[i];
-      helper.group = group;
-      helper.from = current;
 
-      helper.to = helper.from + numHelper - i;
-      if (diff > 0) {
-        uint64_t times = (diff / (numHelper - i)) + 1;
-        helper.to += times;
-        diff -= times;
+    for (uint64_t i = 0; i < usedHelper; i++) {
+
+      uint64_t base = usedHelper - i;
+      if (diffThreads > 0) {
+        uint64_t tmp = diff;
+        if (mod > 0) {
+          tmp++;
+          mod--;
+        }
+        base += tmp;
+        diffThreads -= tmp;
       }
 
-      if (helper.to > size) helper.to = size;
+      auto *tasklet = group->getTask(i); // use a tasklet from SignalingGroup, should not be in use
+      //MLOG_ERROR(mlog::boot, "send to Helper Thread:", DVAR(current), DVAR(current + base-1));
+      tasklet->set([group, i, current, base](Task&) {
+        ASSERT(group != nullptr);
+        for (uint64_t i = current; i < current + base; i++) {
+          //MLOG_ERROR(mlog::app, "In Helper",i, DVAR(current), DVAR(base));
+          ISignalable* dest = group->getMember(i);
+          if (dest) {
+            dest->signal();
+          } else {
+            PANIC("Could not reach signalable.");
+          }
+        }
+      });
 
-      current = helper.to;
-      //MLOG_ERROR(mlog::app, "Helper", i, DVAR(helper.from), DVAR(helper.to));
-      auto prev = helper.onGoing.exchange(true);
-      if (prev) {
-        MLOG_ERROR(mlog::app, "Ongoing cast");
-      }
-      helper.thread->signal();
+      MLOG_ERROR(mlog::app, "Helper", manager.getNumThreads() - i - 1, "from", current, "to", current + base);
+      auto helper = manager.getThread(manager.getNumThreads() - i - 1);
+      helper->addTask(&tasklet->list_member);
+      helper->signal();
+      current += base;
     }
   }
 
 private:
+// Calculates optimal number of helper threads for given number of threads
   static uint64_t num_helper(uint64_t groupSize) {
     uint64_t value {0};
     uint64_t i {0};
@@ -100,23 +123,23 @@ class TreeStrategy {
 private:
   static const uint64_t LATENCY = 2;
 public:
-    static int64_t tmp[20]; //recursive memory
+  static int64_t tmp[20]; //recursive memory
 
-    // Helper functions to calculate fibonacci tree for optimal multicast
-    // saves result of previous calcs to optimize expensive recursion
-    static size_t F(size_t time) {
-        if (time < LATENCY) {
-            return 1;
-        }
-        if (time < 20 && tmp[time] > 0) {
-          return tmp[time];
-        }
-        auto ret = F(time - 1) + F(time - LATENCY);
-        if (time < 20) {
-          tmp[time] = ret;
-        }
-        return ret;
+  // Helper functions to calculate fibonacci tree for optimal multicast
+  // saves result of previous calcs to optimize expensive recursion
+  static size_t F(size_t time) {
+    if (time < LATENCY) {
+      return 1;
     }
+    if (time < 20 && tmp[time] > 0) {
+      return tmp[time];
+    }
+    auto ret = F(time - 1) + F(time - LATENCY);
+    if (time < 20) {
+      tmp[time] = ret;
+    }
+    return ret;
+  }
 
   // index function for F
   static uint64_t f(uint64_t n) {

@@ -15,5 +15,15 @@ void SignalableGroup::addMember(ISignalable *t) {
 }
 
 void SignalableGroup::signalAll() {
-  HelperStrategy::cast(this, 0, size);
+  switch (strat) {
+    case TREE:
+      TreeStrategy::cast(this, 0, size);
+      break;
+    case SEQUENTIAL:
+      SequentialStrategy::cast(this, 0, size);
+      break;
+    case HELPER:
+      HelperStrategy::cast(this, 0, size);
+      break;
+  }
 }

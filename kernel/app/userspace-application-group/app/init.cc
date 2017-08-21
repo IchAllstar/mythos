@@ -42,7 +42,6 @@
 #include "app/ThreadManager.hh"
 #include "app/SignalableGroup.hh"
 #include "util/Time.hh"
-#include "app/HelperThread.hh"
 #include "app/HelperThreadBenchmark.hh"
 #include "app/TreeMulticastBenchmark.hh"
 
@@ -68,8 +67,8 @@ int main()
 {
   MLOG_ERROR(mlog::app, "START application");
 
-  HelperThreadBenchmark htb;
-  htb.test_helper();
+  HelperThreadBenchmark htb(portal);
+  htb.test_multicast();
 
   //TreeMulticastBenchmark tmb(portal);
   //tmb.test_multicast();

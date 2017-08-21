@@ -71,22 +71,18 @@ public:
 				diffThreads -= tmp;
 			}
 
-			auto *tasklet = group->getTasklet(i);
+			auto *tasklet = group->getTasklet(i); // use a tasklet from SignalingGroup, should not be in use
 			//MLOG_ERROR(mlog::boot, "send to Helper Thread:", DVAR(current), DVAR(current + base-1));
-      tasklet->set([group, i, current, base](Tasklet*) {
-				//MLOG_ERROR(mlog::boot, "In Helper Thread:", DVAR(current), DVAR(current + base));
+			tasklet->set([group, i, current, base](Tasklet*) {
 				ASSERT(group != nullptr);
-
 				for (uint64_t i = current; i < current + base; i++) {
-					//MLOG_ERROR(mlog::boot, "Wakeup", DVAR(i));
 					TypedCap<ISignalable> dest(group->getMember(i)->cap());
 					if (dest) {
 						dest->signal(0);
 					} else {
-            PANIC("Could not reach signalable.");
-          }
+						PANIC("Could not reach signalable.");
+					}
 				}
-        //MLOG_ERROR(mlog::boot, "finished signaling from",current, "to", current+base-1);
 			});
 
 			sched->run(tasklet);
@@ -97,7 +93,7 @@ public:
 	}
 
 private:
-  // Calculates optimal number of helper threads for given number of threads
+	// Calculates optimal number of helper threads for given number of threads
 	static uint64_t num_helper(uint64_t groupSize) {
 		uint64_t value {0};
 		uint64_t i {0};
