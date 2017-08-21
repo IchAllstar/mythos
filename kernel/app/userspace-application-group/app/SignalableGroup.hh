@@ -95,7 +95,7 @@ public:
         }
       });
 
-      MLOG_ERROR(mlog::app, "Helper", manager.getNumThreads() - i - 1, "from", current, "to", current + base);
+      //MLOG_ERROR(mlog::app, "Helper", manager.getNumThreads() - i - 1, "from", current, "to", current + base);
       auto helper = manager.getThread(manager.getNumThreads() - i - 1);
       helper->addTask(&tasklet->list_member);
       helper->signal();
@@ -121,7 +121,7 @@ private:
  */
 class TreeStrategy {
 private:
-  static const uint64_t LATENCY = 2;
+  static const uint64_t LATENCY = 3;
 public:
   static int64_t tmp[20]; //recursive memory
 

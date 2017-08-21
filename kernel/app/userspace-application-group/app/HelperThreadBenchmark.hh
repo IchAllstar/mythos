@@ -101,11 +101,12 @@ void HelperThreadBenchmark::test_multicast_no_deep_sleep() {
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, 0).wait());
 		ASSERT(im.setLiteSleepDelay(pl, (uint32_t)(-1)).wait()); // max delay == no deep sleep
+    manager.getThread(i)->signal();
 	}
 	pl.release();
 	mythos::delay(4000000);
 
-	for (uint64_t i = 2; i < 5; i += 5) {
+	for (uint64_t i = 2; i < 5; i ++) {
 		test_multicast_gen(i);
 	}
 	for (uint64_t i = 5; i < manager.getNumThreads() - NUM_HELPER; i += 5) {
@@ -118,14 +119,14 @@ void HelperThreadBenchmark::test_multicast_always_deep_sleep() {
 	MLOG_ERROR(mlog::app, "Start always Deep Sleep Signalable Group Test");
 	mythos::PortalLock pl(portal);
 	for (uint64_t i = 5; i < manager.getNumThreads() - NUM_HELPER; i++) {
-
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, 0).wait());
 		ASSERT(im.setLiteSleepDelay(pl, 0).wait()); // max delay == no deep sleep
+    manager.getThread(i)->signal();
 	}
 	pl.release();
 	mythos::delay(4000000);
-	for (uint64_t i = 2; i < 5; i += 5) {
+	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
 	}
 	for (uint64_t i = 5; i < manager.getNumThreads() - NUM_HELPER; i += 5) {
@@ -140,7 +141,6 @@ void HelperThreadBenchmark::test_multicast_gen(uint64_t number) {
 	SignalableGroup group;
 	group.setStrat(SignalableGroup::HELPER);
 	for (int i = 4; i < number + 4; ++i) {
-		//MLOG_ERROR(mlog::app, "add",i);
 		group.addMember(manager.getThread(i));
 	}
 	mythos::Timer t;
@@ -150,14 +150,9 @@ void HelperThreadBenchmark::test_multicast_gen(uint64_t number) {
 		t.start();
 		group.signalAll();
 		static uint64_t last_count = counter.load();
-		while (counter.load() < number) {
-			if (last_count != counter.load()) {
-				last_count = counter.load();
-				//MLOG_ERROR(mlog::app, DVAR(last_count));
-			}
-			mythos::hwthread_pause(10);
-		}
+		while (counter.load() < number) {}
 		sum += t.end();
+    mythos::delay(400000);
 	}
 	MLOG_ERROR(mlog::app, DVAR(number),  sum / REPETITIONS);
 }

@@ -54,7 +54,7 @@ void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	};
 	mythos::delay(4000000);
 
-	for (uint64_t i = 2; i < 5; i+=5) {
+	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
 	}
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
@@ -85,7 +85,7 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	};
 	mythos::delay(4000000);
 
-	for (uint64_t i = 2; i < 5; i+=5) {
+	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
 	}
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
@@ -99,6 +99,7 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 void TreeMulticastBenchmark::test_multicast_gen(uint64_t number) {
 	ASSERT(number < manager.getNumThreads() + 4);
 	SignalableGroup group;
+  group.setStrat(SignalableGroup::TREE);
 	for (int i = 4; i < number + 4; ++i) {
 		group.addMember(manager.getThread(i));
 	}
