@@ -5,15 +5,14 @@
 #include "app/conf.hh"
 #include "app/ThreadManager.hh"
 
-
-
 class ISignalable;
-//class Thread;
+class SignalableGroup;
 
 struct HelperThread {
 	Thread *thread {nullptr};
 	std::atomic<bool> onGoing {false};
-	ISignalable **group {nullptr};
+	SignalableGroup *group {nullptr};
+	//ISignalable **group {nullptr};
 	uint64_t from = 0;
 	uint64_t to   = 0;
 

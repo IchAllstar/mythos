@@ -6,7 +6,7 @@
 #include "app/mlog.hh"
 #include "app/Thread.hh"
 #include "app/HelperThread.hh"
-#include "util/Time.hh"
+//#include "util/Time.hh"
 #include "app/Task.hh"
 
 // TODO
@@ -31,13 +31,65 @@ private:
 
 class SequentialStrategy {
 public:
-  void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
-    MLOG_ERROR(mlog::app, "Start signalAll sequential");
-    for (uint64_t i = 0; i < size; ++i) {
-      if (array[i] != nullptr) {
-        array[i]->signal();
-      }
+  static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+    for (uint64_t i = idx; i < size; ++i) {
+      auto *member = group->getMember(i);
+      if (member) member->signal();
     }
+  }
+};
+
+extern const size_t NUM_HELPER;
+extern HelperThread helpers[];
+class HelperStrategy {
+public:
+
+  static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+    if (size == 0) return;
+
+    uint64_t numHelper = (num_helper(size) < NUM_HELPER) ? num_helper(size) : NUM_HELPER;
+    uint64_t numOptimal = (numHelper * (numHelper + 1)) / 2;
+    ASSERT(numOptimal <= size);
+    uint64_t diff = size - numOptimal;
+    //MLOG_ERROR(mlog::app, DVAR(numHelper), DVAR(numOptimal), DVAR(diff));
+    auto divide = size / numHelper;
+    auto mod    = size % numHelper;
+    ASSERT(mod <= numHelper);
+    uint64_t current = 0;
+
+    for (uint64_t i = 0; i < numHelper; ++i) {
+      auto &helper = helpers[i];
+      helper.group = group;
+      helper.from = current;
+
+      helper.to = helper.from + numHelper - i;
+      if (diff > 0) {
+        uint64_t times = (diff / (numHelper - i)) + 1;
+        helper.to += times;
+        diff -= times;
+      }
+
+      if (helper.to > size) helper.to = size;
+
+      current = helper.to;
+      //MLOG_ERROR(mlog::app, "Helper", i, DVAR(helper.from), DVAR(helper.to));
+      auto prev = helper.onGoing.exchange(true);
+      if (prev) {
+        MLOG_ERROR(mlog::app, "Ongoing cast");
+      }
+      helper.thread->signal();
+    }
+  }
+
+private:
+  static uint64_t num_helper(uint64_t groupSize) {
+    uint64_t value {0};
+    uint64_t i {0};
+    while (value <= groupSize) {
+      i++;
+      value = (i * (i + 1)) / 2;
+    }
+    return (i - 1 > 0) ? i - 1 : 0;
   }
 };
 
@@ -94,8 +146,7 @@ public:
         //MLOG_ERROR(mlog::app, idx_, "sends to", j + from_);
         ISignalable* dest = group_->getMember(child_idx);
         if (dest) {
-          if (child_idx< to_tmp) {
-            //dest->multicast(tcs);
+          if (child_idx < to_tmp) {
             TreeStrategy::prepareTask(group_, child_idx, child_idx, to_tmp);
             dest->addTask(&group_->getTask(child_idx)->list_member);
           }
@@ -106,93 +157,14 @@ public:
     });
   }
 
-  void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
-    MLOG_ERROR(mlog::app, "Start signalAll Tree");
-    auto signalable = array[0];
+  static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+    auto *signalable = group->getMember(idx);
     if (signalable) {
-      TreeStrategy::prepareTask(group, 0, 0, size-1);
+      TreeStrategy::prepareTask(group, 0, 0, size - 1);
       signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
     }
   }
 };
 
-extern const size_t NUM_HELPER;
-extern HelperThread helpers[];
-class HelperStrategy {
-public:
 
-  void operator() (SignalableGroup *group, ISignalable **array, uint64_t size) {
-    if (size == 0) return;
-
-    uint64_t numHelper = (num_helper(size) < NUM_HELPER) ? num_helper(size) : NUM_HELPER;
-    uint64_t numOptimal = (numHelper * (numHelper + 1)) / 2;
-    ASSERT(numOptimal <= size);
-    uint64_t diff = size - numOptimal;
-    //MLOG_ERROR(mlog::app, DVAR(numHelper), DVAR(numOptimal), DVAR(diff));
-    auto divide = size / numHelper;
-    auto mod    = size % numHelper;
-    ASSERT(mod <= numHelper);
-    uint64_t current = 0;
-
-    for (uint64_t i = 0; i < numHelper; ++i) {
-      auto &helper = helpers[i];
-      helper.group = array;
-      helper.from = current;
-
-      helper.to = helper.from + numHelper - i;
-      if (diff > 0) {
-        uint64_t times = (diff / (numHelper - i)) + 1;
-        helper.to += times;
-        diff -= times;
-      }
-
-      /*
-            helper.to = (current + divide) < size? current + divide : size;
-            if (mod > 0) {
-              helper.to++;
-              mod--;
-            }
-      */
-      if (helper.to > size) helper.to = size;
-
-      current = helper.to;
-      //MLOG_ERROR(mlog::app, "Helper", i, DVAR(helper.from), DVAR(helper.to));
-      auto prev = helper.onGoing.exchange(true);
-      if (prev) {
-        MLOG_ERROR(mlog::app, "Ongoing cast");
-      }
-      helper.thread->signal();
-    }
-  }
-
-private:
-  uint64_t num_helper(uint64_t groupSize) {
-    uint64_t value {0};
-    uint64_t i {0};
-    while (value <= groupSize) {
-      i++;
-      value = (i * (i + 1)) / 2;
-    }
-    return (i - 1 > 0) ? i - 1 : 0;
-  }
-};
-
-
-
-
-void SignalableGroup::addMember(ISignalable *t) {
-  for (int i = 0; i < MAX; i++) {
-    //MLOG_ERROR(mlog::app, "Add ", i);
-    if (member[i] == nullptr) {
-      member[i] = t;
-      size++;
-      return;
-    }
-  }
-  MLOG_ERROR(mlog::app, "Group full");
-}
-
-void SignalableGroup::signalAll() {
-  TreeStrategy()(this, &member[0], size);
-}

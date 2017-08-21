@@ -71,7 +71,7 @@ int main()
   //HelperThreadBenchmark htb;
   //htb.test_helper();
 
-  TreeMulticastBenchmark tmb;
+  TreeMulticastBenchmark tmb(portal);
   tmb.test_multicast();
   //tmb.test_multicast();
 

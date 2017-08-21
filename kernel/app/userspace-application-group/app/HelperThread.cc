@@ -1,4 +1,5 @@
 #include "app/HelperThread.hh"
+#include "app/SignalableGroup.hh"
 
 HelperThread helpers[NUM_HELPER];
 // Place the helper on following hardware threads
@@ -47,7 +48,7 @@ void* HelperThread::helper_thread(void *data) {
 			//start = mythos::getTime();
 			for (uint64_t i = helper->from; i < helper->to; ++i) {
 				//MLOG_ERROR(mlog::app, "wakeup", i);
-				helper->group[i]->signal();
+				helper->group->getMember(i)->signal();
 			}
 			helper->onGoing.store(false);
 			//end = mythos::getTime();
