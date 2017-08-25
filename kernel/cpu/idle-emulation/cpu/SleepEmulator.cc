@@ -10,14 +10,13 @@ void SleepEmulator::delay(uint64_t depth) {
         auto state = getStateWithID(depth);
         if (state && state->exit_latency > 0) {
         	MLOG_DETAIL(mlog::boot, "Simulate exit latency of C-state", depth);
-          uint64_t start = getTime();
-          while(start + state->exit_latency > getTime()) {}
-          //mythos::hwthread_pause(state->exit_latency);
+          mythos::delay(state->exit_latency);
         }
 	}
 
 void SleepEmulator::sleep(uint64_t threadID, uint64_t depth) {
-	auto core = SleepEmulator::getCore(threadID);
+	if (depth <= 1) return;
+  auto core = SleepEmulator::getCore(threadID);
 	states[core].lock();
   auto prev = setState(threadID, depth);
   uint64_t min = minState(core);
@@ -66,6 +65,7 @@ uint64_t SleepEmulator::setState(uint64_t threadID, uint64_t depth) {
 }
 
 uint64_t SleepEmulator::getState(uint64_t threadID) {
+
 	uint64_t core = SleepEmulator::getCore(threadID);
 	uint64_t hwthread = threadID % HWTHREADS;
 	auto state = states[core].cstate[hwthread];
@@ -89,7 +89,7 @@ optional<VirtualIdleState*> SleepEmulator::getStateWithID(uint64_t id) {
 }
 
 uint64_t SleepEmulator::minState(uint64_t core) {
-	uint64_t min = (uint64_t (-1));
+	  uint64_t min = (uint64_t (-1));
     for (uint64_t i = 0; i < HWTHREADS; i++) {
       if (states[core].cstate[i] < min) min = states[core].cstate[i];
     }

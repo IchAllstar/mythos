@@ -124,8 +124,6 @@ private:
   mythos::SchedulingContext *localSchedulingContext = nullptr;
 
   Policy policy = {DELAYS};
-
-  std::atomic<bool> timer {false};
 };
 
 } // namespace mythos

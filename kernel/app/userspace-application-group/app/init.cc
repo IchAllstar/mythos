@@ -44,6 +44,7 @@
 #include "util/Time.hh"
 #include "app/HelperThreadBenchmark.hh"
 #include "app/TreeMulticastBenchmark.hh"
+#include "app/SequentialMulticastBenchmark.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -57,22 +58,59 @@ mythos::CapMap myCS(mythos::init::CSPACE);
 mythos::PageMap myAS(mythos::init::PML4);
 mythos::KernelMemory kmem(mythos::init::KM);
 mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
-                                   mythos::init::SIZE - mythos::init::APP_CAP_START);
+    mythos::init::SIZE - mythos::init::APP_CAP_START);
 
 std::atomic<uint64_t> counter {0};
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
 
+void* thread_main(void* data) {
+  while(true) {
+    mythos::syscall_wait();
+    counter.fetch_add(1);
+  }
+}
+
+char threadstack[stacksize];
+char* threadstack_top = threadstack + stacksize;
+void test() {
+
+  mythos::ExecutionContext ec2(capAlloc());
+  {
+    mythos::PortalLock pl(portal);
+    MLOG_INFO(mlog::app, "test_EC: create ec2");
+    auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+5,
+        threadstack_top, &thread_main, nullptr).wait();
+    TEST(res2);
+  }
+
+  mythos::Timer t;
+  uint64_t sum = 0;
+  for (int i = 0; i < 10000; i++) {
+    t.start();
+    mythos::syscall_signal(ec2.cap());
+    while(counter.load() == 0) {}
+    sum += t.end();
+    counter.store(0);
+  }
+  MLOG_ERROR(mlog::app, DVAR(sum/10000));
+
+
+}
 
 int main()
 {
   MLOG_ERROR(mlog::app, "START application");
 
-  HelperThreadBenchmark htb(portal);
-  htb.test_multicast();
+  //HelperThreadBenchmark htb(portal);
+  //htb.test_multicast();
 
-  //TreeMulticastBenchmark tmb(portal);
-  //tmb.test_multicast();
-  //tmb.test_multicast();
+  TreeMulticastBenchmark tmb(portal);
+  tmb.test_multicast();
+
+  //SequentialMulticastBenchmark smb(portal);
+  //smb.test_multicast();
+
+  //test();
 
   MLOG_ERROR(mlog::app, "END application");
   return 0;

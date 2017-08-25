@@ -119,11 +119,11 @@ void SchedulingCoordinator::runConfigurableDelays() {
     localPlace->processTasks(); // executes all available kernel tasks
     tryRunUser();
     uint64_t start = getTime();
-    while (start + idle.getDelayPolling() > getTime() || idle.alwaysPoll()) { // poll configured delay
+    while (idle.alwaysPoll() || start + idle.getDelayPolling() > getTime()) { // poll configured delay
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
-        hwthread_pause(100);
+        hwthread_pause(10);
         preemption_point(); // allows interrupts even if polling only policy
     }
     releaseKernel();
@@ -141,7 +141,7 @@ void SchedulingCoordinator::runSpin() {
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
-        hwthread_pause(100);
+        hwthread_pause(10);
         preemption_point(); // allows interrupts even if polling only policy
     }
 }

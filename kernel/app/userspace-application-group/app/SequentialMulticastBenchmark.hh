@@ -1,7 +1,6 @@
 #pragma once
 
 #include "runtime/IdleManagement.hh"
-#include "cpu/hwthread_pause.hh"
 
 extern ThreadManager manager;
 extern std::atomic<uint64_t> counter;
@@ -10,8 +9,10 @@ class SequentialMulticastBenchmark {
 public:
 	SequentialMulticastBenchmark(mythos::Portal &portal_)
 		:portal(portal_) {}
+  void setup();
 	void test_multicast();
-	void test_multicast_no_deep_sleep();
+	void test_signal_single_thread();
+  void test_multicast_no_deep_sleep();
 	void test_multicast_always_deep_sleep();
 	void test_multicast_gen(uint64_t);
 
@@ -27,34 +28,59 @@ private:
 	mythos::Portal &portal;
 };
 
+void SequentialMulticastBenchmark::setup() {
+	manager.init([](void *data) -> void* {
+		//ASSERT(data != nullptr);
+		//auto *thread = reinterpret_cast<Thread*>(data);
+		counter.fetch_add(1);
+	});
+	manager.startAll();
+}
+
 void SequentialMulticastBenchmark::test_multicast() {
-	test_multicast_no_deep_sleep();
+  setup();
+	test_signal_single_thread();
+  test_multicast_no_deep_sleep();
 	test_multicast_always_deep_sleep();
 }
 
-void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
-  {
-    mythos::PortalLock pl(portal);
-    for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
-      mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
-      ASSERT(im.setPollingDelay(pl, 0).wait());
-      ASSERT(im.setLiteSleepDelay(pl, (uint32_t)(-1)).wait()); // max delay == no deep sleep
-    }
-  }
-	MLOG_ERROR(mlog::app, "Start No Deep Sleep Signalable Group Test");
-	manager.init([](void *data) -> void* {
-		ASSERT(data != nullptr);
-		auto *thread = reinterpret_cast<Thread*>(data);
-		counter.fetch_add(1);
-	});
-  MLOG_ERROR(mlog::app, "here");
-	manager.startAll();
+void SequentialMulticastBenchmark::test_signal_single_thread() {
+	mythos::PortalLock pl(portal);
+	for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
+		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+		ASSERT(im.setPollingDelay(pl, 0).wait());
+		ASSERT(im.setLiteSleepDelay(pl, (uint32_t)(-1)).wait()); // max delay == no deep sleep
+    manager.getThread(i)->signal();
+	}
+	pl.release();
+	MLOG_ERROR(mlog::app, "Start Single wakeup test", DVAR(REPETITIONS));
+	mythos::delay(4000000);
 
-	// wait until all initialized
-	while (counter.load() < manager.getNumThreads() - 1) {
-		mythos::hwthread_pause(10);
-	};
-	mythos::delay(100000);
+  mythos::Timer t;
+  uint64_t sum = 0;
+  for (int i = 0; i < REPETITIONS; i++) {
+    t.start();
+    manager.getThread(10)->signal();
+    //mythos::syscall_signal(manager.getThread(10)->ec);
+    while(counter.load() == 0) {}
+    sum += t.end();
+    counter.store(0);
+  }
+  MLOG_ERROR(mlog::app, DVAR(sum/REPETITIONS));
+}
+
+void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
+	mythos::PortalLock pl(portal);
+	for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
+		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+		ASSERT(im.setPollingDelay(pl, 0).wait());
+		ASSERT(im.setLiteSleepDelay(pl, (uint32_t)(-1)).wait()); // max delay == no deep sleep
+    manager.getThread(i)->signal();
+	}
+	pl.release();
+	MLOG_ERROR(mlog::app, "Start No Deep Sleep Signalable Group Test", DVAR(REPETITIONS));
+
+	mythos::delay(4000000);
 
 	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
@@ -68,34 +94,21 @@ void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
 
 void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
 	MLOG_ERROR(mlog::app, "Start always Deep Sleep Signalable Group Test", DVAR(REPETITIONS));
-  {
-    mythos::PortalLock pl(portal);
-    for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
-      mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
-      ASSERT(im.setPollingDelay(pl, 0).wait());
-      ASSERT(im.setLiteSleepDelay(pl, 0).wait()); // max delay == no deep sleep
-    }
-  }
-	manager.init([](void *data) -> void* {
-		ASSERT(data != nullptr);
-		auto *thread = reinterpret_cast<Thread*>(data);
-		counter.fetch_add(1);
-	});
-	manager.startAll();
-	// wait until all initialized
-	while (counter.load() < manager.getNumThreads() - 1) {
-		mythos::hwthread_pause(10);
-	};
-
-	mythos::delay(100000);
+	mythos::PortalLock pl(portal);
+	for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
+		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+		ASSERT(im.setPollingDelay(pl, 0).wait());
+		ASSERT(im.setLiteSleepDelay(pl, 0).wait()); // max delay == no deep sleep
+    manager.getThread(i)->signal();
+	}
+	pl.release();
+	mythos::delay(4000000);
 
 	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
-    mythos::delay(100000);
 	}
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
 		test_multicast_gen(i);
-    mythos::delay(100000);
 	}
 
 	MLOG_ERROR(mlog::app, "End always Deep Sleep Signalable Group Test");
@@ -109,18 +122,17 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t number) {
 	for (int i = 4; i < number + 4; ++i) {
 		group.addMember(manager.getThread(i));
 	}
-
+  counter.store(0);
   mythos::Timer t;
   uint64_t sum = 0;
   for (uint64_t i = 0; i < REPETITIONS; i++) {
-    counter.store(0);
     t.start();
     group.signalAll();
     static uint64_t last_count = counter.load();
-    while (counter.load() < number) {
-      mythos::hwthread_pause();
-    }
+    while (counter.load() < number) { }
     sum += t.end();
+    counter.store(0);
+    mythos::delay(100000);
   }
 	MLOG_ERROR(mlog::app, DVAR(number),  sum/REPETITIONS);
 }

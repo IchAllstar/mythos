@@ -49,7 +49,7 @@ VirtualIdleState available[3] =
   {
     /*.id =*/			 6,
     /*.name = */		 "C6",
-    /*.exit_latency = */ 4000000,
+    /*.exit_latency = */ 120000,
   }
 };
 
@@ -87,6 +87,8 @@ struct CoreState {
    */
   std::atomic<bool> sleep = {false};
   volatile uint64_t cstate[SleepEmulator::HWTHREADS] {0}; // lock if access
+
+  std::atomic<uint64_t> state = {0};
 
   void lock() { while(locked.exchange(true) == true); }
   void unlock() { locked.store(false); }

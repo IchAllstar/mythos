@@ -22,8 +22,8 @@ public:
   void addMember(ISignalable *t);
   void signalAll();
   uint64_t count() { return size; }
-  ISignalable* getMember(uint64_t i) { return member[i]; }
-  Task* getTask(uint64_t i) { return &tasks[i]; }
+  ISignalable* getMember(uint64_t i) { ASSERT(i < size); return member[i]; }
+  Task* getTask(uint64_t i) { ASSERT(i < size); return &tasks[i]; }
   void setStrat(STRATEGY strat_) { strat = strat_; }
 
 private:
@@ -190,10 +190,34 @@ public:
     });
   }
 
+  static void prepareTaskNary(SignalableGroup *group, uint64_t idx, uint64_t size) {
+    static const uint64_t NARY = 3;
+    group->getTask(idx)->set([group, idx, size](Task&) {
+        ASSERT(group != nullptr);
+        ASSERT(size > 0);
+        for (uint64_t i = 0; i < NARY; i++) {
+          auto child_idx = idx * NARY + i + 1;
+          if (child_idx > size) return;
+          //MLOG_ERROR(mlog::app, idx, "sends to", child_idx);
+          ISignalable* dest = group->getMember(child_idx);
+          if (dest) {
+            if (child_idx <= size / NARY) {
+              TreeStrategy::prepareTaskNary(group, child_idx, size);
+              dest->addTask(&group->getTask(child_idx)->list_member);
+            }
+            dest->signal();
+          }
+        }
+    });
+  }
+
   static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
-      TreeStrategy::prepareTask(group, 0, 0, size - 1);
+      //TreeStrategy::prepareTask(group, 0, 0, size - 1);
+      //signalable->addTask(&group->getTask(0)->list_member);
+      //signalable->signal();
+      TreeStrategy::prepareTaskNary(group, 0, size - 1);
       signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
     }

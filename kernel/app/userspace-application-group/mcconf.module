@@ -1,15 +1,16 @@
 # -*- mode:toml; -*-
 [module.userspace-application-group]
     initappfiles = [ "app/init.cc", "app/ThreadManager.cc", "app/Thread.cc", "app/SignalableGroup.cc" ]
-	incfiles = [ 	"app/Thread.hh", 
-					"app/Mutex.hh", 
+	incfiles = [ 	"app/Thread.hh",
+					"app/Mutex.hh",
 					"app/SignalableGroup.hh",
-					"app/ISignalable.hh", 
+					"app/ISignalable.hh",
 					"app/ThreadManager.hh",
-					"app/conf.hh", 
-					"app/HelperThreadBenchmark.hh", 
-					"app/TreeMulticastBenchmark.hh", 
-					"app/Task.hh", 
+					"app/conf.hh",
+					"app/HelperThreadBenchmark.hh",
+					"app/TreeMulticastBenchmark.hh",
+          "app/SequentialMulticastBenchmark.hh",
+					"app/Task.hh",
 					"app/IntrusiveList.hh" ,
 				]
     provides = [ "app/init.elf" ]

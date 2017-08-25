@@ -180,9 +180,11 @@ namespace mythos {
     ASSERT(destination<256);
     MLOG_DETAIL(mlog::boot, "write ICR", DVAR(destination), DVARhex(icrlow.value));
 
+    uint64_t bailout = 0;
     while(read(REG_ICR_LOW).delivery_pending) {
       //MLOG_ERROR(mlog::boot, "Hanign");
       hwthread_pause(100);
+      if (bailout++ > 100000) PANIC("Bailout Lapic");
     }
 
     write(REG_ICR_HIGH, Register().destination(destination));

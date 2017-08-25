@@ -28,19 +28,19 @@ void Thread::wait(Thread &t) {
     return;
 	}
 	//t.state.store(STOP);
-	t.state.store(STOP);
-
 	mythos::syscall_wait();
 }
 
 void Thread::signal(Thread &t) {
 	//MLOG_ERROR(mlog::app, "send signal to Thread", t.id);
+  //mythos::syscall_signal(t.ec);
 
-  t.state.store(RUN);
+  //t.state.store(RUN);
 	auto prev = t.SIGNALLED.exchange(true);
 	if (not prev) {
 		//LockGuard<SpinMutex> g(global);
 		mythos::syscall_signal(t.ec);
 	}
+
 }
 

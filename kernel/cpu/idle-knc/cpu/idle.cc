@@ -71,31 +71,6 @@ void sleep(uint8_t depth)
 {
     emu.sleep(cpu::getThreadID(), depth);
     cpu_idle_halt();
-
-/*
-    if (depth == 1) {       // CC1 lite sleep
-        //boot::getLocalIdleManagement().sleepIntention(depth);
-        cpu_idle_halt(); // no return
-    }
-    // deep sleep
-    size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID
-    while (coreStates[apicID / 4].lock.exchange(true) == true);
-
-    auto prev = coreStates[apicID / 4].cc6ready.fetch_or(uint8_t(1 << (apicID % 4)));
-    /// @todo is this really needed if we always go into cc6?
-    if ((prev | (1 << (apicID % 4))) == 0xf) { // enable cc6
-        MLOG_DETAIL(mlog::boot, "idle: enable CC6", DVARhex(prev), DVAR(apicID));
-        x86::setMSR(MSR_CC6_STATUS, x86::getMSR(MSR_CC6_STATUS) | 0x1f);
-    }
-
-    MLOG_INFO(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
-    auto chlt = reinterpret_cast<uint64_t volatile*>(MMIO_ADDR + SBOX_BASE + 0xac0c);
-    MLOG_INFO(mlog::boot, "idle: cores halted", DVARhex(*chlt));
-
-    coreStates[apicID / 4].lock = false;
-    //boot::getLocalIdleManagement().sleepIntention(depth);
-    cpu_idle_halt();
-*/
 }
 
 void wokeup(size_t /*apicID*/, size_t reason)
@@ -110,27 +85,10 @@ void wokeup(size_t /*apicID*/, size_t reason)
 
 void wokeupFromInterrupt(uint8_t irq)
 {
-
     emu.wakeup(cpu::getThreadID());
-    boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
-
-  /*
-    MLOG_INFO(mlog::boot, "idle: woke up from irq");
-    boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
-    size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID
-    while (coreStates[apicID / 4].lock.exchange(true) == true);
-
-    auto prev = coreStates[apicID / 4].cc6ready.fetch_and(uint8_t(~(1u << (apicID % 4))));
-    if (prev == 0xf) { // disable cc6
-        MLOG_DETAIL(mlog::boot, "idle: disable CC6", DVARhex(prev), DVAR(apicID));
-        x86::setMSR(MSR_CC6_STATUS, x86::getMSR(MSR_CC6_STATUS) & (~0x1Ful));
-        coreStates[apicID / 4].lock = false;
-        emulateCC6Delay();
-        return;
+    if (irq == 0x22) {
+      boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
     }
-
-    coreStates[apicID / 4].lock = false;
-  */
 }
 
 void enteredFromSyscall() { boot::getLocalIdleManagement().enteredFromSyscall(); }
