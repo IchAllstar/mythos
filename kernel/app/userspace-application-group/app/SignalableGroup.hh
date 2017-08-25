@@ -214,12 +214,12 @@ public:
   static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
-      //TreeStrategy::prepareTask(group, 0, 0, size - 1);
-      //signalable->addTask(&group->getTask(0)->list_member);
-      //signalable->signal();
-      TreeStrategy::prepareTaskNary(group, 0, size - 1);
+      TreeStrategy::prepareTask(group, 0, 0, size - 1);
       signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
+      //TreeStrategy::prepareTaskNary(group, 0, size - 1);
+      //signalable->addTask(&group->getTask(0)->list_member);
+      //signalable->signal();
     }
   }
 };

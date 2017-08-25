@@ -20,6 +20,7 @@ public:
 public:
 	void setup();
 	void test_multicast();
+  void test_single_thread();
 	void test_multicast_gen(uint64_t);
   void test_multicast_no_deep_sleep();
   void test_multicast_always_deep_sleep();
@@ -43,6 +44,19 @@ void SequentialMulticastBenchmark::test_multicast() {
 	setup();
   test_multicast_no_deep_sleep();
   test_multicast_always_deep_sleep();
+}
+
+void SequentialMulticastBenchmark::test_single_thread() {
+  {
+    mythos::PortalLock pl(portal);
+    for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
+      mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+      ASSERT(im.setPollingDelay(pl, 0).wait());
+      ASSERT(im.setLiteSleepDelay(pl,(uint32_t(-1))).wait());
+    }
+
+  }
+
 }
 
 void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
