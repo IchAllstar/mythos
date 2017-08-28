@@ -416,17 +416,17 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
     RETURN(p.sendInvocation(dest, user));
 }
 
-extern SleepEmulator emu;
-IScheduler* ExecutionContext::getScheduler() {
-    auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
-    if (sched) {
-        return *sched;
-    }
-    return nullptr;
+async::Place* ExecutionContext::getHome() {
+  auto sched = _sched.get();
+  if (sched) {
+    return sched->getHome();
+  }
+  return nullptr;
 }
 
 // little hacky to get sleep state like that
 // could be solved more elegant probably
+extern SleepEmulator emu;
 uint64_t ExecutionContext::getSleepState() {
     auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
     if (sched) {
@@ -444,10 +444,10 @@ bool ExecutionContext::prepareResume() {
     MLOG_DETAIL(mlog::ec, "try to resume", DVARhex(prevState));
     if (prevState & IN_WAIT) {
         MLOG_DETAIL(mlog::ec, "try to resume from wait state");
-        auto last = lastSignal.exchange(0);
-        if (last != 0) {
-            MLOG_ERROR(mlog::ec, "LastSignal", DVAR(last));
-        }
+        //auto last = lastSignal.exchange(0);
+        //if (last != 0) {
+        //    MLOG_ERROR(mlog::ec, "LastSignal", DVAR(last));
+        //}
         clearFlag(IS_NOTIFIED); // this is safe because we wake up anyway
 
         auto e = notificationQueue.pull();

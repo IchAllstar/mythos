@@ -72,27 +72,28 @@ void* thread_main(void* data) {
 
 char threadstack[stacksize];
 char* threadstack_top = threadstack + stacksize;
-void test() {
+void test_raw() {
 
   mythos::ExecutionContext ec2(capAlloc());
   {
     mythos::PortalLock pl(portal);
     MLOG_INFO(mlog::app, "test_EC: create ec2");
-    auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+5,
+    auto res2 = ec2.create(pl, kmem, myAS, myCS, mythos::init::SCHEDULERS_START+10,
         threadstack_top, &thread_main, nullptr).wait();
     TEST(res2);
   }
 
   mythos::Timer t;
   uint64_t sum = 0;
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < REPETITIONS; i++) {
+    counter.store(0);
     t.start();
     mythos::syscall_signal(ec2.cap());
     while(counter.load() == 0) {}
     sum += t.end();
-    counter.store(0);
+    mythos::hwthread_pause(1000);
   }
-  MLOG_ERROR(mlog::app, DVAR(sum/10000));
+  MLOG_ERROR(mlog::app, DVAR(sum/REPETITIONS));
 
 
 }
@@ -107,10 +108,10 @@ int main()
   //TreeMulticastBenchmark tmb(portal);
   //tmb.test_multicast();
 
-  //SequentialMulticastBenchmark smb(portal);
-  //smb.test_multicast();
+  SequentialMulticastBenchmark smb(portal);
+  smb.test_multicast();
 
-  //test();
+  //test_raw();
 
   MLOG_ERROR(mlog::app, "END application");
   return 0;

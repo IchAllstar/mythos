@@ -33,6 +33,7 @@
 namespace mythos {
 class SignalableGroup;
 class IScheduler;
+//class async::Place;
 
 /**
  * Interface for signalable objects.
@@ -45,7 +46,7 @@ public:
 
     virtual optional<void> signal(CapData data) = 0;
     virtual uint64_t getSleepState() = 0;
-    virtual IScheduler* getScheduler() = 0;
+    virtual async::Place* getHome() = 0;
 };
 
 } // namespace mythos

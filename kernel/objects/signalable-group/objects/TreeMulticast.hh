@@ -123,9 +123,9 @@ struct TreeCastStrategy {
             t->set([group, idx, from, to](Tasklet*) {
               signalTo(group, idx, from, to);
             });
-            auto sched = own->getScheduler();
-            if (sched) {
-                sched->run(t);
+            auto home = own->getHome();
+            if (home) {
+                home->run(t);
             }
         } else { // Send to child yourself because is in deep sleep
             signalTo(group, idx, from, to);
@@ -171,9 +171,11 @@ struct NaryTree {
         t->set([group, idx, size](Tasklet*) {
             NaryTree::sendTo(group, idx, size);
         });
-        auto sched = own->getScheduler();
-        if (sched) {
-          sched->run(t);
+        auto *home = own->getHome();
+        if (home) {
+          home->run(t);
+        } else {
+          PANIC_MSG(false, "No home to run tasklet on.");
         }
       } else {
           NaryTree::sendTo(group, idx, size);

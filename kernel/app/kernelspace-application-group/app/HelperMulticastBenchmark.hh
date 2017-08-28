@@ -13,7 +13,7 @@ extern ThreadManager manager;
 extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
-extern uint64_t repetitions;
+extern uint64_t REPETITIONS;
 
 class HelperMulticastBenchmark {
 public:
@@ -122,7 +122,7 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     }
     uint64_t sum = 0;
     mythos::Timer t;
-    for (int j = 0; j < repetitions; j++) {
+    for (int j = 0; j < REPETITIONS; j++) {
       counter.store(0);
       t.start();
       group.signalAll(pl);
@@ -131,7 +131,7 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
       mythos::delay(6000000); // wait to let threads enter deep sleep
     }
 
-    MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/repetitions));
+    MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/REPETITIONS));
     caps.free(group, pl);
     //manager.cleanup();
 }

@@ -58,15 +58,21 @@ void SequentialMulticastBenchmark::test_signal_single_thread() {
 
   mythos::Timer t;
   uint64_t sum = 0;
-  for (int i = 0; i < REPETITIONS; i++) {
-    t.start();
-    manager.getThread(10)->signal();
-    //mythos::syscall_signal(manager.getThread(10)->ec);
-    while(counter.load() == 0) {}
-    sum += t.end();
-    counter.store(0);
+
+  for (uint64_t thread = 1; thread < manager.getNumThreads(); thread++) {
+    sum = 0;
+    for (int i = 0; i < REPETITIONS; i++) {
+      t.start();
+      manager.getThread(thread)->signal();
+      while(counter.load() == 0) {}
+      sum += t.end();
+      counter.store(0);
+      mythos::hwthread_pause(1000);
+    }
+    MLOG_ERROR(mlog::app, "single thread:", thread, "; ", sum/REPETITIONS);
+    mythos::hwthread_pause(10000);
   }
-  MLOG_ERROR(mlog::app, DVAR(sum/REPETITIONS));
+
 }
 
 void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {

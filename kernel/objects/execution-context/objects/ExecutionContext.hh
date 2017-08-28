@@ -101,7 +101,7 @@ namespace mythos {
   public: // ISignalable interface
     optional<void> signal(CapData data) override;
     uint64_t getSleepState() override;
-    IScheduler* getScheduler() override;
+    async::Place* getHome() override;
   public: // IPortalUser interface
     optional<CapEntryRef> lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writeable) override;
 

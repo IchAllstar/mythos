@@ -11,7 +11,7 @@ extern ThreadManager manager;
 extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
-extern uint64_t repetitions;
+extern uint64_t REPETITIONS;
 
 class SequentialMulticastBenchmark {
 public:
@@ -42,6 +42,7 @@ void SequentialMulticastBenchmark::setup() {
 
 void SequentialMulticastBenchmark::test_multicast() {
 	setup();
+  test_single_thread();
   test_multicast_no_deep_sleep();
   test_multicast_always_deep_sleep();
 }
@@ -53,10 +54,21 @@ void SequentialMulticastBenchmark::test_single_thread() {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, 0).wait());
       ASSERT(im.setLiteSleepDelay(pl,(uint32_t(-1))).wait());
+      manager.getThread(i)->signal();
     }
-
+    mythos::delay(100000);
   }
-
+  MLOG_ERROR(mlog::app, "Test single Thread performance.");
+  mythos::Timer t;
+  uint64_t sum = 0;
+  for (uint64_t i = 0; i < REPETITIONS; i++) {
+    counter.store(0);
+    t.start();
+    manager.getThread(10)->signal();
+    while (counter.load() == 0) {}
+    sum += t.end();
+  }
+  MLOG_ERROR(mlog::app, "Single Thread with ThreadManager", sum / REPETITIONS);
 }
 
 void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
@@ -120,7 +132,7 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	}
 	mythos::Timer t;
 	uint64_t sum = 0;
-	for (uint64_t i = 0; i < repetitions; i++) {
+	for (uint64_t i = 0; i < REPETITIONS; i++) {
 		counter.store(0);
 		t.start();
 		group.signalAll(pl).wait();
@@ -128,6 +140,6 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 		sum += t.end();
     mythos::delay(10000000);
   }
-	MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum / repetitions));
+	MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);
 	caps.free(group, pl);
 }

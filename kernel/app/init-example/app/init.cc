@@ -40,6 +40,7 @@
 #include "app/mlog.hh"
 #include <cstdint>
 #include "util/optional.hh"
+#include "util/Time.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -63,12 +64,16 @@ char threadstack2[stacksize];
 char* thread3stack_top = threadstack2 + stacksize / 2;
 char* thread4stack_top = threadstack2 + stacksize;
 
+uint64_t REPETITIONS = 1000;
+std::atomic<uint64_t> counter = {0};
+
 void* thread_main(void* ctx)
 {
+  MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
   while(true) {
-    MLOG_ERROR(mlog::app, "hello thread!", DVAR(ctx));
     mythos::ISysretHandler::handle(mythos::syscall_wait());
-    MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
+    counter.fetch_add(1);
+    //MLOG_ERROR(mlog::app, "thread resumed from wait", DVAR(ctx));
   }
   return 0;
 }
@@ -105,26 +110,18 @@ int main()
 
   }
 
+  mythos::Timer t;
+  uint64_t sum = 0;
+  for (uint64_t i = 0; i < 1000; i++) {
+    counter.store(0);
+    t.start();
+    mythos::syscall_signal(ec2.cap());
+    while(counter.load() == 0) {  }
+    sum += t.end();
+    mythos::hwthread_pause(1000);
+  }
+  MLOG_ERROR(mlog::app, "raw thread singaling", sum / REPETITIONS);
 
-
-  for (volatile int i = 0; i < 100000; i++) {
-    for (volatile int j = 0; j < 1000; j++) {}
-  }
-
-  MLOG_ERROR(mlog::app, "sending notifications");
-  mythos::syscall_signal(ec1.cap());
-  for (volatile int i = 0; i < 100000; i++) {
-    for (volatile int j = 0; j < 1000; j++) {}
-  }
-  mythos::syscall_signal(ec2.cap());
-  for (volatile int i = 0; i < 100000; i++) {
-    for (volatile int j = 0; j < 1000; j++) {}
-  }
-  mythos::syscall_signal(ec3.cap());
-  for (volatile int i = 0; i < 100000; i++) {
-    for (volatile int j = 0; j < 1000; j++) {}
-  }
-  mythos::syscall_signal(ec4.cap());
 
   mythos::syscall_debug(end, sizeof(end) - 1);
 

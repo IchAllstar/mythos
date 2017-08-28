@@ -72,7 +72,8 @@ namespace mythos {
 
     virtual void yield(handle_t* ec_handle) = 0;
 
-    virtual void run(Tasklet *t) = 0;
+
+    virtual async::Place* getHome() = 0;
 
     virtual SchedulingCoordinator* getSchedCoord() = 0;
   };

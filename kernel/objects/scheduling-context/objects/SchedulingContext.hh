@@ -87,12 +87,6 @@ class SchedulingCoordinator;
     ISchedulable* tryRunUser();
     void preempt();
 
-    void run(Tasklet* t) override {
-      home->run(t);
-    }
-
-    SchedulingCoordinator* getSchedCoord() override { return schedCoord; }
-
   public: // IScheduler interface
     void bind(handle_t*) override {}
     void unbind(handle_t* ec_handle) override;
@@ -100,7 +94,8 @@ class SchedulingCoordinator;
     void preempt(Tasklet* t, IResult<void>* res, handle_t* ec_handle) override;
     void preempt(handle_t* ec_handle) override;
     void yield(handle_t* ec_handle) override;
-
+    SchedulingCoordinator* getSchedCoord() override { return schedCoord; }
+    async::Place* getHome() override { return home; }
   public: // IKernelObject interface
     optional<void> deleteCap(Cap, IDeleter&) override { RETURN(Error::SUCCESS); }
     optional<void const*> vcast(TypeId id) const override {
