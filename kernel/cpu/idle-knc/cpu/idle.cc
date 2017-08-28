@@ -55,7 +55,7 @@ namespace mythos {
       *cc6 |= 0x8000; // C1-CC6 MAS (bit 15)
 
       for (unsigned i=0; i<22; i++)
-        MLOG_ERROR(mlog::boot, "idle: C6_SCRATCH", DVAR(i), DVARhex(cc6[i]));
+        MLOG_DETAIL(mlog::boot, "idle: C6_SCRATCH", DVAR(i), DVARhex(cc6[i]));
     }
 
     NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
@@ -68,13 +68,13 @@ namespace mythos {
       auto prev = coreStates[apicID/4].cc6ready.fetch_or(uint8_t(1 << (apicID%4)));
       /// @todo is this really needed if we always go into cc6?
       if ((prev | (1 << (apicID%4))) == 0xf) { // enable cc6
-	MLOG_ERROR(mlog::boot, "idle: enable CC6", DVARhex(prev), DVAR(apicID));
+	MLOG_DETAIL(mlog::boot, "idle: enable CC6", DVARhex(prev), DVAR(apicID));
         x86::setMSR(MSR_CC6_STATUS, x86::getMSR(MSR_CC6_STATUS) | 0x1f);
       }
 
-      MLOG_ERROR(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
+      MLOG_DETAIL(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
       auto chlt = reinterpret_cast<uint64_t volatile*>(MMIO_ADDR+SBOX_BASE+0xac0c);
-      MLOG_ERROR(mlog::boot, "idle: cores halted", DVARhex(*chlt));
+      MLOG_DETAIL(mlog::boot, "idle: cores halted", DVARhex(*chlt));
 
       coreStates[apicID/4].lock = false;
       cpu_idle_halt();
@@ -82,22 +82,22 @@ namespace mythos {
 
     void wokeup(size_t /*apicID*/, size_t reason)
     {
-      MLOG_ERROR(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
+      MLOG_DETAIL(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
       if (reason == 1) {
-	MLOG_ERROR(mlog::boot, "idle: woke up from CC6");
+	MLOG_DETAIL(mlog::boot, "idle: woke up from CC6");
 	cpu_idle_halt(); // woke up from CC6 => just sleep again
       }
     }
 
     void wokeupFromInterrupt()
     {
-      MLOG_ERROR(mlog::boot, "idle: woke up from irq");
+      MLOG_DETAIL(mlog::boot, "idle: woke up from irq");
       size_t apicID = cpu::getThreadID(); // @todo hack on KNC because threadID==apicID
       while (coreStates[apicID/4].lock.exchange(true) == true);
 
       auto prev = coreStates[apicID/4].cc6ready.fetch_and(uint8_t(~(1u << (apicID%4))));
       if (prev == 0xf) { // disable cc6
-	MLOG_ERROR(mlog::boot, "idle: disable CC6", DVARhex(prev), DVAR(apicID));
+	MLOG_DETAIL(mlog::boot, "idle: disable CC6", DVARhex(prev), DVAR(apicID));
         x86::setMSR(MSR_CC6_STATUS, x86::getMSR(MSR_CC6_STATUS) & (~0x1Ful));
       }
 
