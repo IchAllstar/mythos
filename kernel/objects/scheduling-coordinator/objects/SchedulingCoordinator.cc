@@ -145,7 +145,7 @@ void SchedulingCoordinator::runSpin() {
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
-        hwthread_pause(10);
+        //hwthread_pause(10);
         //preemption_point(); // allows interrupts even if polling only policy
     }
 }

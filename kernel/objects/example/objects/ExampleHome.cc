@@ -42,14 +42,12 @@ namespace mythos {
 
   optional<void const*> ExampleHomeObj::vcast(TypeId id) const
   {
-	mlogexhome.info("vcast", DVAR(this), DVAR(id.debug()));
     if (id == typeId<ExampleHomeObj>()) return /*static_cast<ExampleObj const*>*/(this);
     THROW(Error::TYPE_MISMATCH);
   }
 
   optional<void> ExampleHomeObj::deleteCap(Cap self, IDeleter& del)
   {
-	mlogexhome.info("deleteCap", DVAR(this), DVAR(self), DVAR(self.isOriginal()));
     if (self.isOriginal()) {
       del.deleteObject(del_handle);
     }
@@ -58,7 +56,6 @@ namespace mythos {
 
   void ExampleHomeObj::deleteObject(Tasklet* t, IResult<void>* r)
   {
-	mlogexhome.info("deleteObject", DVAR(this), DVAR(t), DVAR(r));
     monitor.doDelete(t, [=](Tasklet* t){
       _mem->free(t, r, this, sizeof(ExampleObj));
     });
@@ -85,34 +82,31 @@ namespace mythos {
 
   Error ExampleHomeObj::getDebugInfo(Cap self, IInvocation* msg)
   {
-	mlogexhome.info("invoke getDebugInfo", DVAR(this), DVAR(self), DVAR(msg));
     return writeDebugInfo("ExampleHomeObj", self, msg);
   }
 
   Error ExampleHomeObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
   {
-	mlogexhome.info("invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
     mlogexhome.error(mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
   }
 
-  Error ExampleHomeObj::ping(Tasklet*, Cap self, IInvocation* msg)
+  Error ExampleHomeObj::ping(Tasklet*, Cap, IInvocation* msg)
   {
-	mlogexhome.info("invoke ping", DVAR(this), DVAR(self), DVAR(msg));
 	auto data = msg->getMessage()->cast<protocol::Example::Ping>();
 	uint64_t wait_cycles = data->wait_cycles;
 
-	for(uint64_t count = 0; count < wait_cycles; count++);
+	for(volatile uint64_t count = 0; count < wait_cycles; count++);
 
 	data->place = cpu::hwThreadID_;
 
 	return Error::SUCCESS;
   }
 
-  Error ExampleHomeObj::moveHome(Tasklet*, Cap self, IInvocation* msg)
+  Error ExampleHomeObj::moveHome(Tasklet*, Cap, IInvocation* msg)
   {
-	mlogexhome.info("invoke moveHome", DVAR(this), DVAR(self), DVAR(msg));
+	//mlogexhome.info("invoke moveHome", DVAR(this), DVAR(self), DVAR(msg));
 	auto data = msg->getMessage()->cast<protocol::Example::MoveHome>();
 	mlogexhome.error(DVAR(data->location));
 	monitor.setHome(&async::places[data->location]);
