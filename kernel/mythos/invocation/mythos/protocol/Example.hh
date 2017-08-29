@@ -30,43 +30,67 @@
 #include "mythos/protocol/KernelMemory.hh"
 
 namespace mythos {
-  namespace protocol {
+namespace protocol {
 
-    struct Example {
-      constexpr static uint8_t proto = EXAMPLE;
+struct Example {
+  constexpr static uint8_t proto = EXAMPLE;
 
-      enum Methods : uint8_t {
-        PRINT_MESSAGE,
-      };
+  enum Methods : uint8_t {
+    PRINT_MESSAGE,
+    PING,
+    MOVE_HOME,
+  };
 
-      struct PrintMessage : public InvocationBase {
-        typedef InvocationBase response_type;
-        constexpr static uint16_t label = (proto<<8) + PRINT_MESSAGE;
-        PrintMessage(char const* str, size_t bytes)
-          : InvocationBase(label,getLength(this))
-        {
-          if (bytes>InvocationBase::maxBytes) bytes = InvocationBase::maxBytes;
-          this->bytes = uint16_t(bytes);
-          this->tag.length = uint8_t((bytes+3)/4);
-          memcpy(message, str, bytes);
-        }
-        uint16_t bytes;
-        char message[InvocationBase::maxBytes-2];
-      };
+  struct PrintMessage : public InvocationBase {
+    typedef InvocationBase response_type;
+    constexpr static uint16_t label = (proto << 8) + PRINT_MESSAGE;
+    PrintMessage(char const* str, size_t bytes)
+      : InvocationBase(label, getLength(this))
+    {
+      if (bytes > InvocationBase::maxBytes) bytes = InvocationBase::maxBytes;
+      this->bytes = uint16_t(bytes);
+      this->tag.length = uint8_t((bytes + 3) / 4);
+      memcpy(message, str, bytes);
+    }
+    uint16_t bytes;
+    char message[InvocationBase::maxBytes - 2];
+  };
 
-      struct Create : public KernelMemory::CreateBase {
-        Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
-      };
+  struct Create : public KernelMemory::CreateBase {
+    Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
+  };
 
-      template<class IMPL, class... ARGS>
-      static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
-        switch(Methods(m)) {
-          case PRINT_MESSAGE: return obj->printMessage(args...);
-          default: return Error::NOT_IMPLEMENTED;
-        }
-      }
-
+  struct Ping : public InvocationBase {
+    typedef InvocationBase response_type;
+    constexpr static uint16_t label = (proto << 8) + PING;
+    Ping(size_t wait_cycles): InvocationBase(label, getLength(this)) {
+      this->wait_cycles = uint64_t(wait_cycles);
+      this->place = 1234567;
     };
+    uint64_t wait_cycles;
+    uint64_t place;
+  };
 
-  } // namespace protocol
+  struct MoveHome : public InvocationBase {
+    typedef InvocationBase response_type;
+    constexpr static uint16_t label = (proto << 8) + MOVE_HOME;
+    MoveHome(size_t location): InvocationBase(label, getLength(this)) {
+      this->location = uint16_t(location);
+    };
+    uint16_t location;
+  };
+
+  template<class IMPL, class... ARGS>
+  static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
+    switch (Methods(m)) {
+      case PRINT_MESSAGE: return obj->printMessage(args...);
+      case PING: return obj->ping(args...);
+      case MOVE_HOME: return obj->moveHome(args...);
+      default: return Error::NOT_IMPLEMENTED;
+    }
+  }
+
+};
+
+} // namespace protocol
 } // namespace mythos
