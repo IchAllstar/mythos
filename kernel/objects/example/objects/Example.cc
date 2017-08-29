@@ -42,14 +42,12 @@ namespace mythos {
 
   optional<void const*> ExampleObj::vcast(TypeId id) const
   {
-    mlogex.info("vcast", DVAR(this), DVAR(id.debug()));
     if (id == typeId<ExampleObj>()) return /*static_cast<ExampleObj const*>*/(this);
     THROW(Error::TYPE_MISMATCH);
   }
 
   optional<void> ExampleObj::deleteCap(Cap self, IDeleter& del)
   {
-    mlogex.info("deleteCap", DVAR(this), DVAR(self), DVAR(self.isOriginal()));
     if (self.isOriginal()) {
       del.deleteObject(del_handle);
     }
@@ -58,7 +56,6 @@ namespace mythos {
 
   void ExampleObj::deleteObject(Tasklet* t, IResult<void>* r)
   {
-    mlogex.info("deleteObject", DVAR(this), DVAR(t), DVAR(r));
     monitor.doDelete(t, [=](Tasklet* t){
       _mem->free(t, r, this, sizeof(ExampleObj));
     });
@@ -85,13 +82,11 @@ namespace mythos {
 
   Error ExampleObj::getDebugInfo(Cap self, IInvocation* msg)
   {
-    mlogex.info("invoke getDebugInfo", DVAR(this), DVAR(self), DVAR(msg));
     return writeDebugInfo("ExampleObj", self, msg);
   }
 
   Error ExampleObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
   {
-    mlogex.info("invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
     mlogex.error(mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
@@ -99,7 +94,6 @@ namespace mythos {
 
   Error ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
   {
-  	mlogex.info("invoke ping", DVAR(this), DVAR(self), DVAR(msg));
   	auto data = msg->getMessage()->cast<protocol::Example::Ping>();
   	uint64_t wait_cycles = data->wait_cycles;
 

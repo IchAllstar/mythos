@@ -37,7 +37,7 @@
 #include <cstdint>
 #include "util/optional.hh"
 
-#define NUM_RUNS 1000 
+#define NUM_RUNS 1000
 #define PARALLEL_ECS 240
 #define AVAILABLE_HWTS 240
 
@@ -68,28 +68,36 @@ uint64_t getTime(){
 	return ((uint64_t)lo)|( ((uint64_t)hi)<<32);
 }
 
+std::atomic<bool> passable {false};
+
 void thread_mobileKernelObjectLatency(mythos::PortalLock pl, mythos::CapPtr exampleCap){
+  while(passable.load() == false) {}
+
 	mythos::Example example(exampleCap);
 
 	//Invocation latency to mobile kernel object
 	uint64_t start, mid, end;
 
+  uint64_t sumMid = 0, sumEnd = 0;
 	for (size_t i = 0; i < NUM_RUNS; i++){
 		start = getTime();
 		auto res1 = example.ping(pl, 1e5);
 		mid = getTime();
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 		end = getTime();
 		if (end < start){
 			i--;
 			continue;
 		}
+    sumMid += mid - start;
+    sumEnd += end - start;
 		//MLOG_ERROR(mlog::app, "object location:", ib->cast<mythos::protocol::Example::Ping>()->place);
-		MLOG_ERROR(mlog::app, "ECs: ", PARALLEL_ECS, " t_return: ", mid - start, " t_reply: ", end - start, " obj: ", pl.getPortal()->buf()->cast<mythos::protocol::Example::Ping>()->place);
+		//MLOG_ERROR(mlog::app, "ECs: ", PARALLEL_ECS, " t_return: ", mid - start, " t_reply: ", end - start, " obj: ", pl.getPortal()->buf()->cast<mythos::protocol::Example::Ping>()->place);
 		//MLOG_ERROR(mlog::app, "duration until first return: ", mid - start);
 		//MLOG_ERROR(mlog::app, "duration until reply: ", end - start);
 	}
+		MLOG_ERROR(mlog::app, "ECs: ", PARALLEL_ECS, " t_return: ", sumMid / NUM_RUNS, " t_reply: ", sumEnd / NUM_RUNS, " obj: ", pl.getPortal()->buf()->cast<mythos::protocol::Example::Ping>()->place);
 }
 
 void* thread_invocationLatencyMain(void* ctx)
@@ -117,13 +125,13 @@ void mobileKernelObjectLatency(){
 	mythos::Example example(capAlloc());
 	auto res1 = example.create(pl, kmem);
 	res1.wait();
-	TEST(res1);
+	ASSERT(res1);
 
 	exampleObject = example.cap();
 
 	res1 = example.ping(pl,0);
 	res1.wait();
-	TEST(res1);
+	ASSERT(res1);
 
 	mythos::CapPtr createdECs[PARALLEL_ECS-1];
 
@@ -133,20 +141,20 @@ void mobileKernelObjectLatency(){
 		mythos::Frame new_msg_ptr(capAlloc());
 		res1 = new_msg_ptr.create(pl, kmem, 1<<21, 1<<21);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Map the invocation buffer frame into user space memory
 		mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+worker)<<21));
 		auto res2 = myAS.mmap(pl, new_msg_ptr, (uintptr_t)ib, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
 		res2.wait();
-		TEST(res2);
+		ASSERT(res2);
 		invocationBuffers[worker] = ib;
 
 		//Create a second portal
 		mythos::Portal portal2(capAlloc(), ib);
 		res1 = portal2.create(pl, kmem);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 		portals[worker] = portal2.cap();
 
 		//Create a second EC on its own HWT
@@ -156,12 +164,12 @@ void mobileKernelObjectLatency(){
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
 				initstack_top+stacksize-4096*worker, &thread_invocationLatencyMain, (void*)worker);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Bind the new portal to the new EC
 		res1 = portal2.bind(pl, new_msg_ptr, 0, ec.cap());
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 	}
 
 	//Run all created ECs
@@ -169,9 +177,9 @@ void mobileKernelObjectLatency(){
 		mythos::ExecutionContext ec(createdECs[worker]);
 		res1 = ec.run(pl);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 	}
-
+  passable.store(true);
 	//participate in calling the object
 	thread_mobileKernelObjectLatency(pl, example.cap());
 }
@@ -183,7 +191,7 @@ void localKernelObjectLatency(){
 	mythos::Example example(capAlloc());
 	auto res1 = example.create(pl, kmem);
 	res1.wait();
-	TEST(res1);
+	ASSERT(res1);
 
 	uint64_t start, end;
 
@@ -192,13 +200,13 @@ void localKernelObjectLatency(){
 
 		res1 = example.moveHome(pl, place);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		for (size_t i = 0; i < NUM_RUNS; i++){
 			start = getTime();
 			res1 = example.ping(pl,0);
 			res1.wait();
-			TEST(res1);
+			ASSERT(res1);
 			end = getTime();
 			if (end < start){
 				i--;
@@ -223,20 +231,20 @@ void executionContextCreationLatencyBundled(){
 		mythos::Frame new_msg_ptr(capAlloc());
 		auto res1 = new_msg_ptr.create(pl, kmem, 1<<21, 1<<21);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Map the invocation buffer frame into user space memory
 		mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+worker)<<21));
 
 		auto res2 = myAS.mmap(pl, new_msg_ptr, (uintptr_t)ib, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
 		res2.wait();
-		TEST(res2);
+		ASSERT(res2);
 
 		//Create a second portal
 		mythos::Portal portal2(capAlloc(), ib);
 		res1 = portal2.create(pl, kmem);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Create a second EC on its own HWT
 		createdECs[worker] = capAlloc();
@@ -245,12 +253,12 @@ void executionContextCreationLatencyBundled(){
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
 				threadstack_top-4096*worker, &thread_main, (void*)worker);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Bind the new portal to the new EC
 		res1 = portal2.bind(pl, new_msg_ptr, 0, ec.cap());
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 	}
 
 	//Run all created ECs
@@ -258,10 +266,10 @@ void executionContextCreationLatencyBundled(){
 		mythos::ExecutionContext ec(createdECs[worker]);
 		auto res1 = ec.run(pl);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 	}
 	end = getTime();
-	MLOG_ERROR(mlog::app, "Create+Run of ", AVAILABLE_HWTS-1, "HWTs: ", end - start);
+	//MLOG_ERROR(mlog::app, "Create+Run of ", AVAILABLE_HWTS-1, "HWTs: ", end - start);
 }
 
 void executionContextCreationLatencySeparate(){
@@ -276,20 +284,20 @@ void executionContextCreationLatencySeparate(){
 		mythos::Frame new_msg_ptr(capAlloc());
 		auto res1 = new_msg_ptr.create(pl, kmem, 1<<21, 1<<21);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Map the invocation buffer frame into user space memory
 		mythos::InvocationBuf* ib = (mythos::InvocationBuf*)(((11+worker)<<21));
 
 		auto res2 = myAS.mmap(pl, new_msg_ptr, (uintptr_t)ib, 1<<21, mythos::protocol::PageMap::MapFlags().writable(true));
 		res2.wait();
-		TEST(res2);
+		ASSERT(res2);
 
 		//Create a second portal
 		mythos::Portal portal2(capAlloc(), ib);
 		res1 = portal2.create(pl, kmem);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Create a second EC on its own HWT
 		mythos::ExecutionContext ec(capAlloc());
@@ -297,18 +305,18 @@ void executionContextCreationLatencySeparate(){
 				myAS, myCS, mythos::init::SCHEDULERS_START+1+worker,
 				threadstack_top-4096*worker, &thread_main, (void*)worker);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		//Bind the new portal to the new EC
 		res1 = portal2.bind(pl, new_msg_ptr, 0, ec.cap());
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 
 		mid = getTime();
 
 		res1 = ec.run(pl);
 		res1.wait();
-		TEST(res1);
+		ASSERT(res1);
 		end = getTime();
 		if (mid < start || end < mid){
 			worker--;
