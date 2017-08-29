@@ -106,6 +106,7 @@ void SchedulingCoordinator::runSleep() {
         }
     }
     releaseKernel();
+    mythos::hwthread_pause(1000);
     mythos::idle::sleep(1);
 }
 

@@ -181,7 +181,7 @@ void mobileKernelObjectLatency(){
   */
   passable.store(true);
   //participate in calling the object
-  thread_mobileKernelObjectLatency(pl, example.cap());
+  //thread_mobileKernelObjectLatency(pl, example.cap());
 }
 
 void localKernelObjectLatency(){
@@ -222,10 +222,10 @@ void localKernelObjectLatency(){
 
 void benchmarks(){
   //invocation latency to mobile kernel object
-  mobileKernelObjectLatency();
+  //mobileKernelObjectLatency();
 
   //invocation latency to local kernel object
-  //localKernelObjectLatency();
+  localKernelObjectLatency();
 
   //latency of creating and starting up execution contexts
   //executionContextCreationLatencyBundled();

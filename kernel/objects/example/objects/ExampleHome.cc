@@ -97,7 +97,7 @@ namespace mythos {
 	auto data = msg->getMessage()->cast<protocol::Example::Ping>();
 	uint64_t wait_cycles = data->wait_cycles;
 
-	for(volatile uint64_t count = 0; count < wait_cycles; count++);
+	for(/*volatile */uint64_t count = 0; count < wait_cycles; count++);
 
 	data->place = cpu::hwThreadID_;
 
