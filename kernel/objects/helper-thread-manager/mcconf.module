@@ -1,4 +1,0 @@
-# -*- mode:toml; -*-
-[module.objects-helper-thread-manager]
-    incfiles = [ "objects/HelperThreadManager.hh" ]
-    kernelfiles = [ "objects/HelperThreadManager.cc" ]

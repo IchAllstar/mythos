@@ -53,6 +53,10 @@ public:
     PortalFuture<void> setCastStrategy(PortalLock pr, uint64_t strategy) {
         return pr.invoke<protocol::SignalableGroup::SetCastStrategy>(_cap, strategy);
     }
+
+    PortalFuture<void> addHelper(PortalLock pr, CapPtr cpuThread) {
+      return pr.invoke<protocol::SignalableGroup::AddHelper>(_cap, cpuThread);
+    }
 };
 
 } // namespace mythos

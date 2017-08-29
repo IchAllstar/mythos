@@ -46,7 +46,6 @@ namespace mythos {
       CPUDRIVERKNC,
       INTERRUPT_CONTROL,
       SIGNALABLE_GROUP,
-      HELPER_THREAD_MANAGER,
       IDLE_MANAGEMENT,
     };
 

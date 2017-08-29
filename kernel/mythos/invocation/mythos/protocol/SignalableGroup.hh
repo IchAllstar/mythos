@@ -39,6 +39,7 @@ namespace mythos {
         SIGNAL_ALL,
         ADD_MEMBER,
         SET_CAST_STRATEGY,
+        ADD_HELPER,
       };
 
       struct SignalAll : public InvocationBase {
@@ -52,6 +53,14 @@ namespace mythos {
            addExtraCap(signalable);
         }
         CapPtr signalable() const { return this->capPtrs[0]; }
+      };
+
+      struct AddHelper : public InvocationBase {
+        constexpr static uint16_t label = (proto<<8) + ADD_HELPER;
+        AddHelper(CapPtr cpuThread) : InvocationBase(label,getLength(this)) {
+          addExtraCap(cpuThread);
+        }
+        CapPtr cpuThread() const { return this->capPtrs[0]; }
       };
 
       struct SetCastStrategy : public InvocationBase {
@@ -75,6 +84,7 @@ namespace mythos {
           case SIGNAL_ALL: return obj->signalAll(args...);
           case ADD_MEMBER: return obj->addMember(args...);
           case SET_CAST_STRATEGY: return obj->setCastStrategy(args...);
+          case ADD_HELPER: return obj->addHelper(args...);
           default: return Error::NOT_IMPLEMENTED;
         }
       }

@@ -73,8 +73,8 @@ int main()
   //TreeMulticastBenchmark tmb(portal);
   //tmb.test_multicast();
 
-  //HelperMulticastBenchmark hmb(portal);
-  //hmb.test_multicast();
+  HelperMulticastBenchmark hmb(portal);
+  hmb.test_multicast();
 
   SequentialMulticastBenchmark smb(portal);
   smb.test_multicast();

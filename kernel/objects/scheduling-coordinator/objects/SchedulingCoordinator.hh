@@ -96,6 +96,7 @@ public:
     policy = p;
   }
   uint64_t getApicID() { return apicID; }
+  async::Place* getHome() { return localPlace; }
 
 private:
   // allows handling of interrupts at certain points even when not leaving the kernel
@@ -120,8 +121,8 @@ private:
   uint64_t apicID = {0};
 
   // actual stuff
-  mythos::async::Place *localPlace = nullptr;
-  mythos::SchedulingContext *localSchedulingContext = nullptr;
+  async::Place *localPlace = nullptr;
+  SchedulingContext *localSchedulingContext = nullptr;
 
   Policy policy = {DELAYS};
 };

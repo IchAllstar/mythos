@@ -5,7 +5,6 @@
 #include "runtime/SignalableGroup.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include "util/Time.hh"
-#include "runtime/HelperThreadManager.hh"
 #include "mythos/init.hh"
 
 
@@ -30,20 +29,23 @@ private:
     static const uint64_t numHelper = 15;
     static const uint64_t HELPER = 2; // identifier for setStrategy of SignalGroup
     mythos::Portal &portal;
-    mythos::HelperThreadManager htm {mythos::init::HELPER_THREAD_MANAGER};
 };
 
 void HelperMulticastBenchmark::setup() {
+    counter.store(0);
     manager.init([](void *data) -> void* {
         counter.fetch_add(1);
     });
     manager.startAll();
     while (counter.load() != manager.getNumThreads() - 1) {}
     counter.store(0);
+
     mythos::PortalLock pl(portal);
-    // register helper threads
     for (uint64_t i = 0; i < numHelper; i++) {
-        htm.registerHelper(pl, manager.getNumThreads() - i - 1);
+        auto helper = manager.getNumThreads() - i - 1;
+        mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + helper);
+        ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
+        //ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
     }
 }
 
@@ -120,6 +122,11 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     for (int i = 4; i < numThreads + 4; i++) {
         group.addMember(pl, manager.getThread(i)->ec).wait();
     }
+    // register helper threads
+    for (uint64_t i = 0; i < numHelper; i++) {
+        auto helper = manager.getNumThreads() - i - 1;
+        group.addHelper(pl,mythos::init::SCHEDULING_COORDINATOR_START + helper).wait();
+    }
     uint64_t sum = 0;
     mythos::Timer t;
     for (int j = 0; j < REPETITIONS; j++) {
@@ -128,10 +135,9 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
       group.signalAll(pl);
       while (counter.load() != numThreads) { mythos::hwthread_pause(); }
       sum += t.end();
-      mythos::delay(6000000); // wait to let threads enter deep sleep
+      mythos::delay(1000000); // wait to let threads enter deep sleep
     }
 
     MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/REPETITIONS));
-    caps.free(group, pl);
-    //manager.cleanup();
+    ASSERT(caps.free(group, pl));
 }

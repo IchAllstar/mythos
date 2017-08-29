@@ -44,6 +44,7 @@ optional<void> SchedulingCoordinator::deleteCap(Cap self, IDeleter& del) {
 
 optional<void const*> SchedulingCoordinator::vcast(TypeId id) const {
     if (id == typeId<IKernelObject>()) return static_cast<IKernelObject const*>(this);
+    if (id == typeId<SchedulingCoordinator>()) return static_cast<SchedulingCoordinator const*>(this);
     THROW(Error::TYPE_MISMATCH);
 }
 
@@ -125,8 +126,8 @@ void SchedulingCoordinator::runConfigurableDelays() {
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
-        hwthread_pause(10);
-        //preemption_point(); // allows interrupts even if polling only policy
+        //hwthread_pause(10);
+        preemption_point(); // allows interrupts even if polling only policy
       }
     }
     releaseKernel();

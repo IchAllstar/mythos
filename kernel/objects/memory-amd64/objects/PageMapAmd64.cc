@@ -115,7 +115,9 @@ namespace mythos {
         if (isRootMap()) {
           _deletionSink = r;
           PML4InvalidationBroadcast::run(t, this, PhysPtr<void>::fromKernel(&_pm_table(0)));
-        } else _mem->free(t, r, _memDesc, &_memDesc[3]);
+        } else {
+          _mem->free(t, r, _memDesc, &_memDesc[3]);
+        }
       });
   }
 

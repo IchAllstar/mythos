@@ -30,6 +30,7 @@ private:
 };
 
 void TreeMulticastBenchmark::setup() {
+  counter.store(0);
 	manager.init([](void *data) -> void* {
 		counter.fetch_add(1);
 		//MLOG_ERROR(mlog::app, "Here");

@@ -71,6 +71,7 @@ public: // protocol
     Error signalAll(Tasklet *t, Cap self, IInvocation *msg);
     Error addMember(Tasklet *t, Cap self, IInvocation *msg);
     Error setCastStrategy(Tasklet *t, Cap self, IInvocation *msg);
+    Error addHelper(Tasklet *t, Cap self, IInvocation *msg);
 public:
     void bind(optional<ISignalable*>);
     void unbind(optional<ISignalable*>);
@@ -80,18 +81,23 @@ public:
     size_t getSize() { return actualSize; }
     Tasklet* getTasklet(size_t idx) { ASSERT(idx < actualSize); return &tasklets[idx]; }
     CapRef<SignalableGroup, ISignalable>* getMember(size_t idx) { ASSERT(idx < actualSize); return &member[idx]; }
-
+    SchedulingCoordinator* getHelper(uint64_t i);
+    uint64_t numHelper() { return actualHelper; }
 private:
     IAsyncFree* _mem;
     /** list handle for the deletion procedure */
     LinkedList<IKernelObject*>::Queueable del_handle = {this};
     async::NestedMonitorDelegating monitor;
 
-    // allocate when group size is known
+    // allocate when max group size is known
     CapRef<SignalableGroup, ISignalable> *member {nullptr};
     Tasklet *tasklets;
     size_t groupSize {0};
     size_t actualSize {0};
+
+    // helper support, one entry for every hwthread
+    bool helper[MYTHOS_MAX_THREADS] {false};
+    uint64_t actualHelper {0};
 
     uint64_t strategy {SEQUENTIAL};
 };

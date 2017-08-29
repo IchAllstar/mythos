@@ -44,7 +44,6 @@
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/IdleManagement.hh"
 #include "objects/Example.hh"
-#include "objects/HelperThreadManager.hh"
 #include "boot/mlog.hh"
 #include "boot/memory-root.hh"
 
@@ -55,7 +54,6 @@ namespace mythos {
     using namespace mythos::init;
 
 InitLoaderPlugin initloaderplugin;
-extern HelperThreadManager helperThreadManager;
 
 extern char app_image_start SYMBOL("app_image_start");
 
@@ -177,7 +175,6 @@ optional<void> InitLoader::initCSpace()
   if (res) res = csSet(PAGEMAP_FACTORY, factory::pagemap);
   if (res) res = csSet(SIGNALABLE_GROUP_FACTORY, factory::signalable_group);
   if (res) res = csSet(UNTYPED_MEMORY_FACTORY, factory::untypedMemory);
-  if (res) res = csSet(HELPER_THREAD_MANAGER, helperThreadManager);
   if (!res) RETHROW(res);
 
   MLOG_INFO(mlog::boot, "... create memory regions in caps", STATIC_MEM_START, "till", STATIC_MEM_START+STATIC_MEMORY_REGIONS-1);
@@ -194,9 +191,15 @@ optional<void> InitLoader::initCSpace()
     if (!res) RETHROW(res);
   }
 
-  MLOG_INFO(mlog::boot, "... create scheduling coordinator caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
+  MLOG_INFO(mlog::boot, "... create idle management caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
   for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
     auto res = csSet(IDLE_MANAGEMENT_START+id, boot::getIdleManagement(id));
+    if (!res) RETHROW(res);
+  }
+
+  MLOG_INFO(mlog::boot, "... create idle management caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
+  for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
+    auto res = csSet(SCHEDULING_COORDINATOR_START+id, boot::getSchedulingCoordinator(id));
     if (!res) RETHROW(res);
   }
 

@@ -113,7 +113,7 @@ namespace mythos {
 
   ISchedulable* SchedulingContext::tryRunUser()
   {
-    MLOG_DETAIL(mlog::sched, "tryRunUser");
+   // MLOG_DETAIL(mlog::sched, "tryRunUser");
     ASSERT(&getLocalPlace() == home);
     handle_t* current = current_ec;
     handle_t* const removed = reinterpret_cast<handle_t*>(REMOVED);

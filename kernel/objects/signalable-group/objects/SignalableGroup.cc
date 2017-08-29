@@ -61,7 +61,10 @@ void SignalableGroup::deleteObject(Tasklet* t, IResult<void>* r)  {
         for (uint64_t i = 0; i < actualSize; i++) {
             member[i].reset();
         }
-        _mem->free(t, r, this, sizeof(SignalableGroup));
+        auto size =sizeof(CapRef<SignalableGroup, ISignalable>) * groupSize;
+        size += sizeof(Tasklet) * groupSize;
+        size += sizeof(SignalableGroup);
+        _mem->free(t, r, this, size);
     });
 }
 
@@ -106,6 +109,7 @@ optional<SignalableGroup*>
 SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
                                 IAllocator* mem, message_type* data)
 {
+  /*
     // Allocate CapRef array to save group members
     auto group = mem->alloc(sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize, 64);
     if (!group) {
@@ -118,6 +122,7 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     auto tasklets = mem->alloc(sizeof(Tasklet) * data->groupSize, 64);
     if (!tasklets) {
         dstEntry->reset();
+        mem->free(*group, sizeof(Tasklet) * data->groupSize);
         RETHROW(tasklets);
     }
     memset(*tasklets, 0, sizeof(Tasklet) * data->groupSize);
@@ -126,19 +131,37 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     auto obj = mem->create<SignalableGroup>(
                    (CapRef<SignalableGroup, ISignalable>*) *group, (Tasklet*) *tasklets, data->groupSize);
     if (!obj) {
-        mem->free(*group, 64);
+        mem->free(*group, sizeof(Tasklet) * data->groupSize);
         dstEntry->reset();
         RETHROW(obj);
     }
     Cap cap(*obj);
     auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
     if (!res) {
-        mem->free(*group, 64);
+        mem->free(*group, sizeof(Tasklet) * data->groupSize);
         mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
         dstEntry->reset();
         RETHROW(res);
     }
     return *obj;
+    */
+  auto size =sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize;
+  size += sizeof(Tasklet) * data->groupSize;
+  size += sizeof(SignalableGroup);
+  auto ptr = mem->alloc(size, 64);
+  if (not ptr) RETHROW(ptr);
+  memset(*ptr, 0, size);
+  uint64_t point = (uint64_t) (*ptr);
+  auto *group = (CapRef<SignalableGroup, ISignalable>*)(point + sizeof(SignalableGroup));
+  auto *tasklets = (Tasklet*)(point + sizeof(SignalableGroup) + sizeof(CapRef<SignalableGroup,ISignalable>)*data->groupSize);
+  auto obj = new(*ptr) SignalableGroup(mem, group, tasklets, data->groupSize);
+  auto cap = Cap(obj);
+  auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
+  if (not res) {
+    mem->free(*ptr, size);
+    RETHROW(res);
+  }
+  return obj;
 }
 
 // recursive memorize
@@ -188,6 +211,29 @@ Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
         }
     }
     return Error::INSUFFICIENT_RESOURCES;
+}
+
+Error SignalableGroup::addHelper(Tasklet*, Cap, IInvocation *msg) {
+    auto data = msg->getMessage()->read<protocol::SignalableGroup::AddHelper>();
+    auto capEntry = msg->lookupEntry(data.cpuThread());
+    TypedCap<SchedulingCoordinator> obj(capEntry);
+    if (!obj) return Error::INVALID_CAPABILITY;
+    helper[obj->getApicID()] = true;
+    actualHelper++;
+    MLOG_DETAIL(mlog::boot, "addHelper()", DVAR(obj->getApicID()));
+    return Error::SUCCESS;
+}
+
+SchedulingCoordinator* SignalableGroup::getHelper(uint64_t i) {
+    uint64_t tmp = 0;
+    for (uint64_t j = 0; j < MYTHOS_MAX_THREADS; j++) {
+      if (helper[j] == true) tmp++;
+      if (tmp == i + 1) {
+        return &mythos::boot::getSchedulingCoordinator(j);
+      }
+    }
+    PANIC("Not enough helper threads.");
+    return nullptr;
 }
 
 } // namespace mythos
