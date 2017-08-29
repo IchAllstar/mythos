@@ -120,7 +120,6 @@ void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
 	MLOG_ERROR(mlog::app, "End always Deep Sleep Signalable Group Test");
 }
 
-
 void SequentialMulticastBenchmark::test_multicast_gen(uint64_t number) {
 	ASSERT(number < manager.getNumThreads() + 4);
 	SignalableGroup group;

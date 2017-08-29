@@ -91,7 +91,7 @@ void test_raw() {
     mythos::syscall_signal(ec2.cap());
     while(counter.load() == 0) {}
     sum += t.end();
-    mythos::hwthread_pause(1000);
+    mythos::hwthread_pause(10000);
   }
   MLOG_ERROR(mlog::app, DVAR(sum/REPETITIONS));
 
@@ -108,10 +108,10 @@ int main()
   //TreeMulticastBenchmark tmb(portal);
   //tmb.test_multicast();
 
-  SequentialMulticastBenchmark smb(portal);
-  smb.test_multicast();
+  //SequentialMulticastBenchmark smb(portal);
+  //smb.test_multicast();
 
-  //test_raw();
+  test_raw();
 
   MLOG_ERROR(mlog::app, "END application");
   return 0;

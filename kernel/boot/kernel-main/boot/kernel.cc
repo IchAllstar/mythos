@@ -52,7 +52,6 @@
 #include "objects/StaticMemoryRegion.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/SchedulingContext.hh"
-#include "objects/InterruptControl.hh"
 #include "boot/memory-root.hh"
 #include "objects/SchedulingCoordinator.hh"
 #include "util/Time.hh"
@@ -97,6 +96,7 @@ void entry_bsp()
 }
 
 NORETURN void runUser();
+
 
 void runUser() {
   mythos::boot::getLocalSchedulingCoordinator().runUser();
@@ -149,7 +149,7 @@ void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
     mythos::handle_trap(ctx); // handle traps, exceptions, bugs from user mode
   } else {
     // TODO then external and wakeup interrupts
-    mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
+    mythos::lapic.endOfInterrupt();
   }
   runUser();
 }
@@ -163,7 +163,7 @@ void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
   bool wasbug = handle_bugirqs(ctx); // initiate irq processing: first kernel bugs
   bool nested = mythos::async::getLocalPlace().enterKernel();
   if (!wasbug) {
-    mythos::boot::getLocalInterruptController().handleInterrupt(ctx->irq);
+    mythos::lapic.endOfInterrupt();
   }
   if (!nested) runUser();
   // else simply return and let the interrupted kernel continue

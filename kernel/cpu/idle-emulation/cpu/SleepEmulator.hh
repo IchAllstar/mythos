@@ -79,7 +79,7 @@ class SleepEmulator {
 /**
  * Virtual C-State tracked for every hardware thread.
  */
-struct CoreState {
+struct ALIGNED(64) CoreState {
   std::atomic<bool> locked = {false};
   /**
    * If two hw threads on a core wake up simultaneously, just one would get the wakeup delay.

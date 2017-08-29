@@ -109,7 +109,7 @@ void SchedulingCoordinator::runSleep() {
 }
 
 void SchedulingCoordinator::runConfigurableDelays() {
-  auto &idle = mythos::boot::getLocalIdleManagement();
+    auto &idle = mythos::boot::getLocalIdleManagement();
     if (idle.shouldDeepSleep()) {
         MLOG_DETAIL(mlog::boot, "Timer interrupt triggered and no new work so far");
         releaseKernel();

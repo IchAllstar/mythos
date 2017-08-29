@@ -41,7 +41,6 @@
 #include "objects/SchedulingContext.hh"
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/HelperThreadManager.hh"
-#include "objects/InterruptControl.hh"
 #include "objects/IdleManagement.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
@@ -65,12 +64,6 @@ namespace mythos {
 
     SchedulingCoordinator& getSchedulingCoordinator(size_t index) { return coordinators[index]; }
     SchedulingCoordinator& getLocalSchedulingCoordinator() { return *localSchedulingCoordinator_; }
-
-    extern InterruptControl interruptController[MYTHOS_MAX_THREADS];
-    extern CoreLocal<InterruptControl*> localInterruptController KERNEL_CLM;
-
-    InterruptControl& getInterruptController(cpu::ThreadID threadID) { return interruptController[threadID]; }
-    InterruptControl& getLocalInterruptController() { return *localInterruptController.get(); }
 
     static const constexpr uint64_t HWTHREADS = 4;
     extern IdleManagement idleManagement[MYTHOS_MAX_THREADS / HWTHREADS];
@@ -114,7 +107,6 @@ struct DeployHWThread
     cpu::hwThreadID_.setAt(threadID, threadID);
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
-    localInterruptController.setAt(threadID, &getInterruptController(threadID));
     getScheduler(threadID).init(async::getPlace(threadID),&getSchedulingCoordinator(threadID));
     localSchedulingCoordinator_.setAt(threadID, &getSchedulingCoordinator(threadID));
     localIdleManagement.setAt(threadID, &getIdleManagement(threadID));

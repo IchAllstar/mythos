@@ -183,7 +183,7 @@ namespace mythos {
     uint64_t bailout = 0;
     while(read(REG_ICR_LOW).delivery_pending) {
       //MLOG_ERROR(mlog::boot, "Hanign");
-      hwthread_pause(10);
+      //hwthread_pause(10);
       if (bailout++ > 100000) MLOG_ERROR(mlog::boot, "BAILOUT LAPIC");
     }
 

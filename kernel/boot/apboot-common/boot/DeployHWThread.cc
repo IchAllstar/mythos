@@ -45,9 +45,7 @@ namespace mythos {
     CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
 
     SchedulingCoordinator coordinators[MYTHOS_MAX_THREADS];
-    CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM; // for DeployHWThread 
-    InterruptControl interruptController[MYTHOS_MAX_THREADS];
-    CoreLocal<InterruptControl*> localInterruptController KERNEL_CLM;
+    CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM; // for DeployHWThread
 
     IdleManagement idleManagement[MYTHOS_MAX_THREADS / HWTHREADS];
     CoreLocal<IdleManagement*> localIdleManagement KERNEL_CLM;

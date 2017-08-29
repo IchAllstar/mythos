@@ -49,7 +49,7 @@ namespace async {
       if (msg != nullptr) msg->run();
       else break;
     }
-    hwthread_pollpause(); /// @todo wrong place, no polling here!
+   // hwthread_pollpause(); /// @todo wrong place, no polling here!
     // this assertion races with concurrent push operations
     //OOPS(!queue.isLocked());
     //nestingMonitor.store(false); // release?

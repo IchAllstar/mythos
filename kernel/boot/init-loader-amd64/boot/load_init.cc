@@ -193,19 +193,13 @@ optional<void> InitLoader::initCSpace()
     auto res = csSet(SCHEDULERS_START+id, boot::getScheduler(id));
     if (!res) RETHROW(res);
   }
-  
+
   MLOG_INFO(mlog::boot, "... create scheduling coordinator caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
   for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
     auto res = csSet(IDLE_MANAGEMENT_START+id, boot::getIdleManagement(id));
     if (!res) RETHROW(res);
   }
 
-  ASSERT(cpu::getNumThreads() <= INTERRUPT_CONTROLLER_START-APP_CAP_START);
-  MLOG_INFO(mlog::boot, "... create interrupt controller caps in caps", INTERRUPT_CONTROLLER_START, "till", INTERRUPT_CONTROLLER_START+cpu::getNumThreads()-1);
-  for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
-    auto res = csSet(INTERRUPT_CONTROLLER_START+id, boot::getInterruptController(id));
-    if (!res) RETHROW(res);
-  }
   initLoaderEvent.trigger_after(*this);
 
   RETURN(Error::SUCCESS);
