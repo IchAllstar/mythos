@@ -74,8 +74,7 @@ public:
     ASSERT(msg);
     MLOG_DETAIL(mlog::async, this, "push shared", msg);
     if (queue.push(*msg)) wakeup();
-    //queue.push(*msg);
-    //wakeup();
+    //else MLOG_ERROR(mlog::async, "no need to wakeup");
   }
 
   /** prepare the kernel's task processing. returns true if nested entry. */
@@ -110,7 +109,10 @@ protected:
     queue.pushPrivate(*msg);
   }
 
-  void wakeup() { mythos::lapic.sendIRQ(apicID, 32); }
+  void wakeup() {
+      mythos::lapic.sendIRQ(apicID, 32);
+      //MLOG_ERROR(mlog::async, "Wakeup", DVAR(apicID));
+  }
 
 protected:
   cpu::ThreadID threadID; //< own thread's linear identifier

@@ -44,7 +44,7 @@ optional<void> SchedulingCoordinator::deleteCap(Cap self, IDeleter& del) {
 
 optional<void const*> SchedulingCoordinator::vcast(TypeId id) const {
     if (id == typeId<IKernelObject>()) return static_cast<IKernelObject const*>(this);
-    if (id == typeId<SchedulingCoordinator>()) return static_cast<SchedulingCoordinator const*>(this);
+    if (id == typeId<SchedulingCoordinator>()) return this;
     THROW(Error::TYPE_MISMATCH);
 }
 
@@ -94,19 +94,10 @@ Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 
 void SchedulingCoordinator::runSleep() {
     localPlace->processTasks(); // executes all available kernel tasks
-    auto *ec = localSchedulingContext->tryRunUser();
-    if (ec) {
-        if (ec->prepareResume()) {
-            while (not localPlace->releaseKernel()) {
-                localPlace->processTasks();
-                //hwthread_pause(50);
-            }
-            ec->doResume(); //does not return (hopefully)
-            MLOG_WARN(mlog::boot, "Returned even prepareResume was successful");
-        }
-    }
     releaseKernel();
-    mythos::hwthread_pause(1000);
+    //delay(1000);
+    tryRunUser();
+    releaseKernel();
     mythos::idle::sleep(1);
 }
 
@@ -147,7 +138,7 @@ void SchedulingCoordinator::runSpin() {
         localPlace->processTasks();
         tryRunUser();
         //hwthread_pause(10);
-        //preemption_point(); // allows interrupts even if polling only policy
+        preemption_point(); // allows interrupts even if polling only policy
     }
 }
 
@@ -160,6 +151,12 @@ void SchedulingCoordinator::tryRunUser() {
       MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
       mythos::idle::sleep(1);
     }
+  }
+}
+
+void SchedulingCoordinator::releaseKernel() {
+  while (not localPlace->releaseKernel()) { // release kernel
+      localPlace->processTasks();
   }
 }
 

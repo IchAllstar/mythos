@@ -107,11 +107,8 @@ private:
   // try to find EC, release kernel, run it; returns if no EC; sleep if fails to run EC
   void tryRunUser();
 
-  void releaseKernel() {
-    while (not localPlace->releaseKernel()) { // release kernel
-        localPlace->processTasks();
-    }
-  }
+  // try release tasklet queue until successful
+  void releaseKernel();
 
 private:
   // kernel object stuff

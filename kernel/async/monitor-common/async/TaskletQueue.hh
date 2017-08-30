@@ -106,6 +106,7 @@ namespace async {
   template<typename BASE>
   bool ChainFIFO<BASE>::push(Chainable& t)
   {
+    //MLOG_ERROR(mlog::async, "push");
     ASSERT(t.isInit());
 
     // mark new Tasklets next pointer as incomplete

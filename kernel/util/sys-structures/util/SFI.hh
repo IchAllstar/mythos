@@ -234,9 +234,9 @@ namespace mythos {
       }
 
     protected:
-      SFI::Syst* syst;
-      SFI::Mmap* mmap;
-      SFI::Cpus* cpus;
+      SFI::Syst* syst {nullptr};
+      SFI::Mmap* mmap {nullptr};
+      SFI::Cpus* cpus {nullptr};
   };
 
 } // namespace mythos

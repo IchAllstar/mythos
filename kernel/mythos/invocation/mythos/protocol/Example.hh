@@ -65,7 +65,7 @@ namespace mythos {
         typedef InvocationBase response_type;
         constexpr static uint16_t label = (proto<<8) + PING;
         Ping(size_t wait_cycles): InvocationBase(label,getLength(this)){
-          this->wait_cycles = uint64_t(wait_cycles);
+          this->wait_cycles = wait_cycles;
           this->place = 1234567;
         };
         uint64_t wait_cycles;
@@ -126,7 +126,7 @@ namespace mythos {
         typedef InvocationBase response_type;
         constexpr static uint16_t label = (proto<<8) + PING;
         Ping(size_t wait_cycles): InvocationBase(label,getLength(this)){
-          this->wait_cycles = uint64_t(wait_cycles);
+          this->wait_cycles = wait_cycles;
           this->place = 1234567;
         };
         uint64_t wait_cycles;

@@ -85,7 +85,7 @@ namespace mythos {
     return writeDebugInfo("ExampleHomeObj", self, msg);
   }
 
-  Error ExampleHomeObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
+  Error ExampleHomeObj::printMessage(Tasklet*, Cap, IInvocation* msg)
   {
     auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
     mlogexhome.error(mlog::DebugString(data->message, data->bytes));

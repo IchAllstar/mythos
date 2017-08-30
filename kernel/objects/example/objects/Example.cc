@@ -40,7 +40,7 @@ namespace mythos {
 
   optional<void const*> ExampleObj::vcast(TypeId id) const
   {
-    // if (id == typeId<ExampleObj>()) return /*static_cast<ExampleObj const*>*/(this);
+    if (id == typeId<ExampleObj>()) return /*static_cast<ExampleObj const*>*/(this);
     THROW(Error::TYPE_MISMATCH);
   }
 
@@ -83,7 +83,7 @@ namespace mythos {
     return writeDebugInfo("ExampleObj", self, msg);
   }
 
-  Error ExampleObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
+  Error ExampleObj::printMessage(Tasklet*, Cap, IInvocation* msg)
   {
     auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
     MLOG_ERROR(mlog::boot, mlog::DebugString(data->message, data->bytes));
@@ -108,7 +108,7 @@ namespace mythos {
       return *obj;
     }
 
-  Error ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
+  Error ExampleObj::ping(Tasklet*, Cap, IInvocation* msg)
   {
     auto data = msg->getMessage()->cast<protocol::Example::Ping>();
     uint64_t wait_cycles = data->wait_cycles;
