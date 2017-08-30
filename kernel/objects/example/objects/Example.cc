@@ -126,20 +126,4 @@ namespace mythos {
     //This should only be called for ExampleHome objects.
     return Error::NOT_IMPLEMENTED;
   }
-
-  optional<ExampleObj*>
-    ExampleFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
-        IAllocator* mem)
-    {
-      auto obj = mem->create<ExampleObj>();
-      if (!obj) RETHROW(obj);
-      Cap cap(*obj);
-      auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
-      if (!res) {
-        mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
-        RETHROW(res);
-      }
-      return *obj;
-    }
-
 } // mythos

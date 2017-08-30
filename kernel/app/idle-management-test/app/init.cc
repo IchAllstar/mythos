@@ -170,25 +170,16 @@ void mobileKernelObjectLatency(){
     res1.wait();
     ASSERT(res1);
   }
-  /*
+
   //Run all created ECs
-  for (size_t worker = 0; worker < PARALLEL_ECS - 1; worker++){
-  mythos::ExecutionContext ec(createdECs[worker]);
-  res1 = ec.run(pl);
-  res1.wait();
-  ASSERT(res1);
-  }
-  */
   passable.store(true);
-  //participate in calling the object
-  //thread_mobileKernelObjectLatency(pl, example.cap());
 }
 
 void localKernelObjectLatency(){
 
   mythos::PortalLock pl(myPortal);
   //Create a "homed" example object
-  mythos::Example example(capAlloc());
+  mythos::ExampleHome example(capAlloc());
   auto res1 = example.create(pl, kmem);
   res1.wait();
   ASSERT(res1);
@@ -205,8 +196,7 @@ void localKernelObjectLatency(){
     uint64_t sum = 0;
     for (size_t i = 0; i < NUM_RUNS; i++){
       start = getTime();
-      res1 = example.ping(pl,0);
-      ASSERT(res1.wait());
+      ASSERT(example.ping(pl,0).wait());
       end = getTime();
       if (end < start){
         i--;
@@ -226,10 +216,6 @@ void benchmarks(){
 
   //invocation latency to local kernel object
   localKernelObjectLatency();
-
-  //latency of creating and starting up execution contexts
-  //executionContextCreationLatencyBundled();
-  //executionContextCreationLatencySeparate();
 }
 
 int main()

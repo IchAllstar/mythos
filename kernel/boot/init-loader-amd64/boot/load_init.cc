@@ -44,6 +44,7 @@
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/IdleManagement.hh"
 #include "objects/Example.hh"
+#include "objects/ExampleHome.hh"
 #include "boot/mlog.hh"
 #include "boot/memory-root.hh"
 
@@ -106,6 +107,7 @@ size_t InitLoader::countPages()
 
 namespace factory {
   ExampleFactory example;
+  ExampleHomeFactory exampleHome;
   MemoryRegionFactory memoryRegion;
   ExecutionContextFactory executionContext;
   PortalFactory portal;
@@ -168,6 +170,7 @@ optional<void> InitLoader::initCSpace()
   MLOG_INFO(mlog::boot, "... create example factory in cap", EXAMPLE_FACTORY);
   res = optional<void>(Error::SUCCESS);
   if (res) res = csSet(EXAMPLE_FACTORY, factory::example);
+  if (res) res = csSet(EXAMPLE_HOME_FACTORY, factory::exampleHome);
   if (res) res = csSet(MEMORY_REGION_FACTORY, factory::memoryRegion);
   if (res) res = csSet(EXECUTION_CONTEXT_FACTORY, factory::executionContext);
   if (res) res = csSet(PORTAL_FACTORY, factory::portal);

@@ -94,6 +94,7 @@ namespace mythos {
 
   Error ExampleHomeObj::ping(Tasklet*, Cap, IInvocation* msg)
   {
+    //MLOG_ERROR(mlog::boot, "ping");
     auto data = msg->getMessage()->cast<protocol::ExampleHome::Ping>();
     uint64_t wait_cycles = data->wait_cycles;
 
@@ -106,6 +107,7 @@ namespace mythos {
 
   Error ExampleHomeObj::moveHome(Tasklet*, Cap, IInvocation* msg)
   {
+    //MLOG_ERROR(mlog::boot, "move home");
     auto data = msg->getMessage()->cast<protocol::ExampleHome::MoveHome>();
     monitor.setHome(&async::places[data->location]);
     return Error::SUCCESS;
