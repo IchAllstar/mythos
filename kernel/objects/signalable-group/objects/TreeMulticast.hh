@@ -139,7 +139,7 @@ struct TreeCastStrategy {
  * N-Ary tree for comparison with the Fibonacci Tree approach
  */
 struct NaryTree {
-    static const uint64_t N = 4;
+    static const uint64_t N = 3;
 
     static void sendTo(SignalableGroup *group, uint64_t idx, uint64_t size) {
           MLOG_DETAIL(mlog::boot, DVAR(group), DVAR(idx), DVAR(size));
@@ -164,15 +164,16 @@ struct NaryTree {
     static void multicast(SignalableGroup *group, uint64_t idx, uint64_t size) {
       auto *t = group->getTasklet(idx);
       TypedCap<ISignalable> own(group->getMember(idx)->cap());
-      if (not own) PANIC("No own");
+      if (not own) PANIC_MSG(false, "No own");
       auto sleepState = own->getSleepState();
       if (sleepState < 2) {
         //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(size), DVAR(sleepState));
-        t->set([group, idx, size](Tasklet*) {
-            NaryTree::sendTo(group, idx, size);
-        });
+
         auto *home = own->getHome();
         if (home) {
+          t->set([group, idx, size](Tasklet*) {
+              NaryTree::sendTo(group, idx, size);
+          });
           home->run(t);
         } else {
           PANIC_MSG(false, "No home to run tasklet on.");

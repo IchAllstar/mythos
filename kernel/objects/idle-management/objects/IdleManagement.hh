@@ -66,7 +66,7 @@ private:
 	IDeleter::handle_t del_handle = {this};
 	async::NestedMonitorDelegating monitor;
 	// time in cycles we spend polling before going to sleep
-  std::atomic<uint32_t> delay_polling = {5000};
+  std::atomic<uint32_t> delay_polling = {0};
 
 	// time we wait in lite sleep before going to deep sleep
   std::atomic<uint32_t> delay_lite_sleep = {MAX_UINT32};

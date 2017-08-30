@@ -114,8 +114,8 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     group.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
-    mythos::delay(1000000); // Tree cast does lock when not here
+    mythos::delay(100000); // Tree cast does lock when not here
 	}
-	MLOG_ERROR(mlog::app, DVAR(numThreads),"Avg. Cycles: ", sum / REPETITIONS);
+	MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);
 	caps.free(group, pl);
 }
