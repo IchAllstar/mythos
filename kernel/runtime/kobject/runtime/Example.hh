@@ -55,4 +55,26 @@ namespace mythos {
     }
   };
 
+  class ExampleHome : public KObject
+  {
+  public:
+    ExampleHome(CapPtr cap) : KObject(cap) {}
+
+    PortalFuture<void> create(PortalLock pr, KernelMemory kmem,
+                              CapPtr factory = init::EXAMPLE_HOME_FACTORY) {
+      return pr.invoke<protocol::ExampleHome::Create>(kmem.cap(), _cap, factory);
+    }
+
+    PortalFuture<void> printMessage(PortalLock pr, char const* str, size_t bytes) {
+      return pr.invoke<protocol::ExampleHome::PrintMessage>(_cap, str, bytes);
+    }
+
+    PortalFuture<void> ping(PortalLock pr, size_t wait_cycles) {
+      return pr.invoke<protocol::ExampleHome::Ping>(_cap, wait_cycles);
+    }
+
+    PortalFuture<void> moveHome(PortalLock pr, size_t new_location) {
+      return pr.invoke<protocol::ExampleHome::MoveHome>(_cap, new_location);
+    }
+  };
 } // namespace mythos

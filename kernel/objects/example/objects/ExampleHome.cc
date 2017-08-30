@@ -57,8 +57,8 @@ namespace mythos {
   void ExampleHomeObj::deleteObject(Tasklet* t, IResult<void>* r)
   {
     monitor.doDelete(t, [=](Tasklet* t){
-      _mem->free(t, r, this, sizeof(ExampleObj));
-    });
+        _mem->free(t, r, this, sizeof(ExampleObj));
+        });
   }
 
   void ExampleHomeObj::invoke(Tasklet* t, Cap self, IInvocation* msg)
@@ -67,17 +67,17 @@ namespace mythos {
         Error err = Error::NOT_IMPLEMENTED;
         switch (msg->getProtocol()) {
         case protocol::KernelObject::proto:
-          err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
-          break;
-        case protocol::Example::proto:
-          err = protocol::Example::dispatchRequest(this, msg->getMethod(), t, self, msg);
-          break;
+        err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
+        break;
+        case protocol::ExampleHome::proto:
+        err = protocol::ExampleHome::dispatchRequest(this, msg->getMethod(), t, self, msg);
+        break;
         }
         if (err != Error::INHIBIT) {
-          msg->replyResponse(err);
-          monitor.requestDone();
+        msg->replyResponse(err);
+        monitor.requestDone();
         }
-      } );
+        } );
   }
 
   Error ExampleHomeObj::getDebugInfo(Cap self, IInvocation* msg)
@@ -94,37 +94,36 @@ namespace mythos {
 
   Error ExampleHomeObj::ping(Tasklet*, Cap self, IInvocation* msg)
   {
-	auto data = msg->getMessage()->cast<protocol::Example::Ping>();
-	uint64_t wait_cycles = data->wait_cycles;
+    auto data = msg->getMessage()->cast<protocol::Example::Ping>();
+    uint64_t wait_cycles = data->wait_cycles;
 
-	for(uint64_t count = 0; count < wait_cycles; count++);
+    for(uint64_t count = 0; count < wait_cycles; count++);
 
-	data->place = cpu::hwThreadID_;
+    data->place = cpu::hwThreadID_;
 
-	return Error::SUCCESS;
+    return Error::SUCCESS;
   }
 
   Error ExampleHomeObj::moveHome(Tasklet*, Cap self, IInvocation* msg)
   {
-	auto data = msg->getMessage()->cast<protocol::Example::MoveHome>();
-	mlogexhome.error(DVAR(data->location));
-	monitor.setHome(&async::places[data->location]);
-	return Error::SUCCESS;
+    auto data = msg->getMessage()->cast<protocol::Example::MoveHome>();
+    monitor.setHome(&async::places[data->location]);
+    return Error::SUCCESS;
   }
 
   optional<ExampleHomeObj*>
-  ExampleHomeFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
-                         IAllocator* mem)
-  {
-    auto obj = mem->create<ExampleHomeObj>();
-    if (!obj) RETHROW(obj);
-    Cap cap(*obj);
-    auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
-    if (!res) {
-      mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
-      RETHROW(res);
+    ExampleHomeFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
+        IAllocator* mem)
+    {
+      auto obj = mem->create<ExampleHomeObj>();
+      if (!obj) RETHROW(obj);
+      Cap cap(*obj);
+      auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
+      if (!res) {
+        mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
+        RETHROW(res);
+      }
+      return *obj;
     }
-    return *obj;
-  }
 
 } // mythos

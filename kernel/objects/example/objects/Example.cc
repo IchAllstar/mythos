@@ -106,6 +106,7 @@ namespace mythos {
 
   Error ExampleObj::moveHome(Tasklet*, Cap, IInvocation*)
   {
+    MLOG_ERROR(mlog::boot, "not implemented");
 	//This should only be called for ExampleHome objects.
   	return Error::NOT_IMPLEMENTED;
   }

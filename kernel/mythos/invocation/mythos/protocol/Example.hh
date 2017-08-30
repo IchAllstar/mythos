@@ -28,6 +28,7 @@
 #include <cstring>
 #include "mythos/protocol/common.hh"
 #include "mythos/protocol/KernelMemory.hh"
+#include "app/mlog.hh"
 
 namespace mythos {
   namespace protocol {
@@ -37,8 +38,8 @@ namespace mythos {
 
       enum Methods : uint8_t {
         PRINT_MESSAGE,
-		PING,
-		MOVE_HOME,
+        PING,
+        MOVE_HOME,
       };
 
       struct PrintMessage : public InvocationBase {
@@ -61,34 +62,96 @@ namespace mythos {
       };
 
       struct Ping : public InvocationBase {
-    	typedef InvocationBase response_type;
-    	constexpr static uint16_t label = (proto<<8) + PING;
-    	Ping(size_t wait_cycles): InvocationBase(label,getLength(this)){
-    	  this->wait_cycles = uint64_t(wait_cycles);
-    	  this->place = 1234567;
-    	};
-    	uint64_t wait_cycles;
-    	uint64_t place;
+        typedef InvocationBase response_type;
+        constexpr static uint16_t label = (proto<<8) + PING;
+        Ping(size_t wait_cycles): InvocationBase(label,getLength(this)){
+          this->wait_cycles = uint64_t(wait_cycles);
+          this->place = 1234567;
+        };
+        uint64_t wait_cycles;
+        uint64_t place;
       };
 
       struct MoveHome : public InvocationBase {
-    	typedef InvocationBase response_type;
-    	constexpr static uint16_t label = (proto<<8) + MOVE_HOME;
-    	MoveHome(size_t location): InvocationBase(label,getLength(this)){
-    	  this->location = uint16_t(location);
-    	};
-    	uint16_t location;
+        typedef InvocationBase response_type;
+        constexpr static uint16_t label = (proto<<8) + MOVE_HOME;
+        MoveHome(size_t location): InvocationBase(label,getLength(this)){
+          this->location = uint16_t(location);
+        };
+        uint16_t location;
       };
 
       template<class IMPL, class... ARGS>
-      static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
-        switch(Methods(m)) {
-          case PRINT_MESSAGE: return obj->printMessage(args...);
-          case PING: return obj->ping(args...);
-          case MOVE_HOME: return obj->moveHome(args...);
-          default: return Error::NOT_IMPLEMENTED;
+        static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
+          //MLOG_ERROR(mlog::app, DVAR(m));
+          switch(Methods(m)) {
+            case PRINT_MESSAGE: return obj->printMessage(args...);
+            case PING: return obj->ping(args...);
+            case MOVE_HOME: return obj->moveHome(args...);
+            default: return Error::NOT_IMPLEMENTED;
+          }
         }
-      }
+
+    };
+
+    struct ExampleHome {
+      constexpr static uint8_t proto = EXAMPLE_HOME;
+
+      enum Methods : uint8_t {
+        PRINT_MESSAGE,
+        PING,
+        MOVE_HOME,
+      };
+
+      struct PrintMessage : public InvocationBase {
+        typedef InvocationBase response_type;
+        constexpr static uint16_t label = (proto<<8) + PRINT_MESSAGE;
+        PrintMessage(char const* str, size_t bytes)
+          : InvocationBase(label,getLength(this))
+        {
+          if (bytes>InvocationBase::maxBytes) bytes = InvocationBase::maxBytes;
+          this->bytes = uint16_t(bytes);
+          this->tag.length = uint8_t((bytes+3)/4);
+          memcpy(message, str, bytes);
+        }
+        uint16_t bytes;
+        char message[InvocationBase::maxBytes-2];
+      };
+
+      struct Create : public KernelMemory::CreateBase {
+        Create(CapPtr dst, CapPtr factory) : CreateBase(dst, factory) {}
+      };
+
+      struct Ping : public InvocationBase {
+        typedef InvocationBase response_type;
+        constexpr static uint16_t label = (proto<<8) + PING;
+        Ping(size_t wait_cycles): InvocationBase(label,getLength(this)){
+          this->wait_cycles = uint64_t(wait_cycles);
+          this->place = 1234567;
+        };
+        uint64_t wait_cycles;
+        uint64_t place;
+      };
+
+      struct MoveHome : public InvocationBase {
+        typedef InvocationBase response_type;
+        constexpr static uint16_t label = (proto<<8) + MOVE_HOME;
+        MoveHome(size_t location): InvocationBase(label,getLength(this)){
+          this->location = uint16_t(location);
+        };
+        uint16_t location;
+      };
+
+      template<class IMPL, class... ARGS>
+        static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
+          //MLOG_ERROR(mlog::app, DVAR(m));
+          switch(Methods(m)) {
+            case PRINT_MESSAGE: return obj->printMessage(args...);
+            case PING: return obj->ping(args...);
+            case MOVE_HOME: return obj->moveHome(args...);
+            default: return Error::NOT_IMPLEMENTED;
+          }
+        }
 
     };
 
