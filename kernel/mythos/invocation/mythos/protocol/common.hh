@@ -43,6 +43,7 @@ namespace mythos {
       PORTAL,
       EXAMPLE,
       SCHEDULING_COORDINATOR,
+      EXAMPLE_HOME,
       CPUDRIVERKNC,
       INTERRUPT_CONTROL,
       SIGNALABLE_GROUP,

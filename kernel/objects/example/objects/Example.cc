@@ -38,92 +38,108 @@
 
 namespace mythos {
 
-optional<void const*> ExampleObj::vcast(TypeId id) const
-{
-  // if (id == typeId<ExampleObj>()) return /*static_cast<ExampleObj const*>*/(this);
-  THROW(Error::TYPE_MISMATCH);
-}
-
-optional<void> ExampleObj::deleteCap(Cap self, IDeleter& del)
-{
-  if (self.isOriginal()) {
-    del.deleteObject(del_handle);
+  optional<void const*> ExampleObj::vcast(TypeId id) const
+  {
+    // if (id == typeId<ExampleObj>()) return /*static_cast<ExampleObj const*>*/(this);
+    THROW(Error::TYPE_MISMATCH);
   }
-  RETURN(Error::SUCCESS);
-}
 
-void ExampleObj::deleteObject(Tasklet* t, IResult<void>* r)
-{
-  monitor.doDelete(t, [ = ](Tasklet * t) {
-    _mem->free(t, r, this, sizeof(ExampleObj));
-  });
-}
+  optional<void> ExampleObj::deleteCap(Cap self, IDeleter& del)
+  {
+    if (self.isOriginal()) {
+      del.deleteObject(del_handle);
+    }
+    RETURN(Error::SUCCESS);
+  }
 
-void ExampleObj::invoke(Tasklet* t, Cap self, IInvocation* msg)
-{
-  monitor.request(t, [ = ](Tasklet * t) {
-    Error err = Error::NOT_IMPLEMENTED;
-    switch (msg->getProtocol()) {
-      case protocol::KernelObject::proto:
+  void ExampleObj::deleteObject(Tasklet* t, IResult<void>* r)
+  {
+    monitor.doDelete(t, [ = ](Tasklet * t) {
+        _mem->free(t, r, this, sizeof(ExampleObj));
+        });
+  }
+
+  void ExampleObj::invoke(Tasklet* t, Cap self, IInvocation* msg)
+  {
+    monitor.request(t, [ = ](Tasklet * t) {
+        Error err = Error::NOT_IMPLEMENTED;
+        switch (msg->getProtocol()) {
+        case protocol::KernelObject::proto:
         err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
         break;
-      case protocol::Example::proto:
+        case protocol::Example::proto:
         err = protocol::Example::dispatchRequest(this, msg->getMethod(), t, self, msg);
         break;
-    }
-    if (err != Error::INHIBIT) {
-      msg->replyResponse(err);
-      monitor.requestDone();
-    }
-  } );
-}
-
-Error ExampleObj::getDebugInfo(Cap self, IInvocation* msg)
-{
-  return writeDebugInfo("ExampleObj", self, msg);
-}
-
-Error ExampleObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
-{
-  auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
- MLOG_ERROR(mlog::boot, mlog::DebugString(data->message, data->bytes));
-  return Error::SUCCESS;
-}
-
-optional<ExampleObj*>
-ExampleFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
-                        IAllocator* mem)
-{
-  auto obj = mem->create<ExampleObj>();
-  if (!obj) {
-    dstEntry->reset();
-    RETHROW(obj);
+        }
+        if (err != Error::INHIBIT) {
+        msg->replyResponse(err);
+        monitor.requestDone();
+        }
+        } );
   }
-  Cap cap(*obj);
-  auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
-  if (!res) {
-    mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
-    RETHROW(res);
+
+  Error ExampleObj::getDebugInfo(Cap self, IInvocation* msg)
+  {
+    return writeDebugInfo("ExampleObj", self, msg);
   }
-  return *obj;
-}
 
-Error ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
-{
-  auto data = msg->getMessage()->cast<protocol::Example::Ping>();
-  uint64_t wait_cycles = data->wait_cycles;
+  Error ExampleObj::printMessage(Tasklet*, Cap self, IInvocation* msg)
+  {
+    auto data = msg->getMessage()->cast<protocol::Example::PrintMessage>();
+    MLOG_ERROR(mlog::boot, mlog::DebugString(data->message, data->bytes));
+    return Error::SUCCESS;
+  }
 
-  for (/*volatile */uint64_t count = 0; count < wait_cycles; count++);
+  optional<ExampleObj*>
+    ExampleFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
+        IAllocator* mem)
+    {
+      auto obj = mem->create<ExampleObj>();
+      if (!obj) {
+        dstEntry->reset();
+        RETHROW(obj);
+      }
+      Cap cap(*obj);
+      auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
+      if (!res) {
+        mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
+        RETHROW(res);
+      }
+      return *obj;
+    }
 
-  data->place = cpu::hwThreadID_;
+  Error ExampleObj::ping(Tasklet*, Cap self, IInvocation* msg)
+  {
+    auto data = msg->getMessage()->cast<protocol::Example::Ping>();
+    uint64_t wait_cycles = data->wait_cycles;
 
-  return Error::SUCCESS;
-}
+    for (/*volatile */uint64_t count = 0; count < wait_cycles; count++);
 
-Error ExampleObj::moveHome(Tasklet*, Cap, IInvocation*)
-{
-  //This should only be called for ExampleHome objects.
-  return Error::NOT_IMPLEMENTED;
-}
+    data->place = cpu::hwThreadID_;
+
+    return Error::SUCCESS;
+  }
+
+  Error ExampleObj::moveHome(Tasklet*, Cap, IInvocation*)
+  {
+    MLOG_ERROR(mlog::boot, "not implemented");
+    //This should only be called for ExampleHome objects.
+    return Error::NOT_IMPLEMENTED;
+  }
+
+  optional<ExampleObj*>
+    ExampleFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
+        IAllocator* mem)
+    {
+      auto obj = mem->create<ExampleObj>();
+      if (!obj) RETHROW(obj);
+      Cap cap(*obj);
+      auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
+      if (!res) {
+        mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
+        RETHROW(res);
+      }
+      return *obj;
+    }
 
 } // mythos

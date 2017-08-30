@@ -33,6 +33,7 @@
 #include "objects/CapEntry.hh"
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/Example.hh"
+#include "async/Place.hh"
 
 namespace mythos {
 
@@ -45,7 +46,9 @@ class ExampleHomeObj
   : public IKernelObject
 {
 public:
-  ExampleHomeObj(IAsyncFree* mem) : _mem(mem) {}
+  ExampleHomeObj(IAsyncFree* mem) : _mem(mem) {
+    monitor.setHome(&async::getLocalPlace());
+  }
   ExampleHomeObj(const ExampleHomeObj&) = delete;
 
   optional<void const*> vcast(TypeId id) const override;
@@ -57,7 +60,7 @@ protected:
   friend struct protocol::KernelObject;
   Error getDebugInfo(Cap self, IInvocation* msg);
 
-  friend struct protocol::Example;
+  friend struct protocol::ExampleHome;
   Error printMessage(Tasklet* t, Cap self, IInvocation* msg);
   Error ping(Tasklet* t, Cap self, IInvocation* msg);
   Error moveHome(Tasklet* t, Cap self, IInvocation* msg);
