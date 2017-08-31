@@ -33,7 +33,7 @@ namespace mythos {
   namespace protocol {
 
     struct SignalGroup {
-      constexpr static uint8_t proto = SIGNALABLE_GROUP;
+      constexpr static uint8_t proto = SIGNAL_GROUP;
 
       enum Methods : uint8_t {
         SIGNAL_ALL,

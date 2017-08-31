@@ -28,7 +28,7 @@
 #include "mythos/protocol/common.hh"
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/Example.hh"
-#include "mythos/protocol/SchedulingCoordinator.hh"
+#include "mythos/protocol/HWThread.hh"
 #include "mythos/protocol/ExecutionContext.hh"
 #include "mythos/protocol/KernelMemory.hh"
 #include "mythos/protocol/CapMap.hh"

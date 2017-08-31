@@ -33,7 +33,7 @@ namespace mythos {
   class IThread;
   class ISchedulable;
   class Tasklet;
-  class SchedulingCoordinator;
+  class HWThread;
 
   class IScheduler
   {
@@ -75,7 +75,7 @@ namespace mythos {
 
     virtual async::Place* getHome() = 0;
 
-    virtual SchedulingCoordinator* getSchedCoord() = 0;
+    virtual HWThread* getSchedCoord() = 0;
   };
 
 } // namespace mythos

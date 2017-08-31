@@ -10,7 +10,7 @@
              "mythos/protocol/Example.hh",
              "mythos/protocol/CapMap.hh",
              "mythos/protocol/Portal.hh",
-             "mythos/protocol/SchedulingCoordinator.hh",
+             "mythos/protocol/HWThread.hh",
              "mythos/protocol/InterruptControl.hh",
              "mythos/protocol/SignalGroup.hh",
              "mythos/protocol/IdleManagement.hh",

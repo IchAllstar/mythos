@@ -190,7 +190,7 @@ Error SignalGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
 Error SignalGroup::addHelper(Tasklet*, Cap, IInvocation *msg) {
     auto data = msg->getMessage()->read<protocol::SignalGroup::AddHelper>();
     auto capEntry = msg->lookupEntry(data.cpuThread());
-    TypedCap<SchedulingCoordinator> obj(capEntry);
+    TypedCap<HWThread> obj(capEntry);
     if (!obj) return Error::INVALID_CAPABILITY;
     helper[obj->getApicID()] = true;
     actualHelper++;
@@ -198,12 +198,12 @@ Error SignalGroup::addHelper(Tasklet*, Cap, IInvocation *msg) {
     return Error::SUCCESS;
 }
 
-SchedulingCoordinator* SignalGroup::getHelper(uint64_t i) {
+HWThread* SignalGroup::getHelper(uint64_t i) {
     uint64_t tmp = 0;
     for (uint64_t j = 0; j < MYTHOS_MAX_THREADS; j++) {
       if (helper[j] == true) tmp++;
       if (tmp == i + 1) {
-        return &mythos::boot::getSchedulingCoordinator(j);
+        return &mythos::boot::getHWThread(j);
       }
     }
     PANIC("Not enough helper threads.");

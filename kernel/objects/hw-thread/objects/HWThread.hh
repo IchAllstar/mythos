@@ -31,7 +31,7 @@
 #include "objects/IKernelObject.hh"
 #include "objects/IFactory.hh"
 #include "mythos/protocol/KernelObject.hh"
-#include "mythos/protocol/SchedulingCoordinator.hh"
+#include "mythos/protocol/HWThread.hh"
 #include "boot/mlog.hh"
 
 namespace mythos {
@@ -40,7 +40,7 @@ namespace mythos {
  * Class coordinates between Place(kernel task scheduler), SchedulingContext(system thread scheduler),
  * ExecutionContext (system thread) and the decision to go to sleep. Different policies of sleeping can be chosen.
  */
-class SchedulingCoordinator
+class HWThread
   : public IKernelObject {
 public:
   enum Policy {
@@ -57,7 +57,7 @@ public:
 
 //protocol implementations
 protected:
-  friend struct protocol::SchedulingCoordinator;
+  friend struct protocol::HWThread;
   Error printMessage(Tasklet *t, Cap self, IInvocation *msg);
   Error setPolicy(Tasklet *t, Cap self, IInvocation *msg);
 

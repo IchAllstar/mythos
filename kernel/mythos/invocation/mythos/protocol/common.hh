@@ -42,11 +42,11 @@ namespace mythos {
       EXECUTION_CONTEXT,
       PORTAL,
       EXAMPLE,
-      SCHEDULING_COORDINATOR,
+      HW_THREAD,
       EXAMPLE_HOME,
       CPUDRIVERKNC,
       INTERRUPT_CONTROL,
-      SIGNALABLE_GROUP,
+      SIGNAL_GROUP,
       IDLE_MANAGEMENT,
     };
 

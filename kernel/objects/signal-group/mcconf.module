@@ -1,5 +1,5 @@
 # -*- mode:toml; -*-
 
-[module.objects-signalable-group]
+[module.objects-signal-group]
     incfiles = [ "objects/SignalGroup.hh", "objects/TreeMulticast.hh", "objects/SequentialMulticast.hh", "objects/HelperMulticast.hh" ]
     kernelfiles = [ "objects/SignalGroup.cc" ]

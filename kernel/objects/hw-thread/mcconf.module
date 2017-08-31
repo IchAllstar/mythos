@@ -1,0 +1,4 @@
+# -*- mode:toml; -*-
+[module.hw-thread]
+    incfiles = [ "objects/HWThread.hh" ]
+    kernelfiles = [ "objects/HWThread.cc" ]

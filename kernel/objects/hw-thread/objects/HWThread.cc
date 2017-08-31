@@ -25,7 +25,7 @@
  */
 
 #include "cpu/hwthreadid.hh"
-#include "objects/SchedulingCoordinator.hh"
+#include "objects/HWThread.hh"
 #include "objects/mlog.hh"
 #include "util/Time.hh"
 #include "cpu/LAPIC.hh"
@@ -33,22 +33,22 @@
 
 namespace mythos {
 
-static mlog::Logger<mlog::FilterAny> mlogcoord("SchedulingCoordinator");
+static mlog::Logger<mlog::FilterAny> mlogcoord("HWThread");
 
-optional<void> SchedulingCoordinator::deleteCap(Cap self, IDeleter& del) {
+optional<void> HWThread::deleteCap(Cap self, IDeleter& del) {
     if (self.isOriginal()) {
         del.deleteObject(del_handle);
     }
     RETURN(Error::SUCCESS);
 }
 
-optional<void const*> SchedulingCoordinator::vcast(TypeId id) const {
+optional<void const*> HWThread::vcast(TypeId id) const {
     if (id == typeId<IKernelObject>()) return static_cast<IKernelObject const*>(this);
-    if (id == typeId<SchedulingCoordinator>()) return this;
+    if (id == typeId<HWThread>()) return this;
     THROW(Error::TYPE_MISMATCH);
 }
 
-void SchedulingCoordinator::invoke(Tasklet* t, Cap self, IInvocation* msg)
+void HWThread::invoke(Tasklet* t, Cap self, IInvocation* msg)
 {
     monitor.request(t, [ = ](Tasklet * t) {
         Error err = Error::NOT_IMPLEMENTED;
@@ -56,8 +56,8 @@ void SchedulingCoordinator::invoke(Tasklet* t, Cap self, IInvocation* msg)
             case protocol::KernelObject::proto:
                 err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
                 break;
-            case protocol::SchedulingCoordinator::proto:
-                err = protocol::SchedulingCoordinator::dispatchRequest(this, msg->getMethod(), t, self, msg);
+            case protocol::HWThread::proto:
+                err = protocol::HWThread::dispatchRequest(this, msg->getMethod(), t, self, msg);
                 break;
         }
         if (err != Error::INHIBIT) {
@@ -67,32 +67,32 @@ void SchedulingCoordinator::invoke(Tasklet* t, Cap self, IInvocation* msg)
     } );
 }
 
-Error SchedulingCoordinator::getDebugInfo(Cap self, IInvocation* msg)
+Error HWThread::getDebugInfo(Cap self, IInvocation* msg)
 {
-    return writeDebugInfo("SchedulingCoordinator", self, msg);
+    return writeDebugInfo("HWThread", self, msg);
 }
 
 // usefull protocol implementations
 
-Error SchedulingCoordinator::printMessage(Tasklet*, Cap self, IInvocation* msg)
+Error HWThread::printMessage(Tasklet*, Cap self, IInvocation* msg)
 {
     MLOG_INFO(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
-    auto data = msg->getMessage()->cast<protocol::SchedulingCoordinator::PrintMessage>();
+    auto data = msg->getMessage()->cast<protocol::HWThread::PrintMessage>();
     mlogcoord.error("Actual policy", DVAR(policy), mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
 }
 
-Error SchedulingCoordinator::setPolicy(Tasklet*, Cap self, IInvocation* msg)
+Error HWThread::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 {
     MLOG_INFO(mlog::boot, "invoke set policy", DVAR(this), DVAR(self), DVAR(msg));
-    auto data = msg->getMessage()->cast<protocol::SchedulingCoordinator::SpinPolicy>();
+    auto data = msg->getMessage()->cast<protocol::HWThread::SpinPolicy>();
     policy = (Policy)data->policy;
     return Error::SUCCESS;
 }
 
 // actual functionality
 
-void SchedulingCoordinator::runSleep() {
+void HWThread::runSleep() {
     localPlace->processTasks(); // executes all available kernel tasks
     releaseKernel();
     //delay(1000);
@@ -101,7 +101,7 @@ void SchedulingCoordinator::runSleep() {
     mythos::idle::sleep(1);
 }
 
-void SchedulingCoordinator::runConfigurableDelays() {
+void HWThread::runConfigurableDelays() {
     auto &idle = mythos::boot::getLocalIdleManagement();
     if (idle.shouldDeepSleep()) {
         MLOG_DETAIL(mlog::boot, "Timer interrupt triggered and no new work so far");
@@ -132,7 +132,7 @@ void SchedulingCoordinator::runConfigurableDelays() {
     mythos::idle::sleep(1);
 }
 
-void SchedulingCoordinator::runSpin() {
+void HWThread::runSpin() {
     while (true) {
         localPlace->enterKernel();
         localPlace->processTasks();
@@ -142,7 +142,7 @@ void SchedulingCoordinator::runSpin() {
     }
 }
 
-void SchedulingCoordinator::tryRunUser() {
+void HWThread::tryRunUser() {
   auto *ec = localSchedulingContext->tryRunUser();
   if (ec) {
     if (ec->prepareResume()) {
@@ -154,7 +154,7 @@ void SchedulingCoordinator::tryRunUser() {
   }
 }
 
-void SchedulingCoordinator::releaseKernel() {
+void HWThread::releaseKernel() {
   while (not localPlace->releaseKernel()) { // release kernel
       localPlace->processTasks();
   }

@@ -53,7 +53,7 @@
 #include "objects/ISchedulable.hh"
 #include "objects/SchedulingContext.hh"
 #include "boot/memory-root.hh"
-#include "objects/SchedulingCoordinator.hh"
+#include "objects/HWThread.hh"
 #include "util/Time.hh"
 
 ALIGN_4K uint8_t boot_stack[BOOT_STACK_SIZE] SYMBOL("BOOT_STACK");
@@ -99,7 +99,7 @@ NORETURN void runUser();
 
 
 void runUser() {
-  mythos::boot::getLocalSchedulingCoordinator().runUser();
+  mythos::boot::getLocalHWThread().runUser();
 }
 
 /** Boot entry point and deep sleep exit point for application

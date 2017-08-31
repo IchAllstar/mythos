@@ -39,7 +39,7 @@
 #include "async/Place.hh"
 #include "objects/DeleteBroadcast.hh"
 #include "objects/SchedulingContext.hh"
-#include "objects/SchedulingCoordinator.hh"
+#include "objects/HWThread.hh"
 #include "objects/IdleManagement.hh"
 #include "boot/memory-layout.h"
 #include "boot/DeployKernelSpace.hh"
@@ -53,14 +53,14 @@ namespace mythos {
     extern SchedulingContext schedulers[MYTHOS_MAX_THREADS];
     extern CoreLocal<SchedulingContext*> localScheduler KERNEL_CLM;
 
-    extern SchedulingCoordinator coordinators[MYTHOS_MAX_THREADS];
-    extern CoreLocal<SchedulingCoordinator*> localSchedulingCoordinator_ KERNEL_CLM_HOT;
+    extern HWThread coordinators[MYTHOS_MAX_THREADS];
+    extern CoreLocal<HWThread*> localHWThread_ KERNEL_CLM_HOT;
 
     SchedulingContext& getScheduler(size_t index) { return schedulers[index]; }
     SchedulingContext& getLocalScheduler() { return *localScheduler; }
 
-    SchedulingCoordinator& getSchedulingCoordinator(size_t index) { return coordinators[index]; }
-    SchedulingCoordinator& getLocalSchedulingCoordinator() { return *localSchedulingCoordinator_; }
+    HWThread& getHWThread(size_t index) { return coordinators[index]; }
+    HWThread& getLocalHWThread() { return *localHWThread_; }
 
     static const constexpr uint64_t HWTHREADS = 4;
     extern IdleManagement idleManagement[MYTHOS_MAX_THREADS / HWTHREADS];
@@ -104,10 +104,10 @@ struct DeployHWThread
     cpu::hwThreadID_.setAt(threadID, threadID);
     async::getPlace(threadID)->init(threadID, apicID);
     localScheduler.setAt(threadID, &getScheduler(threadID));
-    getScheduler(threadID).init(async::getPlace(threadID),&getSchedulingCoordinator(threadID));
-    localSchedulingCoordinator_.setAt(threadID, &getSchedulingCoordinator(threadID));
+    getScheduler(threadID).init(async::getPlace(threadID),&getHWThread(threadID));
+    localHWThread_.setAt(threadID, &getHWThread(threadID));
     localIdleManagement.setAt(threadID, &getIdleManagement(threadID));
-    getSchedulingCoordinator(threadID).init(threadID, async::getPlace(threadID), &getScheduler(threadID));
+    getHWThread(threadID).init(threadID, async::getPlace(threadID), &getScheduler(threadID));
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),
                 DVARhex(stacks[apicID]), DVARhex(stackphys), DVARhex(tss_kernel.ist[1]),

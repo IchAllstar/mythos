@@ -41,7 +41,7 @@
 #include "objects/SchedulingContext.hh"
 #include "objects/SignalGroup.hh"
 #include "objects/Portal.hh"
-#include "objects/SchedulingCoordinator.hh"
+#include "objects/HWThread.hh"
 #include "objects/IdleManagement.hh"
 #include "objects/Example.hh"
 #include "objects/ExampleHome.hh"
@@ -202,7 +202,7 @@ optional<void> InitLoader::initCSpace()
 
   MLOG_INFO(mlog::boot, "... create idle management caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
   for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
-    auto res = csSet(SCHEDULING_COORDINATOR_START+id, boot::getSchedulingCoordinator(id));
+    auto res = csSet(SCHEDULING_COORDINATOR_START+id, boot::getHWThread(id));
     if (!res) RETHROW(res);
   }
 

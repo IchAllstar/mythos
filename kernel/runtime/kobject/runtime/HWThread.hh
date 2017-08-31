@@ -26,7 +26,7 @@
 #pragma once
 
 #include "runtime/PortalBase.hh"
-#include "mythos/protocol/SchedulingCoordinator.hh"
+#include "mythos/protocol/HWThread.hh"
 #include "runtime/KernelMemory.hh"
 #include "mythos/init.hh"
 
@@ -37,17 +37,17 @@ namespace mythos {
     SPIN  = 1,
   };
 
-  class SchedulingCoordinator : public KObject
+  class HWThread : public KObject
   {
   public:
-    SchedulingCoordinator(CapPtr cap) : KObject(cap) {}
+    HWThread(CapPtr cap) : KObject(cap) {}
 
     PortalFuture<void> printMessage(PortalLock pr, char const* str, size_t bytes) {
-      return pr.invoke<protocol::SchedulingCoordinator::PrintMessage>(_cap, str, bytes);
+      return pr.invoke<protocol::HWThread::PrintMessage>(_cap, str, bytes);
     }
 
     PortalFuture<void> setPolicy(PortalLock pr, size_t policy) {
-      return pr.invoke<protocol::SchedulingCoordinator::SpinPolicy>(_cap, policy);
+      return pr.invoke<protocol::HWThread::SpinPolicy>(_cap, policy);
     }
   };
 

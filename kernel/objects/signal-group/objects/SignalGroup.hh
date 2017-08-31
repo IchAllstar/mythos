@@ -56,7 +56,7 @@ public:
     size_t getSize() { return actualSize; }
     Tasklet* getTasklet(size_t idx) { ASSERT(idx < actualSize); return &tasklets[idx]; }
     CapRef<SignalGroup, ISignalable>* getMember(size_t idx) { ASSERT(idx < actualSize); return &member[idx]; }
-    SchedulingCoordinator* getHelper(uint64_t i);
+    HWThread* getHelper(uint64_t i);
     uint64_t numHelper() { return actualHelper; }
 private:
     IAsyncFree* _mem;

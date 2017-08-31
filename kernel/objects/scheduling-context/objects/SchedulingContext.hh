@@ -33,7 +33,7 @@
 #include "util/error-trace.hh"
 
 namespace mythos {
-class SchedulingCoordinator;
+class HWThread;
 
   /** Scheduler for multiple application threads on a single hardware
    * thread. It implements an cooperative FIFO strategy that switches only
@@ -77,12 +77,12 @@ class SchedulingCoordinator;
     };
   public:
     SchedulingContext() { current_ec = (handle_t*)REMOVED; }
-    void init(async::Place* home, SchedulingCoordinator *sc) { this->home = home; schedCoord = sc; }
+    void init(async::Place* home, HWThread *sc) { this->home = home; schedCoord = sc; }
     virtual ~SchedulingContext() {}
 
     /**
      * Returns next runnable item from run queue
-     * SchedulingCoordinator is responsible to actually run the item
+     * HWThread is responsible to actually run the item
      */
     ISchedulable* tryRunUser();
     void preempt();
@@ -94,7 +94,7 @@ class SchedulingCoordinator;
     void preempt(Tasklet* t, IResult<void>* res, handle_t* ec_handle) override;
     void preempt(handle_t* ec_handle) override;
     void yield(handle_t* ec_handle) override;
-    SchedulingCoordinator* getSchedCoord() override { return schedCoord; }
+    HWThread* getSchedCoord() override { return schedCoord; }
     async::Place* getHome() override { return home; }
   public: // IKernelObject interface
     optional<void> deleteCap(Cap, IDeleter&) override { RETURN(Error::SUCCESS); }
@@ -109,7 +109,7 @@ class SchedulingCoordinator;
     std::atomic<handle_t*> current_ec; //< the currently selected execution context
     std::atomic_flag preempting = ATOMIC_FLAG_INIT; //< true if preemption is sent off
     Tasklet tasklet; //< used for the preemption
-    SchedulingCoordinator *schedCoord {nullptr};
+    HWThread *schedCoord {nullptr};
   };
 
 } // namespace mythos
