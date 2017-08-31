@@ -39,7 +39,7 @@
 #include "objects/PageMapAmd64.hh"
 #include "objects/ExecutionContext.hh"
 #include "objects/SchedulingContext.hh"
-#include "objects/SignalableGroup.hh"
+#include "objects/SignalGroup.hh"
 #include "objects/Portal.hh"
 #include "objects/SchedulingCoordinator.hh"
 #include "objects/IdleManagement.hh"
@@ -114,7 +114,7 @@ namespace factory {
   CapMapFactory capmap;
   PageMapFactory pagemap;
   KernelMemoryFactory untypedMemory;
-  SignalableGroupFactory signalable_group;
+  SignalGroupFactory signalable_group;
 } // namespace example
 
 template<class Object, class Factory, class... ARGS>

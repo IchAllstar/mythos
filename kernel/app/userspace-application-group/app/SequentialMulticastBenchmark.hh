@@ -122,8 +122,8 @@ void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
 
 void SequentialMulticastBenchmark::test_multicast_gen(uint64_t number) {
 	ASSERT(number < manager.getNumThreads() + 4);
-	SignalableGroup group;
-  group.setStrat(SignalableGroup::SEQUENTIAL);
+	SignalGroup group;
+  group.setStrat(SignalGroup::SEQUENTIAL);
 	for (int i = 4; i < number + 4; ++i) {
 		group.addMember(manager.getThread(i));
 	}

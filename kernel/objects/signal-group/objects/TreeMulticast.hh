@@ -90,7 +90,7 @@ struct TreeCastStrategy {
         }
     }
 
-    static void signalTo(SignalableGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+    static void signalTo(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
             auto to_tmp = to;
             // Signal own EC, should be ready when leaving kernel
             TypedCap<ISignalable> own(group->getMember(idx)->cap());
@@ -114,7 +114,7 @@ struct TreeCastStrategy {
             own->signal(0);
     }
 
-    static void multicast(SignalableGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+    static void multicast(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
         auto *t = group->getTasklet(idx);
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
         if (!own) PANIC("signalable not valid anymore");
@@ -141,7 +141,7 @@ struct TreeCastStrategy {
 struct NaryTree {
     static const uint64_t N = 3;
 
-    static void sendTo(SignalableGroup *group, uint64_t idx, uint64_t size) {
+    static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
           MLOG_DETAIL(mlog::boot, DVAR(group), DVAR(idx), DVAR(size));
           ASSERT(idx < size);
           ASSERT(group != nullptr); // TODO: parallel deletion of group?
@@ -161,7 +161,7 @@ struct NaryTree {
 
     }
 
-    static void multicast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+    static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
       auto *t = group->getTasklet(idx);
       TypedCap<ISignalable> own(group->getMember(idx)->cap());
       if (not own) PANIC_MSG(false, "No own");
@@ -187,7 +187,7 @@ struct NaryTree {
 class TreeMulticast
 {
 public:
-    static Error multicast(SignalableGroup *group, size_t groupSize) {
+    static Error multicast(SignalGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
         //TreeCastStrategy::multicast(group, 0, 0, groupSize-1);
         NaryTree::multicast(group, 0, groupSize);

@@ -40,7 +40,7 @@
 #include <cstdint>
 #include "app/Thread.hh"
 #include "app/ThreadManager.hh"
-#include "app/SignalableGroup.hh"
+#include "app/SignalGroup.hh"
 #include "util/Time.hh"
 #include "app/HelperThreadBenchmark.hh"
 #include "app/TreeMulticastBenchmark.hh"

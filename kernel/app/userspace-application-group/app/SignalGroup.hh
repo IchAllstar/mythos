@@ -11,7 +11,7 @@
 // TODO
 // mutex in addmember seems to lock?
 // keep on using the task abstraction to propagate tree and helper
-class SignalableGroup {
+class SignalGroup {
 public:
   enum STRATEGY {
     SEQUENTIAL = 0,
@@ -37,7 +37,7 @@ private:
 
 class SequentialStrategy {
 public:
-  static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+  static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     for (uint64_t i = idx; i < size; ++i) {
       auto *member = group->getMember(i);
       if (member) member->signal();
@@ -50,7 +50,7 @@ extern ThreadManager manager;
 class HelperStrategy {
 public:
 
-  static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+  static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     if (size == 0) return;
     ASSERT(group != nullptr);
     uint64_t threads = size/* - 1*/;
@@ -160,7 +160,7 @@ public:
     }
   }
 
-  static void prepareTask(SignalableGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+  static void prepareTask(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
     auto *group_ = group;
     auto idx_ = idx;
     auto from_ = from;
@@ -190,7 +190,7 @@ public:
     });
   }
 
-  static void prepareTaskNary(SignalableGroup *group, uint64_t idx, uint64_t size) {
+  static void prepareTaskNary(SignalGroup *group, uint64_t idx, uint64_t size) {
     static const uint64_t NARY = 3;
     group->getTask(idx)->set([group, idx, size](Task&) {
         ASSERT(group != nullptr);
@@ -211,7 +211,7 @@ public:
     });
   }
 
-  static void cast(SignalableGroup *group, uint64_t idx, uint64_t size) {
+  static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
       TreeStrategy::prepareTask(group, 0, 0, size - 1);

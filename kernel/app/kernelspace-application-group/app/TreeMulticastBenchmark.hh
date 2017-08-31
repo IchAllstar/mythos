@@ -1,7 +1,7 @@
 #pragma once
 #include "app/ThreadManager.hh"
 #include "app/Thread.hh"
-#include "runtime/SignalableGroup.hh"
+#include "runtime/SignalGroup.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include <atomic>
 #include "util/Time.hh"
@@ -41,7 +41,8 @@ void TreeMulticastBenchmark::setup() {
 }
 
 void TreeMulticastBenchmark::test_multicast() {
-	setup();
+    MLOG_ERROR(mlog::app, "Tree Multicast Benchmark");
+    setup();
   test_multicast_no_deep_sleep();
   test_multicast_always_deep_sleep();
 }
@@ -100,7 +101,7 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     return;
   }
   mythos::PortalLock pl(portal);
-	mythos::SignalableGroup group(caps());
+	mythos::SignalGroup group(caps());
 	ASSERT(group.create(pl, kmem, numThreads).wait());
 	ASSERT(group.setCastStrategy(pl, TREE));
   for (int i = 4; i < numThreads + 4; i++) {

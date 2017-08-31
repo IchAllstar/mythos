@@ -1,30 +1,4 @@
-/* -*- mode:C++; indent-tabs-mode:nil; -*- */
-/* MyThOS: The Many-Threads Operating System
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- * Copyright 2016 Randolf Rotta, Robert Kuban, and contributors, BTU Cottbus-Senftenberg
- */
-
-#include "objects/SignalableGroup.hh"
+#include "objects/SignalGroup.hh"
 #include "objects/mlog.hh"
 #include "objects/TreeMulticast.hh"
 #include "objects/SequentialMulticast.hh"
@@ -32,15 +6,15 @@
 
 namespace mythos {
 
-SignalableGroup::SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_)
+SignalGroup::SignalGroup(IAsyncFree* mem, CapRef<SignalGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_)
     : _mem(mem), member(arr), tasklets(tasklets_), groupSize(groupSize_)
 {
     MLOG_DETAIL(mlog::boot, "Create Group with size", groupSize);
 
     // initialize arrays in place
-    CapRef<SignalableGroup, ISignalable>* obj IGNORE_UNUSED;
+    CapRef<SignalGroup, ISignalable>* obj IGNORE_UNUSED;
     for (uint64_t i = 0; i < groupSize; i++) {
-        obj = new (&member[i]) CapRef<SignalableGroup, ISignalable>();
+        obj = new (&member[i]) CapRef<SignalGroup, ISignalable>();
     }
 
     Tasklet* tasklet IGNORE_UNUSED;
@@ -49,31 +23,31 @@ SignalableGroup::SignalableGroup(IAsyncFree* mem, CapRef<SignalableGroup, ISigna
     }
 }
 
-optional<void> SignalableGroup::deleteCap(Cap self, IDeleter& del) {
+optional<void> SignalGroup::deleteCap(Cap self, IDeleter& del) {
     if (self.isOriginal()) {
         del.deleteObject(del_handle);
     }
     RETURN(Error::SUCCESS);
 }
 
-void SignalableGroup::deleteObject(Tasklet* t, IResult<void>* r)  {
+void SignalGroup::deleteObject(Tasklet* t, IResult<void>* r)  {
     monitor.doDelete(t, [ = ](Tasklet * t) {
         for (uint64_t i = 0; i < actualSize; i++) {
             member[i].reset();
         }
-        auto size =sizeof(CapRef<SignalableGroup, ISignalable>) * groupSize;
+        auto size =sizeof(CapRef<SignalGroup, ISignalable>) * groupSize;
         size += sizeof(Tasklet) * groupSize;
-        size += sizeof(SignalableGroup);
+        size += sizeof(SignalGroup);
         _mem->free(t, r, this, size);
     });
 }
 
-optional<void const*> SignalableGroup::vcast(TypeId id) const {
+optional<void const*> SignalGroup::vcast(TypeId id) const {
     if (id == typeId<IKernelObject>()) return static_cast<IKernelObject const*>(this);
     THROW(Error::TYPE_MISMATCH);
 }
 
-void SignalableGroup::invoke(Tasklet* t, Cap self, IInvocation* msg)
+void SignalGroup::invoke(Tasklet* t, Cap self, IInvocation* msg)
 {
     monitor.request(t, [ = ](Tasklet * t) {
         Error err = Error::NOT_IMPLEMENTED;
@@ -81,8 +55,8 @@ void SignalableGroup::invoke(Tasklet* t, Cap self, IInvocation* msg)
             case protocol::KernelObject::proto:
                 err = protocol::KernelObject::dispatchRequest(this, msg->getMethod(), self, msg);
                 break;
-            case protocol::SignalableGroup::proto:
-                err = protocol::SignalableGroup::dispatchRequest(this, msg->getMethod(), t, self, msg);
+            case protocol::SignalGroup::proto:
+                err = protocol::SignalGroup::dispatchRequest(this, msg->getMethod(), t, self, msg);
                 break;
         }
         if (err != Error::INHIBIT) {
@@ -92,31 +66,31 @@ void SignalableGroup::invoke(Tasklet* t, Cap self, IInvocation* msg)
     } );
 }
 
-void SignalableGroup::bind(optional<ISignalable*>) {
+void SignalGroup::bind(optional<ISignalable*>) {
     MLOG_DETAIL(mlog::boot, "bind");
 }
 
-void SignalableGroup::unbind(optional<ISignalable*>) {
+void SignalGroup::unbind(optional<ISignalable*>) {
     MLOG_DETAIL(mlog::boot, "unbind");
 }
 
-Error SignalableGroup::getDebugInfo(Cap self, IInvocation* msg)
+Error SignalGroup::getDebugInfo(Cap self, IInvocation* msg)
 {
-    return writeDebugInfo("SignalableGroup", self, msg);
+    return writeDebugInfo("SignalGroup", self, msg);
 }
 
-optional<SignalableGroup*>
-SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
+optional<SignalGroup*>
+SignalGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
                                 IAllocator* mem, message_type* data)
 {
   /*
     // Allocate CapRef array to save group members
-    auto group = mem->alloc(sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize, 64);
+    auto group = mem->alloc(sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize, 64);
     if (!group) {
         dstEntry->reset();
         RETHROW(group);
     }
-    memset(*group, 0, sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize);
+    memset(*group, 0, sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize);
 
     // Allocate Tasklet array for asynchronous handling of propagation
     auto tasklets = mem->alloc(sizeof(Tasklet) * data->groupSize, 64);
@@ -128,8 +102,8 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     memset(*tasklets, 0, sizeof(Tasklet) * data->groupSize);
 
     // Create actual kernel object
-    auto obj = mem->create<SignalableGroup>(
-                   (CapRef<SignalableGroup, ISignalable>*) *group, (Tasklet*) *tasklets, data->groupSize);
+    auto obj = mem->create<SignalGroup>(
+                   (CapRef<SignalGroup, ISignalable>*) *group, (Tasklet*) *tasklets, data->groupSize);
     if (!obj) {
         mem->free(*group, sizeof(Tasklet) * data->groupSize);
         dstEntry->reset();
@@ -145,16 +119,16 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
     }
     return *obj;
     */
-  auto size =sizeof(CapRef<SignalableGroup, ISignalable>) * data->groupSize;
+  auto size =sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize;
   size += sizeof(Tasklet) * data->groupSize;
-  size += sizeof(SignalableGroup);
+  size += sizeof(SignalGroup);
   auto ptr = mem->alloc(size, 64);
   if (not ptr) RETHROW(ptr);
   memset(*ptr, 0, size);
   uint64_t point = (uint64_t) (*ptr);
-  auto *group = (CapRef<SignalableGroup, ISignalable>*)(point + sizeof(SignalableGroup));
-  auto *tasklets = (Tasklet*)(point + sizeof(SignalableGroup) + sizeof(CapRef<SignalableGroup,ISignalable>)*data->groupSize);
-  auto obj = new(*ptr) SignalableGroup(mem, group, tasklets, data->groupSize);
+  auto *group = (CapRef<SignalGroup, ISignalable>*)(point + sizeof(SignalGroup));
+  auto *tasklets = (Tasklet*)(point + sizeof(SignalGroup) + sizeof(CapRef<SignalGroup,ISignalable>)*data->groupSize);
+  auto obj = new(*ptr) SignalGroup(mem, group, tasklets, data->groupSize);
   auto cap = Cap(obj);
   auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
   if (not res) {
@@ -167,7 +141,7 @@ SignalableGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memC
 // recursive memorize
 int64_t TreeCastStrategy::tmp[20] = {0};
 
-Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
+Error SignalGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
     ASSERT(member != nullptr);
     switch (strategy) {
@@ -182,15 +156,15 @@ Error SignalableGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     }
 }
 
-Error SignalableGroup::setCastStrategy(Tasklet*, Cap, IInvocation *msg) {
-  auto data = msg->getMessage()->read<protocol::SignalableGroup::SetCastStrategy>();
+Error SignalGroup::setCastStrategy(Tasklet*, Cap, IInvocation *msg) {
+  auto data = msg->getMessage()->read<protocol::SignalGroup::SetCastStrategy>();
   strategy = data.strategy;
   return Error::SUCCESS;
 }
 
-Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
+Error SignalGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
 
-    auto data = msg->getMessage()->read<protocol::SignalableGroup::AddMember>();
+    auto data = msg->getMessage()->read<protocol::SignalGroup::AddMember>();
     MLOG_DETAIL(mlog::boot, "addMember()", DVAR(t), DVAR(self), DVAR(msg));
 
     auto capEntry = msg->lookupEntry(data.signalable());
@@ -213,8 +187,8 @@ Error SignalableGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
     return Error::INSUFFICIENT_RESOURCES;
 }
 
-Error SignalableGroup::addHelper(Tasklet*, Cap, IInvocation *msg) {
-    auto data = msg->getMessage()->read<protocol::SignalableGroup::AddHelper>();
+Error SignalGroup::addHelper(Tasklet*, Cap, IInvocation *msg) {
+    auto data = msg->getMessage()->read<protocol::SignalGroup::AddHelper>();
     auto capEntry = msg->lookupEntry(data.cpuThread());
     TypedCap<SchedulingCoordinator> obj(capEntry);
     if (!obj) return Error::INVALID_CAPABILITY;
@@ -224,7 +198,7 @@ Error SignalableGroup::addHelper(Tasklet*, Cap, IInvocation *msg) {
     return Error::SUCCESS;
 }
 
-SchedulingCoordinator* SignalableGroup::getHelper(uint64_t i) {
+SchedulingCoordinator* SignalGroup::getHelper(uint64_t i) {
     uint64_t tmp = 0;
     for (uint64_t j = 0; j < MYTHOS_MAX_THREADS; j++) {
       if (helper[j] == true) tmp++;

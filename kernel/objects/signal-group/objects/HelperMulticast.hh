@@ -42,7 +42,7 @@ class HelperMulticast
 {
 public:
 
-	static Error multicast(SignalableGroup *group, size_t groupSize) {
+	static Error multicast(SignalGroup *group, size_t groupSize) {
 		ASSERT(group != nullptr);
 		uint64_t threads = groupSize/* - 1*/;
 		//uint64_t availableHelper = mythos::boot::helperThreadManager.numHelper();

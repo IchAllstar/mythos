@@ -31,7 +31,7 @@
 #include "mythos/caps.hh"
 
 namespace mythos {
-class SignalableGroup;
+class SignalGroup;
 class IScheduler;
 //class async::Place;
 

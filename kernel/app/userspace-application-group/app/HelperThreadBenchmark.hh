@@ -24,7 +24,7 @@ public:
 		HelperThread::init_helper();
     MLOG_ERROR(mlog::app, "Init WOrker");
 		init_worker();
-		SignalableGroup group;
+		SignalGroup group;
 		for (int i = 1; i < NUM_THREADS; i++) {
 			if (HelperThread::contains(i)) continue;
 			group.addMember(manager.getThread(i));
@@ -138,8 +138,8 @@ void HelperThreadBenchmark::test_multicast_always_deep_sleep() {
 
 void HelperThreadBenchmark::test_multicast_gen(uint64_t number) {
 	ASSERT(number < manager.getNumThreads() + 4);
-	SignalableGroup group;
-	group.setStrat(SignalableGroup::HELPER);
+	SignalGroup group;
+	group.setStrat(SignalGroup::HELPER);
 	for (int i = 4; i < number + 4; ++i) {
 		group.addMember(manager.getThread(i));
 	}

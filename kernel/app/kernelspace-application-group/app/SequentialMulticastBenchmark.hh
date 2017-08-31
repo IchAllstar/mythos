@@ -1,7 +1,7 @@
 #pragma once
 #include "app/ThreadManager.hh"
 #include "app/Thread.hh"
-#include "runtime/SignalableGroup.hh"
+#include "runtime/SignalGroup.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include <atomic>
 #include "util/Time.hh"
@@ -125,7 +125,7 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     MLOG_ERROR(mlog::app, "Cannot test with", DVAR(numThreads));
   }
 	mythos::PortalLock pl(portal);
-	mythos::SignalableGroup group(caps());
+	mythos::SignalGroup group(caps());
 	ASSERT(group.create(pl, kmem, numThreads).wait());
   ASSERT(group.setCastStrategy(pl, SEQUENTIAL).wait());
 	for (int i = 4; i < numThreads + 4; i++) {

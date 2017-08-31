@@ -26,36 +26,36 @@
 #pragma once
 
 #include "runtime/PortalBase.hh"
-#include "mythos/protocol/SignalableGroup.hh"
+#include "mythos/protocol/SignalGroup.hh"
 #include "runtime/KernelMemory.hh"
 #include "mythos/init.hh"
 
 namespace mythos {
 
-class SignalableGroup : public KObject
+class SignalGroup : public KObject
 {
 public:
-    SignalableGroup(CapPtr cap) : KObject(cap) {}
+    SignalGroup(CapPtr cap) : KObject(cap) {}
 
     PortalFuture<void> create(PortalLock pr, KernelMemory kmem,
             size_t groupSize, CapPtr factory = init::SIGNALABLE_GROUP_FACTORY) {
-        return pr.invoke<protocol::SignalableGroup::Create>(kmem.cap(), _cap, factory, groupSize);
+        return pr.invoke<protocol::SignalGroup::Create>(kmem.cap(), _cap, factory, groupSize);
     }
 
     PortalFuture<void> addMember(PortalLock pr, CapPtr signalable) {
-      return pr.invoke<protocol::SignalableGroup::AddMember>(_cap, signalable);
+      return pr.invoke<protocol::SignalGroup::AddMember>(_cap, signalable);
     }
 
     PortalFuture<void> signalAll(PortalLock pr) {
-        return pr.invoke<protocol::SignalableGroup::SignalAll>(_cap);
+        return pr.invoke<protocol::SignalGroup::SignalAll>(_cap);
     }
 
     PortalFuture<void> setCastStrategy(PortalLock pr, uint64_t strategy) {
-        return pr.invoke<protocol::SignalableGroup::SetCastStrategy>(_cap, strategy);
+        return pr.invoke<protocol::SignalGroup::SetCastStrategy>(_cap, strategy);
     }
 
     PortalFuture<void> addHelper(PortalLock pr, CapPtr cpuThread) {
-      return pr.invoke<protocol::SignalableGroup::AddHelper>(_cap, cpuThread);
+      return pr.invoke<protocol::SignalGroup::AddHelper>(_cap, cpuThread);
     }
 };
 

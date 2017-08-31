@@ -33,12 +33,12 @@
 
 namespace mythos {
 
-class SignalableGroup;
+class SignalGroup;
 
 class SequentialMulticast
 {
 public:
-    static Error multicast(SignalableGroup *group, size_t groupSize) {
+    static Error multicast(SignalGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
 
         for (uint64_t i = 0; i < groupSize; i++) {

@@ -2,7 +2,7 @@
 #include <atomic>
 #include "app/ThreadManager.hh"
 #include "app/Thread.hh"
-#include "runtime/SignalableGroup.hh"
+#include "runtime/SignalGroup.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include "util/Time.hh"
 #include "mythos/init.hh"
@@ -116,7 +116,7 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     }
 
     mythos::PortalLock pl(portal);
-    mythos::SignalableGroup group(caps());
+    mythos::SignalGroup group(caps());
     ASSERT(group.create(pl, kmem, numThreads).wait());
     ASSERT(group.setCastStrategy(pl, HELPER));
     for (int i = 4; i < numThreads + 4; i++) {

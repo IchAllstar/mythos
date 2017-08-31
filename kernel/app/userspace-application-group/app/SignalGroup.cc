@@ -1,8 +1,8 @@
-#include "app/SignalableGroup.hh"
+#include "app/SignalGroup.hh"
 
 int64_t TreeStrategy::tmp[20] = {0};
 
-void SignalableGroup::addMember(ISignalable *t) {
+void SignalGroup::addMember(ISignalable *t) {
   for (int i = 0; i < MAX; i++) {
     //MLOG_ERROR(mlog::app, "Add ", i);
     if (member[i] == nullptr) {
@@ -14,7 +14,7 @@ void SignalableGroup::addMember(ISignalable *t) {
   MLOG_ERROR(mlog::app, "Group full");
 }
 
-void SignalableGroup::signalAll() {
+void SignalGroup::signalAll() {
   switch (strat) {
     case TREE:
       TreeStrategy::cast(this, 0, size);

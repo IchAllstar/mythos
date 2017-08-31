@@ -12,6 +12,6 @@
              "mythos/protocol/Portal.hh",
              "mythos/protocol/SchedulingCoordinator.hh",
              "mythos/protocol/InterruptControl.hh",
-             "mythos/protocol/SignalableGroup.hh",
+             "mythos/protocol/SignalGroup.hh",
              "mythos/protocol/IdleManagement.hh",
              ]

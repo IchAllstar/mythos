@@ -36,7 +36,7 @@
 #include "runtime/PageMap.hh"
 #include "runtime/KernelMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
-#include "runtime/SignalableGroup.hh"
+#include "runtime/SignalGroup.hh"
 #include "runtime/IdleManagement.hh"
 #include "app/mlog.hh"
 #include <cstdint>
