@@ -17,7 +17,7 @@ class IIdleManagement {
 	virtual void wokeupFromInterrupt(uint8_t irq) = 0; // callback when wokeup from interrupt
 	virtual void enteredFromSyscall() = 0; // callback when entered from syscall
 	virtual void enteredFromInterrupt(uint8_t irq) = 0; // callback when entered from interrupt
-	virtual void sleepIntention(uint8_t depth) = 0; // callback when HWT goes to sleep
+	virtual void sleep() = 0; // decides sleep depth
 };
 
 constexpr uint32_t MAX_UINT32 = (uint32_t) - 1;
@@ -53,7 +53,7 @@ public: // IIdleManagement Interface
 	void wokeupFromInterrupt(uint8_t irq) override;
 	void enteredFromSyscall() override;
 	void enteredFromInterrupt(uint8_t irq) override;
-	void sleepIntention(uint8_t depth) override;
+	void sleep() override;
 public:
 	Error setPollingDelay(Tasklet*, Cap self, IInvocation* msg);
 	Error setLiteSleepDelay(Tasklet*, Cap self, IInvocation* msg);
@@ -69,13 +69,17 @@ private:
   std::atomic<uint32_t> delay_polling = {0};
 
 	// time we wait in lite sleep before going to deep sleep
-  std::atomic<uint32_t> delay_lite_sleep = {MAX_UINT32};
+  std::atomic<uint32_t> delay_lite_sleep = {10000};
 	//std::atomic<uint32_t> delay_lite_sleep = {0};
 
 	// indicates a timer interrupt was set
 	std::atomic<bool> timer {false};
 	// indicates a timer interrupt actually triggered
-	std::atomic<bool> timer_interrupt {false};
+	//std::atomic<bool> timer_interrupt {false};
+
+  std::atomic<uint64_t> startPolling {0};
+
+  std::atomic<bool> should_deep_sleep {false};
 };
 
 } // namespace mythos

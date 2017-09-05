@@ -163,13 +163,12 @@ struct NaryTree {
         ASSERT(group != nullptr); // TODO: parallel deletion of group?
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
         ASSERT(own);
-
         for (uint64_t i = 0; i < N; i++) {
             auto child_idx = idx * N + i + 1;
             if (child_idx >= size) {
                 break;
             }
-            //MLOG_ERROR(mlog::boot, idx, "signals", child_idx);
+            //MLOG_ERROR(mlog::boot, idx, "signals", child_idx, DVAR(size));
             NaryTree::multicast(group, child_idx, size);
         }
         // Signal own EC, will be scheduled after kernel task handling
@@ -184,7 +183,7 @@ struct NaryTree {
             MLOG_ERROR(mlog::boot, "Signalable not valid anymore", DVAR(idx));
         }
         if (own && getSleepState(own->getHWThread()) < 2) {
-            //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(size), DVAR(sleepState));
+            //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(own->getHWThread()->getApicID()), DVAR(getSleepState(own->getHWThread())));
             auto *home = own->getHWThread()->getHome();
             if (home) {
                 t->set([group, idx, size](Tasklet*) {
