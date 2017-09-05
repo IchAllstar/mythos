@@ -46,7 +46,7 @@ public:
 		ASSERT(group != nullptr);
 		uint64_t threads = groupSize/* - 1*/;
 		//uint64_t availableHelper = mythos::boot::helperThreadManager.numHelper();
-    uint64_t availableHelper = group->numHelper();
+		uint64_t availableHelper = group->numHelper();
 		if (availableHelper == 0) {
 			return Error::INSUFFICIENT_RESOURCES;
 		}
@@ -60,7 +60,7 @@ public:
 
 		for (uint64_t i = 0; i < usedHelper; i++) {
 			//auto *sched = mythos::boot::helperThreadManager.getHelper(i);
-      auto *sched = group->getHelper(i);
+			auto *sched = group->getHelper(i);
 			uint64_t base = usedHelper - i;
 			if (diffThreads > 0) {
 				uint64_t tmp = diff;
@@ -76,7 +76,7 @@ public:
 			//MLOG_ERROR(mlog::boot, "send to Helper Thread:", DVAR(current), DVAR(current + base-1));
 			tasklet->set([group, i, current, base](Tasklet*) {
 				ASSERT(group != nullptr);
-        for (uint64_t i = current; i < current + base; i++) {
+				for (uint64_t i = current; i < current + base; i++) {
 					TypedCap<ISignalable> dest(group->getMember(i)->cap());
 					if (dest) {
 						dest->signal(0);

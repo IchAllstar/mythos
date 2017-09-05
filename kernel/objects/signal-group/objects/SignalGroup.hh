@@ -27,11 +27,11 @@ public: // Constructor
 
 public:
     enum CastStrategy {
-      SEQUENTIAL = 0,
-      TREE,
-      HELPER,
+        SEQUENTIAL = 0,
+        TREE,
+        HELPER,
 
-      SIZE,
+        SIZE,
     };
 public: // IKernelObject interface
     optional<void const*> vcast(TypeId id) const override;

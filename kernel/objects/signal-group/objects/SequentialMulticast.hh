@@ -46,7 +46,7 @@ public:
             if (signalable) {
                 signalable->signal(0);
             } else {
-              PANIC("Signalaable not valid anymore");
+                PANIC("Signalaable not valid anymore");
             }
         }
         return Error::SUCCESS;

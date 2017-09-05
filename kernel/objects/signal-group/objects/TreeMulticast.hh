@@ -60,11 +60,11 @@ struct TreeCastStrategy {
             return 1;
         }
         if (time < 20 && tmp[time] > 0) {
-          return tmp[time];
+            return tmp[time];
         }
         auto ret = F(time - 1) + F(time - LATENCY);
         if (time < 20) {
-          tmp[time] = ret;
+            tmp[time] = ret;
         }
         return ret;
     }
@@ -73,7 +73,7 @@ struct TreeCastStrategy {
     static uint64_t f(uint64_t n) {
         Timer t;
         t.start();
-        if (n==0) {
+        if (n == 0) {
             return 0;
         }
         uint64_t i = 1;
@@ -84,50 +84,51 @@ struct TreeCastStrategy {
         }
 
         if (current == n) {
-           return i;
+            return i;
         } else {
-            return i-1;
+            return i - 1;
         }
     }
 
     static void signalTo(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
-            auto to_tmp = to;
-            // Signal own EC, should be ready when leaving kernel
-            TypedCap<ISignalable> own(group->getMember(idx)->cap());
-            while (true) {
-                uint64_t n = to_tmp - from + 1;
-                if ( n < 2) {
-                    break;
-                }
-                // calculates the split of the range depending on LATENCY
-                // left range is handled by this, right by other node
-                uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
-                auto destID = j+from;
-                if (destID < to_tmp) {
-                    multicast(group, destID, destID, to_tmp);
-                } else { // if leaf node, which does not forward, just signal it
-                    TypedCap<ISignalable> dest(group->getMember(destID)->cap());
-                    dest->signal(0);
-                }
-                to_tmp = destID - 1;
+        auto to_tmp = to;
+        // Signal own EC, should be ready when leaving kernel
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        while (true) {
+            uint64_t n = to_tmp - from + 1;
+            if ( n < 2) {
+                break;
             }
-            own->signal(0);
+            // calculates the split of the range depending on LATENCY
+            // left range is handled by this, right by other node
+            uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
+            auto destID = j + from;
+            if (destID < to_tmp) {
+                multicast(group, destID, destID, to_tmp);
+            } else { // if leaf node, which does not forward, just signal it
+                TypedCap<ISignalable> dest(group->getMember(destID)->cap());
+                dest->signal(0);
+            }
+            to_tmp = destID - 1;
+        }
+        own->signal(0);
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
         auto *t = group->getTasklet(idx);
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
-        if (!own) PANIC("signalable not valid anymore");
-        auto sleepState = own->getSleepState();
-        if (sleepState < 2) { // child not in deep sleep send Tasklet
+        if (!own) {
+            MLOG_ERROR(mlog::boot, "Signalable not valid anymore", DVAR(idx));
+        }
+        if (own && own->getSleepState() < 2) { // child not in deep sleep send Tasklet
             t->set([group, idx, from, to](Tasklet*) {
-              signalTo(group, idx, from, to);
+                signalTo(group, idx, from, to);
             });
             auto home = own->getHome();
             if (home) {
                 home->run(t);
             }
-        } else { // Send to child yourself because is in deep sleep
+        } else { // Send to child yourself because is in deep sleep or own not valid anymore
             signalTo(group, idx, from, to);
         }
     }
@@ -142,45 +143,45 @@ struct NaryTree {
     static const uint64_t N = 3;
 
     static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
-          MLOG_DETAIL(mlog::boot, DVAR(group), DVAR(idx), DVAR(size));
-          ASSERT(idx < size);
-          ASSERT(group != nullptr); // TODO: parallel deletion of group?
-          TypedCap<ISignalable> own(group->getMember(idx)->cap());
-          ASSERT(own);
+        MLOG_DETAIL(mlog::boot, DVAR(group), DVAR(idx), DVAR(size));
+        ASSERT(idx < size);
+        ASSERT(group != nullptr); // TODO: parallel deletion of group?
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        ASSERT(own);
 
-          for (uint64_t i = 0; i < N; i++) {
+        for (uint64_t i = 0; i < N; i++) {
             auto child_idx = idx * N + i + 1;
             if (child_idx >= size) {
-              break;
+                break;
             }
             //MLOG_ERROR(mlog::boot, idx, "signals", child_idx);
             NaryTree::multicast(group, child_idx, size);
-          }
-          // Signal own EC, will be scheduled after kernel task handling
-          own->signal(0);
+        }
+        // Signal own EC, will be scheduled after kernel task handling
+        own->signal(0);
 
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
-      auto *t = group->getTasklet(idx);
-      TypedCap<ISignalable> own(group->getMember(idx)->cap());
-      if (not own) PANIC_MSG(false, "No own");
-      auto sleepState = own->getSleepState();
-      if (sleepState < 2) {
-        //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(size), DVAR(sleepState));
-
-        auto *home = own->getHome();
-        if (home) {
-          t->set([group, idx, size](Tasklet*) {
-              NaryTree::sendTo(group, idx, size);
-          });
-          home->run(t);
-        } else {
-          PANIC_MSG(false, "No home to run tasklet on.");
+        auto *t = group->getTasklet(idx);
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        if (!own) {
+            MLOG_ERROR(mlog::boot, "Signalable not valid anymore", DVAR(idx));
         }
-      } else {
-          NaryTree::sendTo(group, idx, size);
-      }
+        if (own && own->getSleepState() < 2) {
+            //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(size), DVAR(sleepState));
+            auto *home = own->getHome();
+            if (home) {
+                t->set([group, idx, size](Tasklet*) {
+                    NaryTree::sendTo(group, idx, size);
+                });
+                home->run(t);
+            } else {
+                PANIC_MSG(false, "No home to run tasklet on.");
+            }
+        } else {
+            NaryTree::sendTo(group, idx, size);
+        }
     }
 };
 
