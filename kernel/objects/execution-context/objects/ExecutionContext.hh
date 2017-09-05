@@ -100,8 +100,7 @@ namespace mythos {
     void doResume() override;
   public: // ISignalable interface
     optional<void> signal(CapData data) override;
-    uint64_t getSleepState() override;
-    async::Place* getHome() override;
+    HWThread* getHWThread() override;
   public: // IPortalUser interface
     optional<CapEntryRef> lookupRef(CapPtr ptr, CapPtrDepth ptrDepth, bool writeable) override;
 

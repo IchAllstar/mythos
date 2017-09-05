@@ -45,8 +45,7 @@ public:
     virtual ~ISignalable() {}
 
     virtual optional<void> signal(CapData data) = 0;
-    virtual uint64_t getSleepState() = 0;
-    virtual async::Place* getHome() = 0;
+    virtual HWThread* getHWThread() = 0;
 };
 
 } // namespace mythos

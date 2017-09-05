@@ -416,26 +416,12 @@ optional<void> ExecutionContext::syscallInvoke(CapPtr portal, CapPtr dest, uint6
     RETURN(p.sendInvocation(dest, user));
 }
 
-async::Place* ExecutionContext::getHome() {
-  auto sched = _sched.get();
-  if (sched) {
-    return sched->getHome();
-  }
-  return nullptr;
-}
-
-// little hacky to get sleep state like that
-// could be solved more elegant probably
-extern SleepEmulator emu;
-uint64_t ExecutionContext::getSleepState() {
-    auto sched = _sched.get(); // Assume that every EC is on one SC and does not migrate
+HWThread* ExecutionContext::getHWThread() {
+    auto sched = _sched.get();
     if (sched) {
-        auto *schedCoord = sched->getSchedCoord();
-        auto apicID = schedCoord->getApicID();
-        auto sleepState = emu.getSleepState(apicID);
-        return sleepState;
+        return sched->getHWThread();
     }
-    return 0;
+    return nullptr;
 }
 
 bool ExecutionContext::prepareResume() {

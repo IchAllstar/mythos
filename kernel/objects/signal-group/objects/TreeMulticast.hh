@@ -35,6 +35,7 @@
 
 namespace mythos {
 
+extern SleepEmulator emu;
 
 /**
  * Strategy implementation, which constructs a "fibonacci" multicast tree of the group members.
@@ -43,7 +44,6 @@ namespace mythos {
  * Therefore they get a bigger range of nodes to transfer the Signal to.
  * Treeconstruction is dependent on the LATENCY parameter, which has to be adapted for different hardware.
  */
-
 struct TreeCastStrategy {
     // Latency: inverse ratio of sending overhead and complete transfer time
     // LATENCY = 2 optimal on KNC if no deep sleep
@@ -90,6 +90,13 @@ struct TreeCastStrategy {
         }
     }
 
+    static uint64_t getSleepState(HWThread *hwt) {
+        if (!hwt) return 0;
+        auto apicID = hwt->getApicID();
+        auto sleepState = emu.getSleepState(apicID);
+        return sleepState;
+    }
+
     static void signalTo(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
         auto to_tmp = to;
         // Signal own EC, should be ready when leaving kernel
@@ -120,11 +127,12 @@ struct TreeCastStrategy {
         if (!own) {
             MLOG_ERROR(mlog::boot, "Signalable not valid anymore", DVAR(idx));
         }
-        if (own && own->getSleepState() < 2) { // child not in deep sleep send Tasklet
+
+        if (own && getSleepState(own->getHWThread()) < 2) { // child not in deep sleep send Tasklet
             t->set([group, idx, from, to](Tasklet*) {
                 signalTo(group, idx, from, to);
             });
-            auto home = own->getHome();
+            auto home = own->getHWThread()->getHome();
             if (home) {
                 home->run(t);
             }
@@ -141,6 +149,13 @@ struct TreeCastStrategy {
  */
 struct NaryTree {
     static const uint64_t N = 3;
+
+    static uint64_t getSleepState(HWThread *hwt) {
+        if (!hwt) return 0;
+        auto apicID = hwt->getApicID();
+        auto sleepState = emu.getSleepState(apicID);
+        return sleepState;
+    }
 
     static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
         MLOG_DETAIL(mlog::boot, DVAR(group), DVAR(idx), DVAR(size));
@@ -168,9 +183,9 @@ struct NaryTree {
         if (!own) {
             MLOG_ERROR(mlog::boot, "Signalable not valid anymore", DVAR(idx));
         }
-        if (own && own->getSleepState() < 2) {
+        if (own && getSleepState(own->getHWThread()) < 2) {
             //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(size), DVAR(sleepState));
-            auto *home = own->getHome();
+            auto *home = own->getHWThread()->getHome();
             if (home) {
                 t->set([group, idx, size](Tasklet*) {
                     NaryTree::sendTo(group, idx, size);

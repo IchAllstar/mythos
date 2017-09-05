@@ -75,7 +75,7 @@ namespace mythos {
 
     virtual async::Place* getHome() = 0;
 
-    virtual HWThread* getSchedCoord() = 0;
+    virtual HWThread* getHWThread() = 0;
   };
 
 } // namespace mythos

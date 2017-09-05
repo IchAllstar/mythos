@@ -77,7 +77,7 @@ class HWThread;
     };
   public:
     SchedulingContext() { current_ec = (handle_t*)REMOVED; }
-    void init(async::Place* home, HWThread *sc) { this->home = home; schedCoord = sc; }
+    void init(async::Place* home, HWThread *hwt) { this->home = home; hwThread = hwt; }
     virtual ~SchedulingContext() {}
 
     /**
@@ -94,7 +94,7 @@ class HWThread;
     void preempt(Tasklet* t, IResult<void>* res, handle_t* ec_handle) override;
     void preempt(handle_t* ec_handle) override;
     void yield(handle_t* ec_handle) override;
-    HWThread* getSchedCoord() override { return schedCoord; }
+    HWThread* getHWThread() override { return hwThread; }
     async::Place* getHome() override { return home; }
   public: // IKernelObject interface
     optional<void> deleteCap(Cap, IDeleter&) override { RETURN(Error::SUCCESS); }
@@ -109,7 +109,7 @@ class HWThread;
     std::atomic<handle_t*> current_ec; //< the currently selected execution context
     std::atomic_flag preempting = ATOMIC_FLAG_INIT; //< true if preemption is sent off
     Tasklet tasklet; //< used for the preemption
-    HWThread *schedCoord {nullptr};
+    HWThread *hwThread {nullptr};
   };
 
 } // namespace mythos
