@@ -69,14 +69,13 @@ NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
 void sleep(uint8_t depth)
 {
-    MLOG_ERROR(mlog::boot, "sleep", DVAR(depth));
     emu.sleep(cpu::getThreadID(), depth);
     cpu_idle_halt();
 }
 
 void wokeup(size_t /*apicID*/, size_t reason)
 {
-    //MLOG_ERROR(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
+    MLOG_INFO(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
     if (reason == 1) {
         MLOG_DETAIL(mlog::boot, "idle: woke up from CC6");
         boot::getLocalIdleManagement().wokeup(reason);
@@ -86,7 +85,6 @@ void wokeup(size_t /*apicID*/, size_t reason)
 
 void wokeupFromInterrupt(uint8_t irq)
 {
-    MLOG_ERROR(mlog::boot, "wokeup");
     emu.wakeup(cpu::getThreadID());
     if (irq == 0x22) {
       boot::getLocalIdleManagement().wokeupFromInterrupt(irq);

@@ -12,7 +12,6 @@ extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
 extern uint64_t REPETITIONS;
-extern uint64_t DELAY_BETWEEN;
 
 class TreeMulticastBenchmark {
 public:
@@ -44,8 +43,8 @@ void TreeMulticastBenchmark::setup() {
 void TreeMulticastBenchmark::test_multicast() {
     MLOG_ERROR(mlog::app, "Tree Multicast Benchmark");
     setup();
-    test_multicast_no_deep_sleep();
-    test_multicast_always_deep_sleep();
+  test_multicast_no_deep_sleep();
+  test_multicast_always_deep_sleep();
 }
 
 void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
@@ -111,13 +110,12 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	mythos::Timer t;
 	uint64_t sum = 0;
 	for (uint64_t i = 0; i < REPETITIONS; i++) {
-    //MLOG_ERROR(mlog::app, "wakeup try");
 		counter.store(0);
 		t.start();
     group.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
-    mythos::delay(DELAY_BETWEEN); // Tree cast does lock when not here
+    mythos::delay(100000); // Tree cast does lock when not here
 	}
 	MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);
 	caps.free(group, pl);

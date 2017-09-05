@@ -13,7 +13,6 @@ extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
 extern uint64_t REPETITIONS;
-extern uint64_t DELAY_BETWEEN;
 
 class HelperMulticastBenchmark {
 public:
@@ -45,8 +44,8 @@ void HelperMulticastBenchmark::setup() {
     for (uint64_t i = 0; i < numHelper; i++) {
         auto helper = manager.getNumThreads() - i - 1;
         mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + helper);
-        ASSERT(im.setPollingDelay(pl, 0).wait());
-        ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
+        ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
+        //ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
     }
 }
 
@@ -136,9 +135,9 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
       group.signalAll(pl);
       while (counter.load() != numThreads) { mythos::hwthread_pause(); }
       sum += t.end();
-      mythos::delay(DELAY_BETWEEN); // wait to let threads enter deep sleep
+      mythos::delay(1000000); // wait to let threads enter deep sleep
     }
 
-    MLOG_ERROR(mlog::app, numThreads,"; ", sum/REPETITIONS);
+    MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/REPETITIONS));
     ASSERT(caps.free(group, pl));
 }

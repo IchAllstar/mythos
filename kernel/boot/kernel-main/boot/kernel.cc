@@ -141,10 +141,10 @@ void mythos::cpu::syscall_entry_cxx(mythos::cpu::ThreadState* ctx)
 void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
 {
   ASSERT(ctx->irq < 256);
+  mythos::async::getLocalPlace().enterKernel();
+  mythos::idle::enteredFromInterrupt((uint8_t) ctx->irq);
   MLOG_DETAIL(mlog::boot, "user interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
       DVARhex(ctx->rip), DVARhex(ctx->rsp));
-  mythos::idle::enteredFromInterrupt((uint8_t) ctx->irq);
-  mythos::async::getLocalPlace().enterKernel();
   if (ctx->irq<32) {
     mythos::handle_trap(ctx); // handle traps, exceptions, bugs from user mode
   } else {
@@ -157,10 +157,9 @@ void mythos::cpu::irq_entry_user(mythos::cpu::ThreadState* ctx)
 void mythos::cpu::irq_entry_kernel(mythos::cpu::KernelIRQFrame* ctx)
 {
   ASSERT(ctx->irq < 256);
+  mythos::idle::wokeupFromInterrupt((uint8_t) ctx->irq); // can also be caused by preemption points!
   MLOG_DETAIL(mlog::boot, "kernel interrupt", DVARhex(ctx->irq), DVARhex(ctx->error),
       DVARhex(ctx->rip), DVARhex(ctx->rsp));
-  mythos::idle::wokeupFromInterrupt((uint8_t) ctx->irq); // can also be caused by preemption points
-
   bool wasbug = handle_bugirqs(ctx); // initiate irq processing: first kernel bugs
   bool nested = mythos::async::getLocalPlace().enterKernel();
   if (!wasbug) {

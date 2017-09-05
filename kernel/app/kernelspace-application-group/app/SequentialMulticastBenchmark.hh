@@ -12,7 +12,6 @@ extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
 extern uint64_t REPETITIONS;
-extern uint64_t DELAY_BETWEEN;
 
 class SequentialMulticastBenchmark {
 public:
@@ -140,7 +139,7 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 		group.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
-    mythos::delay(DELAY_BETWEEN);
+    mythos::delay(10000000);
   }
 	MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);
 	caps.free(group, pl);

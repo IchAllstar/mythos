@@ -33,7 +33,7 @@
 namespace mythos {
 class SignalGroup;
 class IScheduler;
-class HWThread;
+//class async::Place;
 
 /**
  * Interface for signalable objects.

@@ -49,12 +49,7 @@ void IdleManagement::wokeup(size_t reason) {
 void IdleManagement::wokeupFromInterrupt(uint8_t irq) {
 	if (timer.exchange(false) == true) {
 		if (irq == 0x22) {
-			//timer_interrupt.store(true);
-      if (delay_lite_sleep != MAX_UINT32) {
-        MLOG_ERROR(mlog::boot, "nothing happend");
-        //mythos::idle::sleep(6);
-        should_deep_sleep.store(true);
-      }
+			timer_interrupt.store(true);
 		} else { // we woke up from another reason but timer was configured, so disable it to avoid useless interrupt
 			mythos::lapic.disableTimer();
 		}
@@ -70,7 +65,6 @@ void IdleManagement::enteredFromInterrupt(uint8_t irq) {
 	MLOG_DETAIL(mlog::boot, "enteredFromInterrupt", DVAR(irq));
 }
 
-/*
 void IdleManagement::sleepIntention(uint8_t depth) {
 	MLOG_DETAIL(mlog::boot, "received sleep intention", DVAR(depth));
 	if (depth == 1 && getDelayLiteSleep() != MAX_UINT32) {
@@ -79,33 +73,12 @@ void IdleManagement::sleepIntention(uint8_t depth) {
 		mythos::lapic.enableOneshotTimer(0x22, getDelayLiteSleep());
 	}
 }
-*/
-
-void IdleManagement::sleep() {
-  if (alwaysPoll()) return;
-  auto start = startPolling.load();
-  if (start != 0) {
-    if (getTime() < start + delay_polling) {
-      return;
-    }
-    startPolling.store(0);
-  }
-
-  if (delay_polling.load() > 100) {
-    startPolling.store(getTime());
-    return;
-  }
-  if (alwaysDeepSleep()) mythos::idle::sleep(6);
-	if (getDelayLiteSleep() != MAX_UINT32) {
-		MLOG_ERROR(mlog::boot, "set timer interrupt", DVAR(getDelayLiteSleep()));
-		timer.store(true);
-		mythos::lapic.enableOneshotTimer(0x22, getDelayLiteSleep());
-	}
-  mythos::idle::sleep(1);
-}
 
 bool IdleManagement::shouldDeepSleep() {
-  return should_deep_sleep.load();
+	if (timer_interrupt.exchange(false) == true && delay_lite_sleep != MAX_UINT32) {
+		return true;
+	}
+	return false;
 }
 
 bool IdleManagement::alwaysDeepSleep() {

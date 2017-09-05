@@ -94,7 +94,7 @@ Error HWThread::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 
 void HWThread::runSleep() {
     localPlace->processTasks(); // executes all available kernel tasks
-    //releaseKernel();
+    releaseKernel();
     //delay(1000);
     tryRunUser();
     releaseKernel();
@@ -104,28 +104,6 @@ void HWThread::runSleep() {
 void HWThread::runConfigurableDelays() {
     auto &idle = mythos::boot::getLocalIdleManagement();
     if (idle.shouldDeepSleep()) {
-      MLOG_ERROR(mlog::boot, "deep sleep");
-      releaseKernel();
-      mythos::idle::sleep(6);
-    }
-    while (true) {
-      localPlace->enterKernel();
-      localPlace->processTasks();
-      auto *ec = localSchedulingContext->tryRunUser();
-      if (ec) {
-        if (ec->prepareResume()) {
-          releaseKernel();
-          ec->doResume(); //does not return (hopefully)
-          MLOG_ERROR(mlog::boot, "Returned even prepareResume was successful");
-          mythos::idle::sleep(1);
-        }
-      }
-      //MLOG_ERROR(mlog::boot, "sleep");
-      releaseKernel();
-      idle.sleep(); // returns if polling strategy is active at the moment
-      //preemption_point();
-    }
-    /*if (idle.shouldDeepSleep()) {
         MLOG_DETAIL(mlog::boot, "Timer interrupt triggered and no new work so far");
         releaseKernel();
         boot::getLocalIdleManagement().sleepIntention(6);
@@ -152,7 +130,6 @@ void HWThread::runConfigurableDelays() {
     }
     boot::getLocalIdleManagement().sleepIntention(1);
     mythos::idle::sleep(1);
-    */
 }
 
 void HWThread::runSpin() {
