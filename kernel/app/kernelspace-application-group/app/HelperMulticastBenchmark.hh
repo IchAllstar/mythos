@@ -45,7 +45,7 @@ void HelperMulticastBenchmark::setup() {
         auto helper = manager.getNumThreads() - i - 1;
         mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + helper);
         ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
-        //ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
+        ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
     }
 }
 

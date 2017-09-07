@@ -50,7 +50,7 @@ void TreeMulticastBenchmark::test_multicast() {
 void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	MLOG_ERROR(mlog::app, "Start Tree Multicast tree test always deep sleep");
   mythos::PortalLock pl(portal);
-  for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
+  for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl, 0).wait());
@@ -62,10 +62,15 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
     manager.getThread(i)->signal();
   }
   mythos::delay(10000000);
+  /*
   for (uint64_t i = 2; i < 5; i++) {
     test_multicast_gen(i);
   }
 	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
+	  test_multicast_gen(i);
+	}*/
+
+	for (uint64_t i = manager.getNumThreads() - 5; i >= 5; i -= 5) {
 	  test_multicast_gen(i);
 	}
 	MLOG_ERROR(mlog::app, "End Tree Multicast always deep sleep tree test");
@@ -74,7 +79,7 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	MLOG_ERROR(mlog::app, "Start Tree Multicast tree test no deep sleep");
   mythos::PortalLock pl(portal);
-  for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
+  for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
@@ -115,7 +120,7 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     group.signalAll(pl).wait();
 		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
 		sum += t.end();
-    mythos::delay(100000); // Tree cast does lock when not here
+    mythos::delay(1000000); // Tree cast does lock when not here
 	}
 	MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);
 	caps.free(group, pl);
