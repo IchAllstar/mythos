@@ -13,6 +13,7 @@ extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
 extern uint64_t REPETITIONS;
+extern mythos::TreeCombining<NUM_THREADS, 5> tc;
 
 class HelperMulticastBenchmark {
 public:
@@ -33,11 +34,16 @@ private:
 
 void HelperMulticastBenchmark::setup() {
     counter.store(0);
+    tc.init(manager.getNumThreads());
     manager.init([](void *data) -> void* {
+        Thread *t = (Thread*) data;
+        if (t->id >= 4 && t->id < manager.getNumThreads() - numHelper) {
+          tc.dec(t->id - 4);
+        }
         counter.fetch_add(1);
     });
     manager.startAll();
-    while (counter.load() != manager.getNumThreads() - 1) {}
+    //while (counter.load() != manager.getNumThreads() - 1) {}
     counter.store(0);
 
     mythos::PortalLock pl(portal);
@@ -110,7 +116,7 @@ void HelperMulticastBenchmark::test_multicast_no_deep_sleep() {
 }
 
 void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
-    if (numThreads + 4 > manager.getNumThreads()) {
+    if (numThreads + 4 > manager.getNumThreads()- numHelper) {
       MLOG_ERROR(mlog::app, "Cannot test with", DVAR(numThreads));
       return;
     }
@@ -130,14 +136,16 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     uint64_t sum = 0;
     mythos::Timer t;
     for (int j = 0; j < REPETITIONS; j++) {
+      tc.init(numThreads);
       counter.store(0);
       t.start();
       group.signalAll(pl);
-      while (counter.load() != numThreads) { mythos::hwthread_pause(); }
+      //while (counter.load() != numThreads) { mythos::hwthread_pause(); }
+      while(not tc.isFinished()) { mythos::hwthread_pause(); }
       sum += t.end();
       mythos::delay(1000000); // wait to let threads enter deep sleep
     }
 
-    MLOG_ERROR(mlog::app, DVAR(numThreads), DVAR(sum/REPETITIONS));
+    MLOG_ERROR(mlog::app, numThreads,";", sum/REPETITIONS);
     ASSERT(caps.free(group, pl));
 }

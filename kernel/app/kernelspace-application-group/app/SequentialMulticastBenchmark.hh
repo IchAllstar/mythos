@@ -12,6 +12,7 @@ extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
 extern uint64_t REPETITIONS;
+extern mythos::TreeCombining<NUM_THREADS, 5> tc;
 
 class SequentialMulticastBenchmark {
 public:
@@ -33,11 +34,13 @@ private:
 void SequentialMulticastBenchmark::setup() {
 	counter.store(0);
   manager.init([](void *data) -> void* {
-		counter.fetch_add(1);
+    Thread* t = (Thread*) data;
+    if (t->id >= 4) tc.dec(t->id - 4);
+		//counter.fetch_add(1);
 		//MLOG_ERROR(mlog::app, "Here");
 	});
 	manager.startAll();
-	while (counter.load() != manager.getNumThreads() - 1) {}
+	//while (counter.load() != manager.getNumThreads() - 1) {}
 	counter.store(0);
 }
 
@@ -60,13 +63,15 @@ void SequentialMulticastBenchmark::test_single_thread() {
     mythos::delay(100000);
   }
   MLOG_ERROR(mlog::app, "Test single Thread performance.");
+  tc.init(1);
   mythos::Timer t;
   uint64_t sum = 0;
   for (uint64_t i = 0; i < REPETITIONS; i++) {
     counter.store(0);
     t.start();
-    manager.getThread(10)->signal();
-    while (counter.load() == 0) {}
+    manager.getThread(4)->signal();
+    //while (counter.load() == 0) {}
+    while(not tc.isFinished()) {}
     sum += t.end();
   }
   MLOG_ERROR(mlog::app, "Single Thread with ThreadManager", sum / REPETITIONS);
@@ -83,6 +88,7 @@ void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
   pl.release();
   // we have to wake up all used threads, so they can enter the configured
   // sleep state
+  tc.init(manager.getNumThreads());
   for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
     manager.getThread(i)->signal();
   }
@@ -107,6 +113,7 @@ void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
   pl.release();
   // we have to wake up all used threads, so they can enter the configured
   // sleep state
+  tc.init(manager.getNumThreads());
   for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
     manager.getThread(i)->signal();
   }
@@ -134,11 +141,13 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 	mythos::Timer t;
 	uint64_t sum = 0;
 	for (uint64_t i = 0; i < REPETITIONS; i++) {
+    tc.init(numThreads);
 		counter.store(0);
 		t.start();
 		group.signalAll(pl).wait();
-		while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
-		sum += t.end();
+		//while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
+		while(not tc.isFinished()) { mythos::hwthread_pause(); }
+    sum += t.end();
     mythos::delay(10000000);
   }
 	MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);

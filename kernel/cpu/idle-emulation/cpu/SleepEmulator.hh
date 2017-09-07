@@ -88,7 +88,7 @@ struct ALIGNED(64) CoreState {
   std::atomic<bool> sleep = {false};
   volatile uint64_t cstate[SleepEmulator::HWTHREADS] {0}; // lock if access
 
-  std::atomic<uint64_t> state = {0};
+  char padding[64 - sizeof(locked) - sizeof(sleep) - sizeof(cstate)];
 
   void lock() { while(locked.exchange(true) == true); }
   void unlock() { locked.store(false); }
