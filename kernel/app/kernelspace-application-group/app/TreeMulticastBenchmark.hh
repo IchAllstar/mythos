@@ -5,6 +5,7 @@
 #include "runtime/SimpleCapAlloc.hh"
 #include <atomic>
 #include "util/Time.hh"
+#include "app/TreeCombining.hh"
 
 
 extern ThreadManager manager;
@@ -27,6 +28,8 @@ public:
 private:
 	mythos::Portal &portal;
   static const constexpr uint64_t TREE = 1;
+  mythos::TreeCombining<NUM_THREADS, 4> tc; 
+
 };
 
 void TreeMulticastBenchmark::setup() {

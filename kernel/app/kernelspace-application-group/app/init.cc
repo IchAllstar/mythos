@@ -47,12 +47,13 @@
 #include "app/TreeMulticastBenchmark.hh"
 #include "app/HelperMulticastBenchmark.hh"
 #include "app/SequentialMulticastBenchmark.hh"
+#include "app/TreeCombining.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
 
-constexpr uint64_t stacksize = 4 * 4096;
+constexpr uint64_t stacksize = 8 * 4096;
 char initstack[stacksize];
 char* initstack_top = initstack + stacksize;
 
@@ -71,11 +72,11 @@ ThreadManager manager(portal, cs, as, kmem, caps);
 
 int main()
 {
-  //TreeMulticastBenchmark tmb(portal);
-  //tmb.test_multicast();
+  TreeMulticastBenchmark tmb(portal);
+  tmb.test_multicast();
 
-  HelperMulticastBenchmark hmb(portal);
-  hmb.test_multicast();
+  //HelperMulticastBenchmark hmb(portal);
+  //hmb.test_multicast();
 
   //SequentialMulticastBenchmark smb(portal);
   //smb.test_multicast();
