@@ -5,7 +5,6 @@
 
 namespace mythos {
 
-template<size_t FANOUT>
 struct ALIGNED(cpu::CACHELINESIZE) combine_node {
 std::atomic<uint64_t> value {{0}};
 combine_node *parent {nullptr};
@@ -66,7 +65,7 @@ private:
     }
 
 private:
-    std::array<combine_node<FANOUT>, nodesFromLeaf(MAX_LEAFS)> nodes;
+    std::array<combine_node, nodesFromLeaf(MAX_LEAFS)> nodes;
     uint64_t maxNodes = nodesFromLeaf(MAX_LEAFS);
     uint64_t maxLeafs  = MAX_LEAFS;
 };
