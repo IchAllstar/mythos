@@ -25,7 +25,7 @@
  */
 #pragma once
 
-#include "async/NestedMonitorHome.hh"
+#include "async/NestedMonitorDelegating.hh"
 #include "cpu/CoreLocal.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/IKernelObject.hh"
@@ -114,7 +114,7 @@ private:
 private:
   // kernel object stuff
   IDeleter::handle_t del_handle = {this};
-  async::NestedMonitorHome monitor;
+  async::NestedMonitorDelegating monitor;
 
   uint64_t apicID = {0};
 

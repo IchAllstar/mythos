@@ -67,19 +67,14 @@ mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
 
 mythos::TreeCombining<NUM_THREADS, 5> tc;
 std::atomic<uint64_t> counter {0};
-uint64_t REPETITIONS = 1;
-//uint64_t REPETITIONS = 100;
+//uint64_t REPETITIONS = 1;
+uint64_t REPETITIONS = 100;
 ThreadManager manager(portal, cs, as, kmem, caps);
 
 int main()
 {
-    mythos::PortalLock pl(portal);
-    mythos::HWThread hw(mythos::init::HWTHREAD_START + 3);
-    auto res = hw.readSleepState(pl).wait();
-    MLOG_ERROR(mlog::app, DVAR(res->sleep_state));
-
-    //TreeMulticastBenchmark tmb(portal);
-    //tmb.test_multicast();
+    TreeMulticastBenchmark tmb(portal);
+    tmb.test_multicast();
 
     //HelperMulticastBenchmark hmb(portal);
     //hmb.test_multicast();

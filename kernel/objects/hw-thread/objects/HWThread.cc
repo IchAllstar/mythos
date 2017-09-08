@@ -77,6 +77,7 @@ Error HWThread::printMessage(Tasklet*, Cap self, IInvocation* msg)
 {
     MLOG_INFO(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::HWThread::PrintMessage>();
+    MLOG_DETAIL(mlog::boot, mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
 }
 

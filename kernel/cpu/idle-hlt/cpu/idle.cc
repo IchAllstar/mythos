@@ -11,7 +11,7 @@ void init_global() {
 void init_thread() {
 }
 
-void sleep(uint8_t depth)
+void sleep(uint8_t /*depth*/)
 {
 	//emu.sleep(cpu::getThreadID(), depth);
 	//boot::getLocalIdleManagement().sleepIntention(depth);
