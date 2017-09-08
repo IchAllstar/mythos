@@ -40,7 +40,20 @@ namespace mythos {
   class HWThread : public KObject
   {
   public:
+
+    struct SleepState {
+      SleepState() {}
+      SleepState(InvocationBuf* ib)
+        : sleep_state(ib->cast<protocol::HWThread::WriteSleepState>()->sleep_state)
+      {}
+      uint64_t sleep_state;
+    };
+
     HWThread(CapPtr cap) : KObject(cap) {}
+
+    PortalFuture<SleepState> readSleepState(PortalLock pr) {
+      return pr.invoke<protocol::HWThread::ReadSleepState>(_cap);
+    }
 
     PortalFuture<void> printMessage(PortalLock pr, char const* str, size_t bytes) {
       return pr.invoke<protocol::HWThread::PrintMessage>(_cap, str, bytes);

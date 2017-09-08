@@ -48,6 +48,7 @@
 #include "app/HelperMulticastBenchmark.hh"
 #include "app/SequentialMulticastBenchmark.hh"
 #include "app/TreeCombining.hh"
+#include "runtime/HWThread.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -72,13 +73,18 @@ ThreadManager manager(portal, cs, as, kmem, caps);
 
 int main()
 {
-  //TreeMulticastBenchmark tmb(portal);
-  //tmb.test_multicast();
+    mythos::PortalLock pl(portal);
+    mythos::HWThread hw(mythos::init::HWTHREAD_START + 3);
+    auto res = hw.readSleepState(pl).wait();
+    MLOG_ERROR(mlog::app, DVAR(res->sleep_state));
 
-  HelperMulticastBenchmark hmb(portal);
-  hmb.test_multicast();
+    //TreeMulticastBenchmark tmb(portal);
+    //tmb.test_multicast();
 
-  //SequentialMulticastBenchmark smb(portal);
-  //smb.test_multicast();
-  return 0;
+    //HelperMulticastBenchmark hmb(portal);
+    //hmb.test_multicast();
+
+    //SequentialMulticastBenchmark smb(portal);
+    //smb.test_multicast();
+    return 0;
 }

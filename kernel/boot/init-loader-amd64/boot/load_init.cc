@@ -200,9 +200,9 @@ optional<void> InitLoader::initCSpace()
     if (!res) RETHROW(res);
   }
 
-  MLOG_INFO(mlog::boot, "... create idle management caps in caps", IDLE_MANAGEMENT_START, "till", IDLE_MANAGEMENT_START+cpu::getNumThreads()-1);
+  MLOG_INFO(mlog::boot, "... create idle management caps in caps", HWTHREAD_START, "till", HWTHREAD_START+cpu::getNumThreads()-1);
   for (cpu::ThreadID id = 0; id < cpu::getNumThreads(); ++id) {
-    auto res = csSet(SCHEDULING_COORDINATOR_START+id, boot::getHWThread(id));
+    auto res = csSet(HWTHREAD_START+id, boot::getHWThread(id));
     if (!res) RETHROW(res);
   }
 

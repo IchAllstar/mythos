@@ -131,7 +131,7 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     // register helper threads
     for (uint64_t i = 0; i < numHelper; i++) {
         auto helper = manager.getNumThreads() - i - 1;
-        group.addHelper(pl,mythos::init::SCHEDULING_COORDINATOR_START + helper).wait();
+        group.addHelper(pl,mythos::init::HWTHREAD_START + helper).wait();
     }
     uint64_t sum = 0;
     mythos::Timer t;

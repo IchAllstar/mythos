@@ -38,6 +38,8 @@ namespace mythos {
       enum Methods : uint8_t {
         PRINT_MESSAGE,
         SPIN_POLICY,
+        READ_SLEEP_STATE,
+        WRITE_SLEEP_STATE,
       };
 
       struct PrintMessage : public InvocationBase {
@@ -66,11 +68,26 @@ namespace mythos {
         size_t policy;
       };
 
+      // has WriteRegisters message as result
+      struct ReadSleepState : public InvocationBase {
+        constexpr static uint16_t label = (proto<<8) + READ_SLEEP_STATE;
+        ReadSleepState()
+          : InvocationBase(label,getLength(this)) {}
+      };
+
+      struct WriteSleepState : public InvocationBase {
+        constexpr static uint16_t label = (proto<<8) + WRITE_SLEEP_STATE;
+        WriteSleepState()
+          : InvocationBase(label,getLength(this)) {}
+        uint64_t sleep_state;
+      };
+
       template<class IMPL, class... ARGS>
       static Error dispatchRequest(IMPL* obj, uint8_t m, ARGS const&...args) {
         switch(Methods(m)) {
           case PRINT_MESSAGE: return obj->printMessage(args...);
           case SPIN_POLICY: return obj->setPolicy(args...);
+          case READ_SLEEP_STATE: return obj->getSleepState(args...);
           default: return Error::NOT_IMPLEMENTED;
         }
       }

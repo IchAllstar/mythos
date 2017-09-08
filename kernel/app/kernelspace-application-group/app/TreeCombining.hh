@@ -6,29 +6,25 @@
 namespace mythos {
 
 struct ALIGNED(cpu::CACHELINESIZE) combine_node {
-std::atomic<uint64_t> value {{0}};
-combine_node *parent {nullptr};
+    std::atomic<uint64_t> value {{0}};
+    combine_node *parent {nullptr};
 
-char padding[cpu::CACHELINESIZE - sizeof(value) - sizeof(parent)];
+    char padding[cpu::CACHELINESIZE - sizeof(value) - sizeof(parent)];
 
-void dec() {
-    //MLOG_ERROR(mlog::app, "in dec value before:", value.load());
-    if (--value == 0) {
-        if (parent != nullptr) {
-            //MLOG_ERROR(mlog::app, "Dec Parent");
-            parent->dec();
-        } else {
-            //MLOG_ERROR(mlog::app, "FINISHED");
+    void dec() {
+        if (--value == 0) {
+            if (parent != nullptr) {
+                //MLOG_ERROR(mlog::app, "Dec Parent");
+                parent->dec();
+            }
         }
     }
-}
-
-bool isFinished() {
-    return value.load() == 0;
-}
 };
 
 
+/**
+ * The Tree Combining should eliminate the bottleneck of a global variable beeing accessed
+ */
 template<size_t MAX_LEAFS, size_t FANOUT>
 class TreeCombining {
     static_assert(MAX_LEAFS > 0 && FANOUT > 0, "MAX_LEAFS and FANOUT must be greater 0");
@@ -38,7 +34,7 @@ public:
     void init(uint64_t maxThreads);
 
     bool isFinished() {
-        return nodes[0].isFinished();
+        return nodes[0].value.load() == 0;
     }
 
 private:
@@ -98,11 +94,6 @@ void TreeCombining<MAX_LEAFS, FANOUT>::init(uint64_t maxLeafs_) {
 
 template<size_t MAX_LEAFS, size_t FANOUT>
 TreeCombining<MAX_LEAFS, FANOUT>::TreeCombining() {
-    /*for (int i = 1; i < 15; i++) {
-        auto tmp = leafs(i);
-        MLOG_ERROR(mlog::app, i,":", DVAR(leafs(i)));
-        MLOG_ERROR(mlog::app, tmp,":", DVAR(nodesFromLeaf(tmp)), "\n");
-    }*/
     init(MAX_LEAFS);
 }
 

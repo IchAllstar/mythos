@@ -30,10 +30,9 @@
 #include "util/Time.hh"
 #include "cpu/LAPIC.hh"
 #include "cpu/idle.hh"
+#include "cpu/SleepEmulator.hh"
 
 namespace mythos {
-
-static mlog::Logger<mlog::FilterAny> mlogcoord("HWThread");
 
 optional<void> HWThread::deleteCap(Cap self, IDeleter& del) {
     if (self.isOriginal()) {
@@ -78,7 +77,6 @@ Error HWThread::printMessage(Tasklet*, Cap self, IInvocation* msg)
 {
     MLOG_INFO(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::HWThread::PrintMessage>();
-    mlogcoord.error("Actual policy", DVAR(policy), mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
 }
 
@@ -87,6 +85,14 @@ Error HWThread::setPolicy(Tasklet*, Cap self, IInvocation* msg)
     MLOG_INFO(mlog::boot, "invoke set policy", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::HWThread::SpinPolicy>();
     policy = (Policy)data->policy;
+    return Error::SUCCESS;
+}
+
+extern SleepEmulator emu;
+Error HWThread::getSleepState(Tasklet*, Cap, IInvocation *msg) {
+    auto respData = msg->getMessage()->write<protocol::HWThread::WriteSleepState>();
+    auto sleepState = emu.getSleepState(getApicID());
+    respData->sleep_state = sleepState;
     return Error::SUCCESS;
 }
 
