@@ -53,7 +53,7 @@ public:
   static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     if (size == 0) return;
     ASSERT(group != nullptr);
-    uint64_t threads = size/* - 1*/;
+    uint64_t threads = size;
     uint64_t availableHelper = NUM_HELPER;
     if (availableHelper == 0) {
       PANIC("No Resources");
@@ -64,7 +64,7 @@ public:
     int64_t  diffThreads = threads - optimalThreadNumber;
     uint64_t current = 0;
     uint64_t diff = diffThreads / usedHelper;
-    uint64_t mod = diffThreads % usedHelper; // never bigger than usedHelper
+    uint64_t mod = diffThreads % usedHelper;
 
 
     for (uint64_t i = 0; i < usedHelper; i++) {
@@ -89,8 +89,6 @@ public:
           ISignalable* dest = group->getMember(i);
           if (dest) {
             dest->signal();
-          } else {
-            PANIC("Could not reach signalable.");
           }
         }
       });
