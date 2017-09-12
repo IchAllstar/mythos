@@ -52,7 +52,7 @@ public:
   static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     if (size == 0) return;
     ASSERT(group != nullptr);
-    uint64_t threads = size;
+    uint64_t threads = size/* - 1*/;
     uint64_t availableHelper = NUM_HELPER;
     if (availableHelper == 0) {
       PANIC("No Resources");
@@ -63,7 +63,7 @@ public:
     int64_t  diffThreads = threads - optimalThreadNumber;
     uint64_t current = 0;
     uint64_t diff = diffThreads / usedHelper;
-    uint64_t mod = diffThreads % usedHelper;
+    uint64_t mod = diffThreads % usedHelper; // never bigger than usedHelper
 
 
     for (uint64_t i = 0; i < usedHelper; i++) {
@@ -88,6 +88,8 @@ public:
           ISignalable* dest = group->getMember(i);
           if (dest) {
             dest->signal();
+          } else {
+            PANIC("Could not reach signalable.");
           }
         }
       });
@@ -210,13 +212,13 @@ public:
     //MLOG_ERROR(mlog::app, "multicast", DVAR(from), DVAR(idx));
     ISignalable *own = group->getMember(idx);
     auto sleep = manager.getSleepState(group->getMember(from)->getID(), group->getMember(idx)->getID());
-    //if (sleep < 2) {
+    if (sleep < 2) {
       auto *t = group->getTask(idx);
       t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, idx, size); } );
       own->addTask(&t->list_member);
-   // } else {
-     // TreeStrategy::sendTo(group, from, idx, size);
-    //}
+    } else {
+      TreeStrategy::sendTo(group, from, idx, size);
+    }
     own->signal();
 
   }
