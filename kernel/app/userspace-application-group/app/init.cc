@@ -32,19 +32,12 @@
 #include "runtime/ExecutionContext.hh"
 #include "runtime/CapMap.hh"
 #include "runtime/Example.hh"
-#include "runtime/InterruptControl.hh"
 #include "runtime/PageMap.hh"
 #include "runtime/KernelMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include "app/mlog.hh"
 #include <cstdint>
-#include "app/Thread.hh"
-#include "app/ThreadManager.hh"
-#include "app/SignalGroup.hh"
 #include "util/Time.hh"
-#include "app/HelperThreadBenchmark.hh"
-#include "app/TreeMulticastBenchmark.hh"
-#include "app/SequentialMulticastBenchmark.hh"
 #include "runtime/HWThread.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -62,7 +55,6 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
     mythos::init::SIZE - mythos::init::APP_CAP_START);
 
 std::atomic<uint64_t> counter {0};
-ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
 
 namespace mythos {
   uint64_t tscdelay_MHz = 1000;
@@ -108,19 +100,8 @@ void test_raw() {
 int main()
 {
   MLOG_ERROR(mlog::app, "START application");
-
-  //HelperThreadBenchmark htb(portal);
-  //htb.test_multicast();
-
-  //TreeMulticastBenchmark tmb(portal);
-  //tmb.test_multicast();
-
-  //SequentialMulticastBenchmark smb(portal);
-  //smb.test_multicast();
-
   test_raw();
 
-  //test_portal();
 
   MLOG_ERROR(mlog::app, "END application");
   return 0;
