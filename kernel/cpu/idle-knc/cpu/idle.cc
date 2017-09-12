@@ -69,7 +69,7 @@ NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
 void sleep(uint8_t depth)
 {
-    emu.sleep(cpu::getThreadID(), depth);
+    //emu.sleep(cpu::getThreadID(), depth);
     cpu_idle_halt();
 }
 
@@ -85,9 +85,9 @@ void wokeup(size_t /*apicID*/, size_t reason)
 
 void wokeupFromInterrupt(uint8_t irq)
 {
-    emu.wakeup(cpu::getThreadID());
+    //emu.wakeup(cpu::getThreadID());
     if (irq == 0x22) {
-      boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
+      //boot::getLocalIdleManagement().wokeupFromInterrupt(irq);
     }
 }
 

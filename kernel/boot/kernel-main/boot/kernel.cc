@@ -99,7 +99,14 @@ NORETURN void runUser();
 
 
 void runUser() {
-  mythos::boot::getLocalHWThread().runUser();
+  //mythos::boot::getLocalHWThread().runUser();
+  mythos::async::getLocalPlace().processTasks(); // executes all available kernel tasks
+  while (not mythos::async::getLocalPlace().releaseKernel()) { // release kernel
+      mythos::async::getLocalPlace().processTasks();
+  }
+  //delay(1000);
+  mythos::boot::getLocalScheduler().tryRunUser();
+  mythos::idle::sleep(1);
 }
 
 /** Boot entry point and deep sleep exit point for application

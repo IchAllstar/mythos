@@ -69,18 +69,14 @@ protected:
 // Actual Methods
 public:
   NORETURN void runUser() {
-    ASSERT(localPlace != nullptr);
-    ASSERT(localSchedulingContext != nullptr);
-    switch (policy) {
-      case SLEEP  : runSleep();
-      case SPIN   : runSpin();
-      case DELAYS : runConfigurableDelays();
-      default     : runSleep();
-    }
+    //runConfigurableDelays();
+    localPlace->processTasks(); // executes all available kernel tasks
+    releaseKernel();
+    //delay(1000);
+    localSchedulingContext->tryRunUser();
+    mythos::idle::sleep(1);
   }
 
-  NORETURN void runSleep();
-  NORETURN void runSpin();
   NORETURN void runConfigurableDelays();
 
   void init(uint64_t apicID_, mythos::async::Place *p, mythos::SchedulingContext *sc) {

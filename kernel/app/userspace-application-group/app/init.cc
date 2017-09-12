@@ -68,52 +68,13 @@ namespace mythos {
   uint64_t tscdelay_MHz = 1000;
 }
 
-uint64_t portalCap = 0;
-void *ib = nullptr;
 void* thread_main(void* data) {
-  mythos::syscall_wait();
-  mythos::Portal p(portalCap, ib);
-  mythos::PortalLock pl(p);
-  for (auto a : {0,2,5,7,9,24,56,89}) {
-    mythos::HWThread hw(mythos::init::HWTHREAD_START + a);
-    auto res = hw.readSleepState(pl).wait();
-    MLOG_ERROR(mlog::app, res->sleep_state);
-  }
-  pl.release();
-  MLOG_ERROR(mlog::app, "Test passed");
   while(true) {
     mythos::syscall_wait();
     counter.fetch_add(1);
   }
 }
 
-void createPortalForEC(mythos::ExecutionContext ec) {
-  MLOG_ERROR(mlog::app, "test_Portal begin");
-  mythos::PortalLock pl(portal); // future access will fail if the portal is in use already
-  MLOG_INFO(mlog::app, "test_Portal: allocate portal");
-  uintptr_t vaddr = 22*1024*1024; // choose address different from invokation buffer
-  // allocate a portal
-  mythos::Portal p2(capAlloc(), (void*)vaddr);
-  auto res1 = p2.create(pl, kmem).wait();
-  TEST(res1);
-  // allocate a 2MiB frame
-  MLOG_INFO(mlog::app, "test_Portal: allocate frame");
-  mythos::Frame f(capAlloc());
-  auto res2 = f.create(pl, kmem, 2*1024*1024, 2*1024*1024).wait();
-  MLOG_INFO(mlog::app, "alloc frame",DVAR(res2.state()));
-  TEST(res2);
-  // map the frame into our address space
-  MLOG_INFO(mlog::app, "test_Portal: mapframe");
-  auto res3 = myAS.mmap(pl, f, vaddr, 2*1024*1024, 0x1).wait();
-  MLOG_ERROR(mlog::app, "mmap frame",DVAR(res3.state()),DVARhex(res3->vaddr),DVARhex(res3->size),DVAR(res3->level));
-  TEST(res3);
-  // bind the portal in order to receive responses
-  MLOG_INFO(mlog::app,"test_Portal: configure portal");
-  auto res4 = p2.bind(pl, f, 0, ec.cap()).wait();
-  TEST(res4);
-  ib = (void*)vaddr;
-  portalCap = p2.cap();
-}
 
 char threadstack[stacksize];
 char* threadstack_top = threadstack + stacksize;
@@ -129,42 +90,20 @@ void test_raw() {
     TEST(res2);
   }
 
-  createPortalForEC(ec2.cap());
-  mythos::syscall_signal(ec2.cap());
-  mythos::hwthread_wait(1000);
 
   mythos::Timer t;
   uint64_t sum = 0;
-  for (int i = 0; i < REPETITIONS; i++) {
+  for (int i = 0; i < 100000; i++) {
     counter.store(0);
     t.start();
     mythos::syscall_signal(ec2.cap());
     while(counter.load() == 0) {}
     sum += t.end();
-    mythos::hwthread_pause(10000);
+    mythos::hwthread_pause(1000);
   }
-  MLOG_ERROR(mlog::app, DVAR(sum/REPETITIONS));
+  MLOG_ERROR(mlog::app,"Cycles:", sum/100000);
 }
 
-void test_portal() {
-  manager.init([](void *data) -> void*{
-    auto *thread = (Thread*) data;
-    Thread::wait(*thread);
-    mythos::Portal p(thread->portal, thread->ib);
-    mythos::PortalLock pl(p);
-    mythos::HWThread hwt(mythos::init::HWTHREAD_START + 20);
-    auto res = hwt.readSleepState(pl).wait();
-    if (res)
-      MLOG_ERROR(mlog::app, res->sleep_state);
-  });
-  manager.startAll();
-  for (int i = 0; i < manager.getNumThreads(); i++) {
-    manager.getThread(i)->signal();
-  }
-  for (int i = 0; i < manager.getNumThreads(); i++) {
-    manager.getThread(i)->signal();
-  }
-}
 
 int main()
 {
@@ -173,13 +112,13 @@ int main()
   //HelperThreadBenchmark htb(portal);
   //htb.test_multicast();
 
-  TreeMulticastBenchmark tmb(portal);
-  tmb.test_multicast();
+  //TreeMulticastBenchmark tmb(portal);
+  //tmb.test_multicast();
 
   //SequentialMulticastBenchmark smb(portal);
   //smb.test_multicast();
 
-  //test_raw();
+  test_raw();
 
   //test_portal();
 

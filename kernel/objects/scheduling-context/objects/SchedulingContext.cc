@@ -80,7 +80,7 @@ namespace mythos {
     home->run(tasklet.set([=](Tasklet* t){
           res->response(t, Error::SUCCESS);
           preempting.clear();
-        }));
+          }));
   }
 
   void SchedulingContext::preempt(handle_t* ec)
@@ -111,9 +111,29 @@ namespace mythos {
     }
   }
 
-  ISchedulable* SchedulingContext::tryRunUser()
+
+  void SchedulingContext::tryRunUser()
   {
-   // MLOG_DETAIL(mlog::sched, "tryRunUser");
+  MLOG_DETAIL(mlog::sched, "tryRunUser");
+  ASSERT(&getLocalPlace() == home);
+  handle_t* current = current_ec;
+  handle_t* const removed = reinterpret_cast<handle_t*>(REMOVED);
+  while (true) {
+    if (current != nullptr && current != removed && current->get()->isReady()) {
+      current->get()->resume(); // will not return if successful, otherwise no longer ready
+      //replace and retry
+    } else {
+      handle_t* next= readyQueue.pull();
+      while (next != nullptr && !next->get()->isReady())
+        next = readyQueue.pull();
+      if(current == nullptr && next  == nullptr){ return;}
+      if(current_ec.compare_exchange_strong(current, next))
+            continue;
+      if(next != nullptr) readyQueue.push(next);
+    }
+  }
+
+    /*// MLOG_DETAIL(mlog::sched, "tryRunUser");
     ASSERT(&getLocalPlace() == home);
     handle_t* current = current_ec;
     handle_t* const removed = reinterpret_cast<handle_t*>(REMOVED);
@@ -134,7 +154,7 @@ namespace mythos {
         if (next != nullptr) readyQueue.push(next); // stuff next back to the queue
         // retry with the new current
       }
-    }
+    }*/
   }
 
 } // namespace mythos

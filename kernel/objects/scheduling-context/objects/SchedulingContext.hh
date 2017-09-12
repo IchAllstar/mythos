@@ -84,7 +84,7 @@ class HWThread;
      * Returns next runnable item from run queue
      * HWThread is responsible to actually run the item
      */
-    ISchedulable* tryRunUser();
+    void tryRunUser();
     void preempt();
 
   public: // IScheduler interface
