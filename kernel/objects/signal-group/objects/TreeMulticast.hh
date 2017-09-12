@@ -51,7 +51,8 @@ struct TreeCastStrategy {
     // could check everything for deep sleep and choose latency dynamically?
     // could skip deep sleep nodes and signal children from own context ->ok
     static const uint64_t LATENCY = 3;
-    static int64_t tmp[20]; //recursive memory
+    static const uint64_t RECURSIVE_SIZE = 25;
+    static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
 
     // Helper functions to calculate fibonacci tree for optimal multicast
     // saves result of previous calcs to optimize expensive recursion

@@ -139,7 +139,7 @@ SignalGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
 }
 
 // recursive memorize
-int64_t TreeCastStrategy::tmp[20] = {0};
+int64_t TreeCastStrategy::tmp[TreeCastStrategy::RECURSIVE_SIZE] = {0};
 
 Error SignalGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
     MLOG_DETAIL(mlog::boot, "signalAll()", DVAR(t), DVAR(self), DVAR(msg), DVAR(actualSize));
