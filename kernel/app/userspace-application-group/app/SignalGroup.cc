@@ -1,6 +1,6 @@
 #include "app/SignalGroup.hh"
 
-int64_t TreeStrategy::tmp[20] = {0};
+int64_t TreeStrategy::tmp[TreeStrategy::RECURSIVE_SIZE] = {0};
 
 void SignalGroup::addMember(ISignalable *t) {
   for (int i = 0; i < MAX; i++) {

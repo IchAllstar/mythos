@@ -5,7 +5,7 @@
 #include "app/mlog.hh"
 #include "app/Mutex.hh"
 #include "mythos/syscall.hh"
-
+#include "runtime/Portal.hh"
 
 static SpinMutex global;
 
@@ -25,6 +25,10 @@ struct alignas(64) Thread : public ISignalable {
 public:
 	mythos::CapPtr ec;
 	mythos::CapPtr sc;
+  mythos::CapPtr hwt;
+  mythos::CapPtr portal;
+
+  void *ib;
 	void *stack_begin;
 	void *stack_end;
 	uint64_t id; //linear thread id, thread runs on SC + id
@@ -41,6 +45,7 @@ public:
 	static void  wait(Thread &t);
 	static void  signal(Thread &t);
 
+
 public: // ISignalable Interface
 	void signal() override {
     // Fixes the Deadlock situation
@@ -48,7 +53,9 @@ public: // ISignalable Interface
 		signal(*this);
 	}
 
-	void addTask(Task::list_t::Queueable *q) override {
+  uint64_t getID() override;
+
+  void addTask(Task::list_t::Queueable *q) override {
 		taskQueue.push(q);
 	}
 };

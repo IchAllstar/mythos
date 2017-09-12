@@ -10,8 +10,6 @@
 #include "runtime/SimpleCapAlloc.hh"
 #include "app/Thread.hh"
 
-class Thread;
-
 class ThreadManager {
 public:
 	ThreadManager(mythos::Portal &portal_, mythos::CapMap cs_, mythos::PageMap as_, mythos::KernelMemory kmem_, mythos::SimpleCapAllocDel &caps_)
@@ -26,6 +24,7 @@ public:
 	uint64_t getNumThreads() { return NUM_THREADS; }
 
 	Thread* getThread(uint64_t id);
+  uint64_t getSleepState(uint64_t context_id, uint64_t dest_id);
 private:
 	void initMem();
 	void initThreads(void*(*fun_)(void*));
@@ -38,4 +37,7 @@ private:
 	mythos::PageMap as;
 	mythos::KernelMemory kmem;
 	mythos::SimpleCapAllocDel &caps;
+  mythos::CapPtr ibFrameCap;
+  uintptr_t IB_START;
+  SpinMutex lock;
 };

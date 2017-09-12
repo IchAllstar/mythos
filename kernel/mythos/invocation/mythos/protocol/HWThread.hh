@@ -87,7 +87,7 @@ namespace mythos {
         switch(Methods(m)) {
           case PRINT_MESSAGE: return obj->printMessage(args...);
           case SPIN_POLICY: return obj->setPolicy(args...);
-          case READ_SLEEP_STATE: return obj->getSleepState(args...);
+          case READ_SLEEP_STATE: return obj->readSleepState(args...);
           default: return Error::NOT_IMPLEMENTED;
         }
       }

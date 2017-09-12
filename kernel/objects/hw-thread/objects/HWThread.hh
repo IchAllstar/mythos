@@ -60,7 +60,7 @@ protected:
   friend struct protocol::HWThread;
   Error printMessage(Tasklet *t, Cap self, IInvocation *msg);
   Error setPolicy(Tasklet *t, Cap self, IInvocation *msg);
-  Error getSleepState(Tasklet *t, Cap self, IInvocation *msg);
+  Error readSleepState(Tasklet *t, Cap self, IInvocation *msg);
 
   friend struct protocol::KernelObject;
   Error getDebugInfo(Cap self, IInvocation* msg);

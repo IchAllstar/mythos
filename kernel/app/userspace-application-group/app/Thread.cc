@@ -1,5 +1,8 @@
 #include "app/Thread.hh"
+#include "runtime/HWThread.hh"
+#include "app/ThreadManager.hh"
 
+extern ThreadManager manager;
 //SpinMutex global;
 
 void* Thread::run(void *data) {
@@ -41,6 +44,8 @@ void Thread::signal(Thread &t) {
 		//LockGuard<SpinMutex> g(global);
 		mythos::syscall_signal(t.ec);
 	}
-
 }
 
+uint64_t Thread::getID() {
+  return this->id;
+}

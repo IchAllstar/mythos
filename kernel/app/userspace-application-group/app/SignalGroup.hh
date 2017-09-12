@@ -10,7 +10,6 @@
 
 // TODO
 // mutex in addmember seems to lock?
-// keep on using the task abstraction to propagate tree and helper
 class SignalGroup {
 public:
   enum STRATEGY {
@@ -123,7 +122,8 @@ class TreeStrategy {
 private:
   static const uint64_t LATENCY = 3;
 public:
-  static int64_t tmp[20]; //recursive memory
+  static const  uint64_t RECURSIVE_SIZE = 25;
+  static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
 
   // Helper functions to calculate fibonacci tree for optimal multicast
   // saves result of previous calcs to optimize expensive recursion
@@ -131,11 +131,11 @@ public:
     if (time < LATENCY) {
       return 1;
     }
-    if (time < 20 && tmp[time] > 0) {
+    if (time < RECURSIVE_SIZE && tmp[time] > 0) {
       return tmp[time];
     }
     auto ret = F(time - 1) + F(time - LATENCY);
-    if (time < 20) {
+    if (time < RECURSIVE_SIZE) {
       tmp[time] = ret;
     }
     return ret;
@@ -190,36 +190,48 @@ public:
     });
   }
 
-  static void prepareTaskNary(SignalGroup *group, uint64_t idx, uint64_t size) {
-    static const uint64_t NARY = 3;
-    group->getTask(idx)->set([group, idx, size](Task&) {
-        ASSERT(group != nullptr);
-        ASSERT(size > 0);
-        for (uint64_t i = 0; i < NARY; i++) {
+  static const uint64_t NARY = 4;
+  static void sendTo(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
+      ASSERT(idx < size);
+      ASSERT(group != nullptr);
+      ISignalable *own = group->getMember(idx);
+      ASSERT(own);
+
+      for (uint64_t i = 0; i < NARY; i++) {
           auto child_idx = idx * NARY + i + 1;
-          if (child_idx > size) return;
-          //MLOG_ERROR(mlog::app, idx, "sends to", child_idx);
-          ISignalable* dest = group->getMember(child_idx);
-          if (dest) {
-            if (child_idx <= size / NARY) {
-              TreeStrategy::prepareTaskNary(group, child_idx, size);
-              dest->addTask(&group->getTask(child_idx)->list_member);
-            }
-            dest->signal();
+          if (child_idx >= size) {
+              break;
           }
-        }
-    });
+          TreeStrategy::multicast(group, from, child_idx, size);
+      }
+      // Signal own EC, will be scheduled after kernel task handling
+      //own->signal();
   }
 
+  static void multicast(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
+    //MLOG_ERROR(mlog::app, "multicast", DVAR(from), DVAR(idx));
+    ISignalable *own = group->getMember(idx);
+    auto sleep = manager.getSleepState(group->getMember(from)->getID(), group->getMember(idx)->getID());
+    //if (sleep < 2) {
+      auto *t = group->getTask(idx);
+      t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, idx, size); } );
+      own->addTask(&t->list_member);
+   // } else {
+     // TreeStrategy::sendTo(group, from, idx, size);
+    //}
+    own->signal();
+
+  }
   static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
-      TreeStrategy::prepareTask(group, 0, 0, size - 1);
-      signalable->addTask(&group->getTask(0)->list_member);
-      signalable->signal();
-      //TreeStrategy::prepareTaskNary(group, 0, size - 1);
+      //TreeStrategy::prepareTask(group, 0, 0, size - 1);
       //signalable->addTask(&group->getTask(0)->list_member);
       //signalable->signal();
+      auto *t =group->getTask(0);
+      t->set([group, size](Task&) { multicast(group, 0, 0, size);  });
+      signalable->addTask(&group->getTask(0)->list_member);
+      signalable->signal();
     }
   }
 };

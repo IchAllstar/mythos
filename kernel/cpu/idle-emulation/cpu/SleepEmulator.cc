@@ -22,7 +22,7 @@ void SleepEmulator::sleep(uint64_t threadID, uint64_t depth) {
   uint64_t min = minState(core);
 	MLOG_DETAIL(mlog::boot, "Sleep", DVAR(threadID), DVAR(prev), DVAR(depth), DVAR(min));
 	if (min > 0) { // every hw thread wants to join a sleep state
-	   MLOG_DETAIL(mlog::boot, "Go to sleep state",DVAR(core), DVAR(min));
+	   //MLOG_ERROR(mlog::boot, "Go to sleep state",DVAR(core), DVAR(min));
 	   states[core].sleep.store(true);
 	}
 	states[core].unlock();

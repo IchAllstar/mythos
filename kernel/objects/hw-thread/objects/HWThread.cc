@@ -75,9 +75,9 @@ Error HWThread::getDebugInfo(Cap self, IInvocation* msg)
 
 Error HWThread::printMessage(Tasklet*, Cap self, IInvocation* msg)
 {
-    MLOG_INFO(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
+    MLOG_DETAIL(mlog::boot, "invoke printMessage", DVAR(this), DVAR(self), DVAR(msg));
     auto data = msg->getMessage()->cast<protocol::HWThread::PrintMessage>();
-    MLOG_DETAIL(mlog::boot, mlog::DebugString(data->message, data->bytes));
+    MLOG_ERROR(mlog::boot, mlog::DebugString(data->message, data->bytes));
     return Error::SUCCESS;
 }
 
@@ -90,7 +90,8 @@ Error HWThread::setPolicy(Tasklet*, Cap self, IInvocation* msg)
 }
 
 extern SleepEmulator emu;
-Error HWThread::getSleepState(Tasklet*, Cap, IInvocation *msg) {
+Error HWThread::readSleepState(Tasklet*, Cap, IInvocation *msg) {
+    MLOG_DETAIL(mlog::boot, "Read Sleep State");
     auto respData = msg->getMessage()->write<protocol::HWThread::WriteSleepState>();
     auto sleepState = emu.getSleepState(getApicID());
     respData->sleep_state = sleepState;

@@ -49,7 +49,7 @@ void TreeMulticastBenchmark::test_multicast() {
 
 void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	mythos::PortalLock pl(portal);
-	for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
+	for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, 0).wait());
 		ASSERT(im.setLiteSleepDelay(pl, (uint32_t)(-1)).wait()); // max delay == no deep sleep
@@ -79,10 +79,11 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, 0).wait());
-		ASSERT(im.setLiteSleepDelay(pl, 0).wait()); // max delay == no deep sleep
+		ASSERT(im.setLiteSleepDelay(pl, 0).wait()); // 0 == always deep sleep
+    manager.getThread(i)->signal();
 	}
 	pl.release();
-	mythos::delay(4000000);
+	mythos::delay(400000);
 
 	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
@@ -119,6 +120,7 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t number) {
     }
     sum += t.end();
     ASSERT(counter.load() == number);
+    mythos::delay(200000);
   }
 	MLOG_ERROR(mlog::app, DVAR(number),  sum/REPETITIONS);
 }
