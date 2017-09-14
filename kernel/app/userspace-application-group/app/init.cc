@@ -71,6 +71,7 @@ namespace mythos {
 uint64_t portalCap = 0;
 void *ib = nullptr;
 void* thread_main(void* data) {
+  /*
   mythos::syscall_wait();
   mythos::Portal p(portalCap, ib);
   mythos::PortalLock pl(p);
@@ -81,6 +82,7 @@ void* thread_main(void* data) {
   }
   pl.release();
   MLOG_ERROR(mlog::app, "Test passed");
+  */
   while(true) {
     mythos::syscall_wait();
     counter.fetch_add(1);
@@ -117,6 +119,10 @@ void createPortalForEC(mythos::ExecutionContext ec) {
 
 char threadstack[stacksize];
 char* threadstack_top = threadstack + stacksize;
+
+
+
+uint64_t values[REPETITIONS] {0};
 void test_raw() {
 
   mythos::ExecutionContext ec2(capAlloc());
@@ -129,10 +135,10 @@ void test_raw() {
     TEST(res2);
   }
 
-  createPortalForEC(ec2.cap());
+ /* createPortalForEC(ec2.cap());
   mythos::syscall_signal(ec2.cap());
   mythos::hwthread_wait(1000);
-
+*/
   mythos::Timer t;
   uint64_t sum = 0;
   for (int i = 0; i < REPETITIONS; i++) {
@@ -140,10 +146,15 @@ void test_raw() {
     t.start();
     mythos::syscall_signal(ec2.cap());
     while(counter.load() == 0) {}
-    sum += t.end();
-    mythos::hwthread_pause(10000);
+    auto val = t.end();
+    sum += val;
+    values[i] = val;
+    mythos::hwthread_pause(1000);
   }
-  MLOG_ERROR(mlog::app, DVAR(sum/REPETITIONS));
+  for (auto val : values) {
+    MLOG_ERROR(mlog::app, val);
+  }
+  MLOG_ERROR(mlog::app, "Avg:", sum/REPETITIONS);
 }
 
 void test_portal() {
@@ -173,13 +184,13 @@ int main()
   //HelperThreadBenchmark htb(portal);
   //htb.test_multicast();
 
-  TreeMulticastBenchmark tmb(portal);
-  tmb.test_multicast();
+  //TreeMulticastBenchmark tmb(portal);
+  //tmb.test_multicast();
 
   //SequentialMulticastBenchmark smb(portal);
   //smb.test_multicast();
 
-  //test_raw();
+  test_raw();
 
   //test_portal();
 
