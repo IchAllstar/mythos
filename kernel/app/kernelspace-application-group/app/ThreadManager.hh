@@ -8,10 +8,7 @@
 #include "runtime/KernelMemory.hh"
 #include "runtime/SimpleCapAlloc.hh"
 #include "app/Thread.hh"
-
-static const uint64_t NUM_THREADS = 220;
-static const size_t PAGE_SIZE = 2 * 1024 * 1024;
-static const size_t STACK_SIZE = 1 * PAGE_SIZE;
+#include "app/conf.hh"
 
 class Thread;
 

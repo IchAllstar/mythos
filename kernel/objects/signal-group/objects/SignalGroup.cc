@@ -83,51 +83,16 @@ optional<SignalGroup*>
 SignalGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
                             IAllocator* mem, message_type* data)
 {
-    /*
-      // Allocate CapRef array to save group members
-      auto group = mem->alloc(sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize, 64);
-      if (!group) {
-          dstEntry->reset();
-          RETHROW(group);
-      }
-      memset(*group, 0, sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize);
-
-      // Allocate Tasklet array for asynchronous handling of propagation
-      auto tasklets = mem->alloc(sizeof(Tasklet) * data->groupSize, 64);
-      if (!tasklets) {
-          dstEntry->reset();
-          mem->free(*group, sizeof(Tasklet) * data->groupSize);
-          RETHROW(tasklets);
-      }
-      memset(*tasklets, 0, sizeof(Tasklet) * data->groupSize);
-
-      // Create actual kernel object
-      auto obj = mem->create<SignalGroup>(
-                     (CapRef<SignalGroup, ISignalable>*) *group, (Tasklet*) *tasklets, data->groupSize);
-      if (!obj) {
-          mem->free(*group, sizeof(Tasklet) * data->groupSize);
-          dstEntry->reset();
-          RETHROW(obj);
-      }
-      Cap cap(*obj);
-      auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
-      if (!res) {
-          mem->free(*group, sizeof(Tasklet) * data->groupSize);
-          mem->free(*obj); // mem->release(obj) goes throug IKernelObject deletion mechanism
-          dstEntry->reset();
-          RETHROW(res);
-      }
-      return *obj;
-      */
-    auto size = sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize;
-    size += sizeof(Tasklet) * data->groupSize;
-    size += sizeof(SignalGroup);
+    static Alignment<64> align;
+    auto size = align.round_up(sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize);
+    size += align.round_up(sizeof(Tasklet) * data->groupSize);
+    size += align.round_up(sizeof(SignalGroup));
     auto ptr = mem->alloc(size, 64);
     if (not ptr) RETHROW(ptr);
     memset(*ptr, 0, size);
     uint64_t point = (uint64_t) (*ptr);
-    auto *group = (CapRef<SignalGroup, ISignalable>*)(point + sizeof(SignalGroup));
-    auto *tasklets = (Tasklet*)(point + sizeof(SignalGroup) + sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize);
+    auto *group = (CapRef<SignalGroup, ISignalable>*)(point + align.round_up(sizeof(SignalGroup)));
+    auto *tasklets = (Tasklet*)(point + align.round_up(sizeof(SignalGroup)) + align.round_up(sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize));
     auto obj = new(*ptr) SignalGroup(mem, group, tasklets, data->groupSize);
     auto cap = Cap(obj);
     auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);

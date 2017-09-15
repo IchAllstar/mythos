@@ -9,6 +9,7 @@ struct ALIGNED(cpu::CACHELINESIZE) combine_node {
     std::atomic<uint64_t> value {{0}};
     combine_node *parent {nullptr};
 
+
     char padding[cpu::CACHELINESIZE - sizeof(value) - sizeof(parent)];
 
     void dec() {
@@ -16,6 +17,8 @@ struct ALIGNED(cpu::CACHELINESIZE) combine_node {
             if (parent != nullptr) {
                 //MLOG_ERROR(mlog::app, "Dec Parent");
                 parent->dec();
+            } else {
+              //MLOG_ERROR(mlog::app, "Finished");
             }
         }
     }
@@ -54,6 +57,10 @@ private:
         return false;
     }
 
+    /**
+     * Calculates minimal amount of nodes needed for a tree with "leafs" leafs
+     * and FANOUT children per inner node
+     */
     static constexpr uint64_t nodesFromLeaf(uint64_t leafs) {
         return (leafs == 1)
                 ? 1
@@ -101,10 +108,10 @@ template<size_t MAX_LEAFS, size_t FANOUT>
 void TreeCombining<MAX_LEAFS, FANOUT>::dec(uint64_t id) {
     ASSERT(id < maxLeafs);
     auto lastNode = nodesFromLeaf(maxLeafs) - 1;
-    auto firstLeaf = parent(lastNode) + 1;
+    auto firstLeaf = (lastNode == 0)?0:parent(lastNode) + 1;
     auto realID = firstLeaf + id;
-    if (maxLeafs == 1) realID = 1;
-    //MLOG_ERROR(mlog::app, "Dec", DVAR(realID), DVAR(id));
+    if (maxLeafs == 1) realID = 0;
+    //MLOG_ERROR(mlog::app, "Dec", DVAR(realID), DVAR(id), DVAR(lastNode), DVAR(firstLeaf));
     nodes[realID].dec();
 }
 

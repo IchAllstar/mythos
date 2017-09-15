@@ -49,6 +49,7 @@
 #include "app/SequentialMulticastBenchmark.hh"
 #include "app/TreeCombining.hh"
 #include "runtime/HWThread.hh"
+#include "app/conf.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -67,17 +68,15 @@ mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
 
 mythos::TreeCombining<NUM_THREADS, 5> tc;
 std::atomic<uint64_t> counter {0};
-//uint64_t REPETITIONS = 1;
-uint64_t REPETITIONS = 100;
 ThreadManager manager(portal, cs, as, kmem, caps);
 
 int main()
 {
-    //TreeMulticastBenchmark tmb(portal);
-    //tmb.test_multicast();
+    TreeMulticastBenchmark tmb(portal);
+    tmb.test_multicast();
 
-    HelperMulticastBenchmark hmb(portal);
-    hmb.test_multicast();
+    //HelperMulticastBenchmark hmb(portal);
+    //hmb.test_multicast();
 
     //SequentialMulticastBenchmark smb(portal);
     //smb.test_multicast();

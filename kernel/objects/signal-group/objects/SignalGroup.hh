@@ -17,7 +17,6 @@ namespace mythos {
  * hardware threads. They can be used to implemented broadcasts, where nodes are used to forward the cast.
  * Always use the tasklet of the receiver node, because I need to send to multiple children, so cannot use my own
  * tasklet.
- * TODO what to do, if SignalGroup is destroyed while cast is ongoing
  */
 class SignalGroup
     : public IKernelObject
