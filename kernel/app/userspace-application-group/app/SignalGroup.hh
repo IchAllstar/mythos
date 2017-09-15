@@ -212,7 +212,7 @@ public:
     //MLOG_ERROR(mlog::app, "multicast", DVAR(from), DVAR(idx));
     ISignalable *own = group->getMember(idx);
     auto sleep = manager.getSleepState(group->getMember(from)->getID(), group->getMember(idx)->getID());
-    if (sleep < 2) {
+    if (sleep < 0) {
       auto *t = group->getTask(idx);
       t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, idx, size); } );
       own->addTask(&t->list_member);

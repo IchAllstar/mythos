@@ -137,6 +137,7 @@ uint64_t ThreadManager::getSleepState(uint64_t context_id, uint64_t dest_id) {
   ASSERT(context_id < NUM_THREADS && dest_id < NUM_THREADS);
   //MLOG_ERROR(mlog::app, DVAR(context_id), DVAR(dest_id));
   auto ctx = getThread(context_id);
+  if (not ctx) return 0;
   mythos::Portal p(ctx->portal, ctx->ib);
   mythos::PortalLock pl(p);
   mythos::HWThread hwt(mythos::init::HWTHREAD_START + dest_id);

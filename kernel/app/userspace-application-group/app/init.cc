@@ -46,6 +46,7 @@
 #include "app/TreeMulticastBenchmark.hh"
 #include "app/SequentialMulticastBenchmark.hh"
 #include "runtime/HWThread.hh"
+#include "app/TreeCombining.hh"
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
 int main() asm("main");
@@ -63,6 +64,7 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 
 std::atomic<uint64_t> counter {0};
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
+mythos::TreeCombining<NUM_THREADS, 5> tc;
 
 namespace mythos {
   uint64_t tscdelay_MHz = 1000;
@@ -177,22 +179,38 @@ void test_portal() {
   }
 }
 
+void test_invocation_latency() {
+  manager.init([](void *data) -> void*{
+  });
+  manager.startAll();
+  mythos::Timer t;
+  mythos::PortalLock pl(portal);
+  mythos::HWThread hwt(mythos::init::HWTHREAD_START + 10);
+  for (uint64_t i = 0; i < REPETITIONS; i++) {
+    t.start();
+    hwt.readSleepState(pl).wait();
+    MLOG_ERROR(mlog::app, t.end());
+  }
+
+}
 int main()
 {
   MLOG_ERROR(mlog::app, "START application");
 
-  //HelperThreadBenchmark htb(portal);
-  //htb.test_multicast();
+ // HelperThreadBenchmark htb(portal);
+ // htb.test_multicast();
 
   //TreeMulticastBenchmark tmb(portal);
   //tmb.test_multicast();
 
-  //SequentialMulticastBenchmark smb(portal);
-  //smb.test_multicast();
+  SequentialMulticastBenchmark smb(portal);
+  smb.test_multicast();
 
-  test_raw();
+  //test_raw();
 
   //test_portal();
+
+  //test_invocation_latency();
 
   MLOG_ERROR(mlog::app, "END application");
   return 0;

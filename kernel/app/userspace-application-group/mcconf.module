@@ -12,6 +12,7 @@
           "app/SequentialMulticastBenchmark.hh",
 					"app/Task.hh",
 					"app/IntrusiveList.hh" ,
+          "app/TreeCombining.hh",
 				]
     provides = [ "app/init.elf" ]
     requires = [ "crtbegin" ]

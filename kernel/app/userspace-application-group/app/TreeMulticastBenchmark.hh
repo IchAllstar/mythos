@@ -1,9 +1,11 @@
 #pragma once
 
 #include "runtime/IdleManagement.hh"
+#include "app/TreeCombining.hh"
 
 extern ThreadManager manager;
 extern std::atomic<uint64_t> counter;
+extern mythos::TreeCombining<NUM_THREADS,5> tc;
 
 class TreeMulticastBenchmark {
 public:
@@ -27,18 +29,23 @@ private:
 };
 
 void TreeMulticastBenchmark::setup() {
+  tc.init(NUM_THREADS - 4);
 	manager.init([](void *data) -> void* {
 		ASSERT(data != nullptr);
 		auto *thread = reinterpret_cast<Thread*>(data);
-		counter.fetch_add(1);
+		//counter.fetch_add(1);
+    if (thread->id >= 4) {
+      tc.dec(thread->id - 4);
+    }
 	});
 	manager.startAll();
 
 
 	// wait until all initialized
-	while (counter.load() < manager.getNumThreads() - 1) {
-		mythos::hwthread_pause(10);
-	};
+	//while (counter.load() < manager.getNumThreads() - 1) {
+	//	mythos::hwthread_pause(10);
+	//};
+  while(not tc.isFinished()) {}
 }
 
 void TreeMulticastBenchmark::test_multicast() {
@@ -107,17 +114,13 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t number) {
   mythos::Timer t;
   uint64_t sum = 0;
   for (uint64_t i = 0; i < REPETITIONS; i++) {
-    counter.store(0);
+    tc.init(number);
+    //counter.store(0);
     t.start();
     group.signalAll();
     static uint64_t last_count = counter.load();
-    while (counter.load() < number) {
-      if (last_count != counter.load()) {
-        last_count = counter.load();
-        //MLOG_ERROR(mlog::app, DVAR(last_count));
-      }
-      mythos::hwthread_pause(10);
-    }
+    //while (counter.load() < number) {}
+    while(not tc.isFinished()) {}
     sum += t.end();
     ASSERT(counter.load() == number);
     mythos::delay(200000);
