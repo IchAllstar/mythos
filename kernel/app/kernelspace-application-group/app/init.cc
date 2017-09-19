@@ -50,6 +50,7 @@
 #include "app/TreeCombining.hh"
 #include "runtime/HWThread.hh"
 #include "app/conf.hh"
+#include "util/Logger.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -69,6 +70,13 @@ mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
 mythos::TreeCombining<NUM_THREADS, 5> tc;
 std::atomic<uint64_t> counter {0};
 ThreadManager manager(portal, cs, as, kmem, caps);
+
+// memory for value buffering when benchmarking
+uint64_t values1[NUM_THREADS];
+uint64_t values2[NUM_THREADS];
+
+uint64_t values3[REPETITIONS];
+uint64_t values4[REPETITIONS];
 
 int main()
 {

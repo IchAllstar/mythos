@@ -430,10 +430,6 @@ bool ExecutionContext::prepareResume() {
     MLOG_DETAIL(mlog::ec, "try to resume", DVARhex(prevState));
     if (prevState & IN_WAIT) {
         MLOG_DETAIL(mlog::ec, "try to resume from wait state");
-        //auto last = lastSignal.exchange(0);
-        //if (last != 0) {
-        //    MLOG_ERROR(mlog::ec, "LastSignal", DVAR(last));
-        //}
         clearFlag(IS_NOTIFIED); // this is safe because we wake up anyway
 
         auto e = notificationQueue.pull();

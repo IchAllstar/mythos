@@ -99,16 +99,6 @@ Error HWThread::readSleepState(Tasklet*, Cap, IInvocation *msg) {
 }
 
 // actual functionality
-
-void HWThread::runSleep() {
-    localPlace->processTasks(); // executes all available kernel tasks
-    releaseKernel();
-    //delay(1000);
-    tryRunUser();
-    releaseKernel();
-    mythos::idle::sleep(1);
-}
-
 void HWThread::runConfigurableDelays() {
     auto &idle = mythos::boot::getLocalIdleManagement();
     if (idle.shouldDeepSleep()) {
@@ -140,13 +130,23 @@ void HWThread::runConfigurableDelays() {
     mythos::idle::sleep(1);
 }
 
+void HWThread::runSleep() {
+    localPlace->enterKernel();
+    localPlace->processTasks(); // executes all available kernel tasks
+    releaseKernel();
+    tryRunUser();
+    releaseKernel();
+    mythos::idle::sleep(1);
+}
+
 void HWThread::runSpin() {
     while (true) {
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
-        //hwthread_pause(10);
-        preemption_point(); // allows interrupts even if polling only policy
+        releaseKernel();
+        //preemption_point(); // allows interrupts even if polling only policy
+        mythos::idle::sleep(1);
     }
 }
 

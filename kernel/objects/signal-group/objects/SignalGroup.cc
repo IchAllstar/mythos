@@ -6,6 +6,12 @@
 
 namespace mythos {
 
+Timer taskletTimer[250];
+Timer wakeupTimer[250];
+
+uint64_t taskletValues[250] {0};
+uint64_t wakeupValues[250] {0};
+
 SignalGroup::SignalGroup(IAsyncFree* mem, CapRef<SignalGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_)
     : _mem(mem), member(arr), tasklets(tasklets_), groupSize(groupSize_)
 {

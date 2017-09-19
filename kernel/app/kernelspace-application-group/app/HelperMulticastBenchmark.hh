@@ -12,7 +12,7 @@ extern ThreadManager manager;
 extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
-extern uint64_t REPETITIONS;
+//extern uint64_t REPETITIONS;
 extern mythos::TreeCombining<NUM_THREADS, 5> tc;
 
 class HelperMulticastBenchmark {

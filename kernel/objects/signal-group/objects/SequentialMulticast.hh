@@ -41,14 +41,28 @@ public:
     static Error multicast(SignalGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
 
+        uint64_t values[250];
         for (uint64_t i = 0; i < groupSize; i++) {
+            mythos::Timer t;
+            t.start();
+
             TypedCap<ISignalable> signalable(group->getMember(i)->cap());
             if (signalable) {
                 signalable->signal(0);
             } else {
                 PANIC("Signalaable not valid anymore");
             }
+            values[i] = t.end();
         }
+
+        for (auto i = 0ul; i < 250; i++) {
+          MLOG_ERROR(mlog::boot, values[i]);
+        }
+
+        for (auto i = 0ul; i < 250; i++) {
+          MLOG_ERROR(mlog::boot, i, taskletValues[i], wakeupValues[i]);
+        }
+
         return Error::SUCCESS;
     }
 };

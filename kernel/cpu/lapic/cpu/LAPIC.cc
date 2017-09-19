@@ -182,9 +182,10 @@ namespace mythos {
 
     uint64_t bailout = 0;
     while(read(REG_ICR_LOW).delivery_pending) {
-      //MLOG_ERROR(mlog::boot, "Hanign");
-      //hwthread_pause(10);
-      if (bailout++ > 100000) MLOG_ERROR(mlog::boot, "BAILOUT LAPIC");
+      if (bailout++ > 100000) {
+         MLOG_ERROR(mlog::boot, "Lapic hanging with Errorcode ", read(REG_ESR));
+         write(REG_ESR,0);
+      }
     }
 
     write(REG_ICR_HIGH, Register().destination(destination));

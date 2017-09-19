@@ -11,7 +11,7 @@ extern ThreadManager manager;
 extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
 extern std::atomic<uint64_t> counter;
-extern uint64_t REPETITIONS;
+//extern uint64_t REPETITIONS;
 extern mythos::TreeCombining<NUM_THREADS, 5> tc;
 
 class SequentialMulticastBenchmark {
@@ -48,7 +48,7 @@ void SequentialMulticastBenchmark::test_multicast() {
 	setup();
   test_single_thread();
   test_multicast_no_deep_sleep();
-  test_multicast_always_deep_sleep();
+  //test_multicast_always_deep_sleep();
 }
 
 void SequentialMulticastBenchmark::test_single_thread() {
@@ -146,7 +146,7 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
 		t.start();
 		group.signalAll(pl).wait();
 		//while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
-		while(not tc.isFinished()) { mythos::hwthread_pause(); }
+		while(not tc.isFinished()) { /*mythos::hwthread_pause();*/ }
     sum += t.end();
     mythos::delay(10000000);
   }

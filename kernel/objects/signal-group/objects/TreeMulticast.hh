@@ -37,6 +37,12 @@ namespace mythos {
 
 extern SleepEmulator emu;
 
+extern Timer taskletTimer[250];
+extern Timer wakeupTimer[250];
+
+extern uint64_t taskletValues[250];
+extern uint64_t wakeupValues[250];
+
 /**
  * Strategy implementation, which constructs a "fibonacci" multicast tree of the group members.
  * Tree roughly looks like:
@@ -149,7 +155,7 @@ struct TreeCastStrategy {
  * N-Ary tree for comparison with the Fibonacci Tree approach
  */
 struct NaryTree {
-    static const uint64_t N = 3;
+    static const uint64_t N = 4;
 
     static uint64_t getSleepState(HWThread *hwt) {
         if (!hwt) return 0;
@@ -164,18 +170,28 @@ struct NaryTree {
         ASSERT(group != nullptr); // TODO: parallel deletion of group?
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
         ASSERT(own);
-
+        /*
+        uint64_t tasklets[N] {0};
+        uint64_t wakeup[N] {0};
+        */
         for (uint64_t i = 0; i < N; i++) {
             auto child_idx = idx * N + i + 1;
             if (child_idx >= size) {
                 break;
             }
-            //MLOG_ERROR(mlog::boot, idx, "signals", child_idx);
             NaryTree::multicast(group, child_idx, size);
+            //tasklets[i] = taskletValues[idx + 4];
+            //wakeup[i] = wakeupValues[idx + 4];
         }
         // Signal own EC, will be scheduled after kernel task handling
         own->signal(0);
 
+        /*
+        for (auto i = 0ul; i < N; i++) {
+          if (idx*N+i+1 < size)
+            MLOG_ERROR(mlog::boot, idx + 4, idx * N + i + 5, tasklets[i], wakeup[i]);
+        }
+        */
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {

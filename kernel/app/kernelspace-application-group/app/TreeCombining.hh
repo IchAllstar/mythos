@@ -95,7 +95,7 @@ void TreeCombining<MAX_LEAFS, FANOUT>::init(uint64_t maxLeafs_) {
     ASSERT(maxNodes_ <= nodes.size());
     maxNodes = maxNodes_;
     maxLeafs = maxLeafs_;
-    //MLOG_ERROR(mlog::app, DVAR(maxNodes), DVAR(nodes.size()));
+    //MLOG_ERROR(mlog::app, DVAR(maxNodes), DVAR(maxLeafs));
     initNode(0);
 }
 

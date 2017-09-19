@@ -52,6 +52,9 @@ extern ISink* sink;
   if ((logger).isActive(mlog::TextError::VERBOSITY)) logger.write<mlog::TextError>( \
           PATH, __VA_ARGS__);
 
+#define MLOG_CSV(logger, ...) \
+  if ((logger).isActive(mlog::TextError::VERBOSITY)) logger.write<mlog::TextCSV>( __VA_ARGS__);
+
 template<class Filter = FilterAny>
 class Logger
   : public Filter

@@ -34,13 +34,23 @@
 #include "async/mlog.hh"
 #include "async/TaskletQueue.hh"
 #include "cpu/LAPIC.hh"
+#include "util/Time.hh"
 
 namespace mythos {
+
+extern Timer taskletTimer[250];
+extern Timer wakeupTimer[250];
+
+extern uint64_t taskletValues[250];
+extern uint64_t wakeupValues[250];
+
 namespace async {
 
 class Place;
 extern CoreLocal<Place*> localPlace_ KERNEL_CLM_HOT;
 inline Place& getLocalPlace() { return *localPlace_; }
+
+
 
 /** Local scheduling for a single thread. */
 class Place
@@ -72,8 +82,33 @@ public:
 
   void pushShared(TaskletBase* msg) {
     ASSERT(msg);
-    MLOG_DETAIL(mlog::async, this, "push shared", msg);
-    if (queue.push(*msg)) wakeup();
+    MLOG_DETAIL(mlog::async,threadID,  this, "push shared", msg);
+/*
+    auto id = cpu::getThreadID();
+    taskletTimer[id].start();
+    auto success = queue.push(*msg);
+    taskletValues[id] = taskletTimer[id].end();
+
+    wakeupTimer[id].start();
+    if (success) wakeup();
+    wakeupValues[id] = wakeupTimer[id].end();
+  */
+
+    //for sequential
+/*
+    taskletTimer[threadID].start();
+    auto success = queue.push(*msg);
+    taskletValues[threadID] = taskletTimer[threadID].end();
+
+    wakeupTimer[threadID].start();
+    if (success) wakeup();
+    wakeupValues[threadID] = wakeupTimer[threadID].end();
+*/
+
+    if (queue.push(*msg)) {
+      wakeup();
+    }
+
     //else MLOG_ERROR(mlog::async, "no need to wakeup");
   }
 
