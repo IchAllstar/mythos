@@ -76,8 +76,11 @@ public:
   }
 
   void run(TaskletBase* msg, Mode mode=ASYNC) {
+    auto id = cpu::getThreadID();
+    taskletTimer[id].start();
     if (isLocal()) runLocal(msg, mode);
     else pushShared(msg);
+    taskletValues[id] = taskletTimer[id].end();
   }
 
   void pushShared(TaskletBase* msg) {
@@ -92,10 +95,9 @@ public:
     wakeupTimer[id].start();
     if (success) wakeup();
     wakeupValues[id] = wakeupTimer[id].end();
-  */
-
-    //for sequential
+*/
 /*
+    //for sequential
     taskletTimer[threadID].start();
     auto success = queue.push(*msg);
     taskletValues[threadID] = taskletTimer[threadID].end();
@@ -104,7 +106,6 @@ public:
     if (success) wakeup();
     wakeupValues[threadID] = wakeupTimer[threadID].end();
 */
-
     if (queue.push(*msg)) {
       wakeup();
     }

@@ -3,12 +3,18 @@
 #include "objects/IFactory.hh"
 #include "objects/CapRef.hh"
 #include "objects/ISignalable.hh"
+#include "async/Tasklet.hh"
 #include "mythos/protocol/KernelObject.hh"
 #include "mythos/protocol/SignalGroup.hh"
 
 
 namespace mythos {
 
+// Little wrapper to cache align capability references
+struct alignas(64) CapWrap {
+  CapRef<SignalGroup, ISignalable> capref;
+  char padding[64 - sizeof(capref)];
+};
 
 /**
  * A Group of ISignalable objects with a maximum group size. When signalAll() is invoked, a signal is somehow
@@ -22,7 +28,7 @@ class SignalGroup
     : public IKernelObject
 {
 public: // Constructor
-    SignalGroup(IAsyncFree* mem, CapRef<SignalGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_);
+    SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *tasklets_, size_t groupSize_);
 
 public:
     enum CastStrategy {
@@ -50,11 +56,9 @@ public:
     void bind(optional<ISignalable*>);
     void unbind(optional<ISignalable*>);
 public:
-    CapRef<SignalGroup, ISignalable>* getMembers() { return member; }
-    Tasklet* getTasklets() { return tasklets; }
     size_t getSize() { return actualSize; }
-    Tasklet* getTasklet(size_t idx) { ASSERT(idx < actualSize); return &tasklets[idx]; }
-    CapRef<SignalGroup, ISignalable>* getMember(size_t idx) { ASSERT(idx < actualSize); return &member[idx]; }
+    TransparentTasklet* getTasklet(size_t idx) { ASSERT(idx < actualSize); return &tasklets[idx]; }
+    CapRef<SignalGroup, ISignalable>* getMember(size_t idx) { ASSERT(idx < actualSize); return &member[idx].capref; }
     HWThread* getHelper(uint64_t i);
     uint64_t numHelper() { return actualHelper; }
 private:
@@ -64,8 +68,9 @@ private:
     async::NestedMonitorDelegating monitor;
 
     // allocate when max group size is known
-    CapRef<SignalGroup, ISignalable> *member {nullptr};
-    Tasklet *tasklets;
+    //CapRef<SignalGroup, ISignalable> *member {nullptr};
+    CapWrap *member;
+    TransparentTasklet *tasklets;
     size_t groupSize {0};
     size_t actualSize {0};
 

@@ -10,7 +10,7 @@ uint64_t getTime() {
 	return (lo) | (hi << 32);
 }
 
-class Timer {
+class alignas(64) Timer {
 public:
 	void start() {
 		start_ = getTime();
@@ -22,6 +22,7 @@ public:
 
 private:
 	uint64_t start_;
+  char padding[64 - sizeof(start_)];
 };
 
 void delay(uint64_t cycles) {

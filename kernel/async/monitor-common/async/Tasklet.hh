@@ -153,6 +153,65 @@ private:
   char payload[PAYLOAD_SIZE];
 };
 
+// can ask the tasklet if occupied
+class alignas(64) TransparentTasklet
+  : public TaskletBase
+{
+public:
+  static constexpr size_t CLSIZE = 64;
+  static constexpr size_t PAYLOAD_SIZE = CLSIZE - sizeof(TaskletBase);
+
+  TransparentTasklet() {}
+  TransparentTasklet(const TransparentTasklet&) = delete;
+
+  template<class FUNCTOR>
+  TransparentTasklet* operator<< (FUNCTOR fun) { return set(fun); }
+
+  template<class FUNCTOR>
+  TransparentTasklet* set(FUNCTOR fun) {
+    static_assert(sizeof(FUNCTOR) <= sizeof(payload), "tasklet payload is too big");
+    ASSERT(isUnused());
+    setInit();
+    new(payload) FUNCTOR(std::move(fun));
+    this->handler = &wrapper<FUNCTOR>;
+    return this;
+  }
+
+  bool isUnused() const { return next == UNUSED; }
+
+protected:
+  // return the function object by copy!
+  template<class MSG>
+  MSG get() {
+    static_assert(sizeof(MSG) <= sizeof(payload), "Transparenttasklet payload is too big");
+    union cast_t {
+      char payload[PAYLOAD_SIZE];
+      MSG msg;
+    };
+    cast_t* caster = reinterpret_cast<cast_t*>(payload);
+    return MSG(std::move(caster->msg));
+  }
+
+public:
+  void print()
+  {
+    MLOG_INFO(mlog::async, "Transparenttasklet", this, "handler", handler, "hash", hash32(payload, 48));
+    for (auto row = 0; row < 6; ++row) {
+      MLOG_DETAIL(mlog::async, DMDUMP(&payload[row*8], 8));
+    }
+  }
+
+protected:
+  template<class FUNCTOR>
+  static void wrapper(TaskletBase* msg)
+  {
+    auto t = static_cast<TransparentTasklet*>(msg);
+    t->get<FUNCTOR>()(t);
+  }
+
+private:
+  char payload[PAYLOAD_SIZE];
+};
 
 template<class FUNCTOR>
 class alignas(64) TaskletFunctor
@@ -181,5 +240,6 @@ TaskletFunctor<FUNCTOR> makeTasklet(FUNCTOR fun) { return TaskletFunctor<FUNCTOR
 } // namespace async
 
   using async::Tasklet;
+  using async::TransparentTasklet;
 
 } // namespace mythos

@@ -11,8 +11,6 @@
 extern ThreadManager manager;
 extern mythos::SimpleCapAllocDel caps;
 extern mythos::KernelMemory kmem;
-extern std::atomic<uint64_t> counter;
-//extern uint64_t REPETITIONS;
 extern mythos::TreeCombining<NUM_THREADS, 5> tc;
 
 extern uint64_t values1[NUM_THREADS];
@@ -41,19 +39,15 @@ private:
 };
 
 void TreeMulticastBenchmark::setup() {
-  counter.store(0);
 	tc.init(manager.getNumThreads() - 4);
   manager.init([](void *data) -> void* {
 		Thread *t = (Thread*) data;
     auto id = (uint64_t)t->id;
     if (id >= 4) tc.dec(id - 4);
-    //counter.fetch_add(1);
-		//MLOG_ERROR(mlog::app, "Here");
+		//if (id >= 4) MLOG_ERROR(mlog::app, DVAR(id));
 	});
 	manager.startAll();
   while(not tc.isFinished()) {}
-	//while (counter.load() != manager.getNumThreads() - 1) {}
-	counter.store(0);
 }
 
 void TreeMulticastBenchmark::test_multicast() {
@@ -73,8 +67,8 @@ void TreeMulticastBenchmark::test_multicast() {
     }
 */
 
-    test_multicast_max_size();
-    //test_multicast_polling();
+    //test_multicast_max_size();
+    test_multicast_polling();
 }
 
 void TreeMulticastBenchmark::test_multicast_max_size() {
@@ -159,6 +153,7 @@ void TreeMulticastBenchmark::test_multicast_polling() {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
     ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
+    manager.getThread(i)->signal();
   }
   pl.release();
   mythos::delay(10000000);
@@ -170,7 +165,7 @@ void TreeMulticastBenchmark::test_multicast_polling() {
     MLOG_CSV(mlog::app, i, test_multicast_gen(i));
 	}
 
-	//MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
+	MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
 }
 
 void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
@@ -204,8 +199,6 @@ uint64_t TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads, uint64_
     return 0;
   }
 
-  MLOG_ERROR(mlog::app, numThreads);
-
   mythos::PortalLock pl(portal);
 	mythos::SignalGroup group(caps());
 	ASSERT(group.create(pl, kmem, numThreads).wait());
@@ -218,14 +211,11 @@ uint64_t TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads, uint64_
 	uint64_t sum = 0;
 	for (uint64_t i = 0; i < repetitions; i++) {
     tc.init(numThreads);
-    //counter.store(0);
 		t.start();
     group.signalAll(pl).wait();
-		//while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
     while(not tc.isFinished()) {}
-    //MLOG_ERROR(mlog::app, tc.isFinished());
 		sum += t.end();
-    mythos::delay(1000000); // Tree cast does lock when not here
+    mythos::delay(1000000);
 	}
 	caps.free(group, pl);
   return sum / repetitions;

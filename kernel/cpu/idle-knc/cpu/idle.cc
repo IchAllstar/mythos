@@ -67,8 +67,7 @@ void init_global()
 
 NORETURN void cpu_idle_halt() SYMBOL("cpu_idle_halt");
 
-void sleep(uint8_t depth)
-{
+void sleep(uint8_t depth) {
     emu.sleep(cpu::getThreadID(), depth);
     cpu_idle_halt();
 }
@@ -78,7 +77,7 @@ void wokeup(size_t /*apicID*/, size_t reason)
     MLOG_INFO(mlog::boot, "idle:", DVARhex(x86::getMSR(MSR_CC6_STATUS)));
     if (reason == 1) {
         MLOG_DETAIL(mlog::boot, "idle: woke up from CC6");
-        boot::getLocalIdleManagement().wokeup(reason);
+        //boot::getLocalIdleManagement().wokeup(reason);
         cpu_idle_halt(); // woke up from CC6 => just sleep again
     }
 }

@@ -69,8 +69,6 @@ protected:
 // Actual Methods
 public:
   NORETURN void runUser() {
-    ASSERT(localPlace != nullptr);
-    ASSERT(localSchedulingContext != nullptr);
     switch (policy) {
       case SLEEP  : runSleep();
       case SPIN   : runSpin();

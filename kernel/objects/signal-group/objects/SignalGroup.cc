@@ -12,7 +12,7 @@ Timer wakeupTimer[250];
 uint64_t taskletValues[250] {0};
 uint64_t wakeupValues[250] {0};
 
-SignalGroup::SignalGroup(IAsyncFree* mem, CapRef<SignalGroup, ISignalable> *arr, Tasklet *tasklets_, size_t groupSize_)
+SignalGroup::SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *tasklets_, size_t groupSize_)
     : _mem(mem), member(arr), tasklets(tasklets_), groupSize(groupSize_)
 {
     MLOG_DETAIL(mlog::boot, "Create Group with size", groupSize);
@@ -20,12 +20,12 @@ SignalGroup::SignalGroup(IAsyncFree* mem, CapRef<SignalGroup, ISignalable> *arr,
     // initialize arrays in place
     CapRef<SignalGroup, ISignalable>* obj IGNORE_UNUSED;
     for (uint64_t i = 0; i < groupSize; i++) {
-        obj = new (&member[i]) CapRef<SignalGroup, ISignalable>();
+        obj = new (&member[i].capref) CapRef<SignalGroup, ISignalable>();
     }
 
-    Tasklet* tasklet IGNORE_UNUSED;
+    TransparentTasklet* tasklet IGNORE_UNUSED;
     for (uint64_t i = 0; i < groupSize; i++) {
-        tasklet = new (&tasklets[i]) Tasklet();
+        tasklet = new (&tasklets[i]) TransparentTasklet();
     }
 }
 
@@ -39,10 +39,10 @@ optional<void> SignalGroup::deleteCap(Cap self, IDeleter& del) {
 void SignalGroup::deleteObject(Tasklet* t, IResult<void>* r)  {
     monitor.doDelete(t, [ = ](Tasklet * t) {
         for (uint64_t i = 0; i < actualSize; i++) {
-            member[i].reset();
+            member[i].capref.reset();
         }
         auto size = sizeof(CapRef<SignalGroup, ISignalable>) * groupSize;
-        size += sizeof(Tasklet) * groupSize;
+        size += sizeof(TransparentTasklet) * groupSize;
         size += sizeof(SignalGroup);
         _mem->free(t, r, this, size);
     });
@@ -90,15 +90,15 @@ SignalGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
                             IAllocator* mem, message_type* data)
 {
     static Alignment<64> align;
-    auto size = align.round_up(sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize);
-    size += align.round_up(sizeof(Tasklet) * data->groupSize);
+    auto size = align.round_up(sizeof(CapWrap) * data->groupSize);
+    size += align.round_up(sizeof(TransparentTasklet) * data->groupSize);
     size += align.round_up(sizeof(SignalGroup));
     auto ptr = mem->alloc(size, 64);
     if (not ptr) RETHROW(ptr);
     memset(*ptr, 0, size);
     uint64_t point = (uint64_t) (*ptr);
-    auto *group = (CapRef<SignalGroup, ISignalable>*)(point + align.round_up(sizeof(SignalGroup)));
-    auto *tasklets = (Tasklet*)(point + align.round_up(sizeof(SignalGroup)) + align.round_up(sizeof(CapRef<SignalGroup, ISignalable>) * data->groupSize));
+    auto *group = (CapWrap*)(point + align.round_up(sizeof(SignalGroup)));
+    auto *tasklets = (TransparentTasklet*)(point + align.round_up(sizeof(SignalGroup)) + align.round_up(sizeof(CapWrap) * data->groupSize));
     auto obj = new(*ptr) SignalGroup(mem, group, tasklets, data->groupSize);
     auto cap = Cap(obj);
     auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
@@ -144,13 +144,13 @@ Error SignalGroup::addMember(Tasklet *t, Cap self, IInvocation *msg) {
 
     // look if it is in the group
     for (uint64_t i = 0; i < groupSize; i++) {
-        if (member[i].cap().getPtr() == obj.cap().getPtr()) {
+        if (member[i].capref.cap().getPtr() == obj.cap().getPtr()) {
             return Error::INVALID_ARGUMENT;
         }
     }
     for (uint64_t i = 0; i < groupSize; i++) {
-        if (!member[i].isUsable()) {
-            member[i].set(this, *capEntry, obj.cap());
+        if (!member[i].capref.isUsable()) {
+            member[i].capref.set(this, *capEntry, obj.cap());
             actualSize++;
             return Error::SUCCESS;
         }

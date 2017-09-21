@@ -110,13 +110,12 @@ void HWThread::runConfigurableDelays() {
     localPlace->processTasks(); // executes all available kernel tasks
     tryRunUser();
     if (idle.getDelayPolling() > 100) { // skip two small poling delays due to performance
-      //MLOG_ERROR(mlog::boot, DVAR(idle.getDelayPolling()));
       uint64_t start = getTime();
+      // one pass of the poll loop takes about 480-500 cycles
       while (idle.alwaysPoll() || start + idle.getDelayPolling() > getTime()) { // poll configured delay
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
-        //hwthread_pause(10);
         preemption_point(); // allows interrupts even if polling only policy
       }
     }
@@ -146,7 +145,6 @@ void HWThread::runSpin() {
         tryRunUser();
         releaseKernel();
         //preemption_point(); // allows interrupts even if polling only policy
-        mythos::idle::sleep(1);
     }
 }
 

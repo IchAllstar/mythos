@@ -72,7 +72,7 @@ public:
 
 			auto *tasklet = group->getTasklet(i); // use a tasklet from SignalingGroup, should not be in use
 			//MLOG_ERROR(mlog::boot, "send to Helper Thread:", "from", current, "to",current + base-1);
-			tasklet->set([group, i, current, base](Tasklet*) {
+			tasklet->set([group, i, current, base](TransparentTasklet*) {
 				ASSERT(group != nullptr);
 				for (uint64_t i = current; i < current + base; i++) {
 					TypedCap<ISignalable> dest(group->getMember(i)->cap());
