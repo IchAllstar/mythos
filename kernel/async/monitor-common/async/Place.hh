@@ -53,7 +53,7 @@ inline Place& getLocalPlace() { return *localPlace_; }
 
 
 /** Local scheduling for a single thread. */
-class Place
+class alignas(64) Place
 {
 public:
 

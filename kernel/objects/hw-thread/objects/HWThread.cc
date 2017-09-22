@@ -99,13 +99,38 @@ Error HWThread::readSleepState(Tasklet*, Cap, IInvocation *msg) {
 }
 
 // actual functionality
+
+void HWThread::runConfigurableDelays() {
+    if (idle->shouldDeepSleep()) {
+        MLOG_DETAIL(mlog::boot, "Timer interrupt triggered and no new work so far");
+        releaseKernel();
+        idle->sleep();
+    }
+    localPlace->processTasks(); // executes all available kernel tasks
+    tryRunUser();
+    if (idle->getDelayPolling() > 100) { // skip two small poling delays due to performance
+      uint64_t start = getTime();
+      // one pass of the poll loop takes about 480-500 cycles
+      while (idle->alwaysPoll() || start + idle->getDelayPolling() > getTime()) { // poll configured delay
+        localPlace->enterKernel();
+        localPlace->processTasks();
+        tryRunUser();
+        //preemption_point(); // allows interrupts even if polling only policy
+        mythos::hwthread_pause();
+      }
+    }
+    releaseKernel();
+    MLOG_DETAIL(mlog::boot, DVAR(idle->getDelayLiteSleep()));
+    idle->sleep();
+}
+
+/*
 void HWThread::runConfigurableDelays() {
     auto &idle = mythos::boot::getLocalIdleManagement();
     if (idle.shouldDeepSleep()) {
         MLOG_DETAIL(mlog::boot, "Timer interrupt triggered and no new work so far");
         releaseKernel();
-        boot::getLocalIdleManagement().sleepIntention(6);
-        mythos::idle::sleep(6);
+        idle.sleep();
     }
     localPlace->processTasks(); // executes all available kernel tasks
     tryRunUser();
@@ -124,11 +149,11 @@ void HWThread::runConfigurableDelays() {
     if (idle.alwaysDeepSleep()) {
         boot::getLocalIdleManagement().sleepIntention(6);
         mythos::idle::sleep(6);
-    }
+   }
     boot::getLocalIdleManagement().sleepIntention(1);
     mythos::idle::sleep(1);
 }
-
+*/
 void HWThread::runSleep() {
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks

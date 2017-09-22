@@ -82,7 +82,7 @@ public:
   TaskletBase(TaskletBase&& o) : Chainable(std::move(o)), handler(o.handler) {}
   ~TaskletBase() { ASSERT(isUnused()); }
 
-  void run() {
+  virtual void run() {
     MLOG_DETAIL(mlog::async, "run tasklet", this);
     ASSERT(handler > FunPtr(VIRT_ADDR));
     ASSERT(isInit());
@@ -171,13 +171,21 @@ public:
   TransparentTasklet* set(FUNCTOR fun) {
     static_assert(sizeof(FUNCTOR) <= sizeof(payload), "tasklet payload is too big");
     ASSERT(isUnused());
-    setInit();
+    next = INIT;
     new(payload) FUNCTOR(std::move(fun));
     this->handler = &wrapper<FUNCTOR>;
     return this;
   }
 
-  bool isUnused() const { return next == UNUSED; }
+  void run() override {
+    MLOG_DETAIL(mlog::async, "run tasklet", this);
+    ASSERT(handler > FunPtr(VIRT_ADDR));
+    ASSERT(isInit());
+    next = UNUSED;
+    handler(this);
+  }
+
+  bool isFree() const { return next == UNUSED; }
 
 protected:
   // return the function object by copy!

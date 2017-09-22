@@ -81,12 +81,13 @@ public:
   NORETURN void runSpin();
   NORETURN void runConfigurableDelays();
 
-  void init(uint64_t apicID_, mythos::async::Place *p, mythos::SchedulingContext *sc) {
+  void init(uint64_t apicID_, mythos::async::Place *p, mythos::SchedulingContext *sc, mythos::IdleManagement *idle_) {
     MLOG_DETAIL(mlog::boot, "Init", DVAR(p), DVAR(sc));
     ASSERT(p != nullptr);
     ASSERT(sc != nullptr);
     localPlace = p;
     localSchedulingContext = sc;
+    idle = idle_;
     apicID = apicID_;
     monitor.setHome(p);
   }
@@ -119,6 +120,7 @@ private:
   // actual stuff
   async::Place *localPlace = nullptr;
   SchedulingContext *localSchedulingContext = nullptr;
+  mythos::IdleManagement *idle = nullptr;
 
   Policy policy = {DELAYS};
 };

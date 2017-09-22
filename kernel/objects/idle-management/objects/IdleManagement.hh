@@ -54,6 +54,7 @@ public: // IIdleManagement Interface
 	void enteredFromSyscall() override;
 	void enteredFromInterrupt(uint8_t irq) override;
 	void sleepIntention(uint8_t depth) override;
+  NORETURN void sleep();
 public:
 	Error setPollingDelay(Tasklet*, Cap self, IInvocation* msg);
 	Error setLiteSleepDelay(Tasklet*, Cap self, IInvocation* msg);
@@ -67,16 +68,16 @@ private:
 	async::NestedMonitorDelegating monitor;
 	// time in cycles we spend polling before going to sleep
   //std::atomic<uint32_t> delay_polling = {10000};
-  std::atomic<uint32_t> delay_polling = {000};
+  std::atomic<uint32_t> delay_polling = {0};
 
 	// time we wait in lite sleep before going to deep sleep
   std::atomic<uint32_t> delay_lite_sleep = {MAX_UINT32};
 	//std::atomic<uint32_t> delay_lite_sleep = {0};
 
 	// indicates a timer interrupt was set
-	std::atomic<bool> timer {false};
+	std::atomic<bool> timer[4] {{false}};
 	// indicates a timer interrupt actually triggered
-	std::atomic<bool> timer_interrupt {false};
+	std::atomic<bool> timer_interrupt[4] {{false}};
 };
 
 } // namespace mythos

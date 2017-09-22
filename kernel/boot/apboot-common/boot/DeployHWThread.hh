@@ -107,7 +107,7 @@ struct DeployHWThread
     getScheduler(threadID).init(async::getPlace(threadID),&getHWThread(threadID));
     localHWThread_.setAt(threadID, &getHWThread(threadID));
     localIdleManagement.setAt(threadID, &getIdleManagement(threadID));
-    getHWThread(threadID).init(threadID, async::getPlace(threadID), &getScheduler(threadID));
+    getHWThread(threadID).init(threadID, async::getPlace(threadID), &getScheduler(threadID), &getIdleManagement(threadID));
     cpu::initSyscallStack(threadID, stacks[apicID]);
     MLOG_DETAIL(mlog::boot, "  hw thread", DVAR(threadID), DVAR(apicID),
                 DVARhex(stacks[apicID]), DVARhex(stackphys), DVARhex(tss_kernel.ist[1]),

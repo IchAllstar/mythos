@@ -57,8 +57,8 @@ void TreeMulticastBenchmark::test_multicast() {
 
 
     //test_multicast_both_sleep();
-    test_multicast_max_size();
-    //test_multicast_polling();
+    //test_multicast_max_size();
+    test_multicast_polling();
     MLOG_ERROR(mlog::app, "End of all Benchmarks");
 }
 

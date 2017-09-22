@@ -47,9 +47,10 @@ void IdleManagement::wokeup(size_t reason) {
 }
 
 void IdleManagement::wokeupFromInterrupt(uint8_t irq) {
-	if (timer.exchange(false) == true) {
+  auto hwt = cpu::getThreadID() % 4;
+	if (timer[hwt].exchange(false) == true) {
 		if (irq == 0x22) {
-			timer_interrupt.store(true);
+			timer_interrupt[hwt].store(true);
 		} else { // we woke up from another reason but timer was configured, so disable it to avoid useless interrupt
 			mythos::lapic.disableTimer();
 		}
@@ -68,14 +69,29 @@ void IdleManagement::enteredFromInterrupt(uint8_t irq) {
 void IdleManagement::sleepIntention(uint8_t depth) {
 	MLOG_DETAIL(mlog::boot, "received sleep intention", DVAR(depth));
 	if (depth == 1 && getDelayLiteSleep() != MAX_UINT32) {
+    auto hwt = cpu::getThreadID() % 4;
 		MLOG_DETAIL(mlog::boot, "set timer interrupt", DVAR(getDelayLiteSleep()));
-		timer.store(true);
+		timer[hwt].store(true);
 		mythos::lapic.enableOneshotTimer(0x22, getDelayLiteSleep());
 	}
 }
 
+void IdleManagement::sleep() {
+  if (alwaysDeepSleep() || shouldDeepSleep()) {
+    mythos::idle::sleep(6);
+  }
+  if (getDelayLiteSleep() != MAX_UINT32) {
+    auto hwt = cpu::getThreadID() % 4;
+		MLOG_DETAIL(mlog::boot, "set timer interrupt", DVAR(getDelayLiteSleep()));
+		timer[hwt].store(true);
+		mythos::lapic.enableOneshotTimer(0x22, getDelayLiteSleep());
+  }
+  mythos::idle::sleep(1);
+}
+
 bool IdleManagement::shouldDeepSleep() {
-	if (timer_interrupt.exchange(false) == true && delay_lite_sleep != MAX_UINT32) {
+  auto hwt = cpu::getThreadID() % 4;
+	if (timer_interrupt[hwt].exchange(false) == true && delay_lite_sleep != MAX_UINT32) {
 		return true;
 	}
 	return false;

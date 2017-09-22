@@ -208,7 +208,7 @@ struct NaryTree {
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
       auto id = cpu::getThreadID();
       auto *t = group->getTasklet(idx); // 50 cycles
-      while (not t->isUnused()) {
+      while (not t->isFree()) {
         MLOG_ERROR(mlog::boot, "Tasklet in use!!");
         mythos::hwthread_pause(200);
       }
