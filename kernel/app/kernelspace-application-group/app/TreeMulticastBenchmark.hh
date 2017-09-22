@@ -29,6 +29,7 @@ public:
   void test_multicast_always_deep_sleep();
   void test_multicast_max_size();
   void test_multicast_polling();
+  void test_multicast_both_sleep();
 	uint64_t test_multicast_gen(uint64_t number , uint64_t repetitions = REPETITIONS);
 
 private:
@@ -54,21 +55,11 @@ void TreeMulticastBenchmark::test_multicast() {
     setup();
     MLOG_ERROR(mlog::app, "Tree Multicast Benchmark. May take a while to complete ...");
 
-/*
-    test_multicast_no_deep_sleep();
-    //test_multicast_always_deep_sleep();
-    MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles no deep sleep", "Cycles deep sleep");
-    for (auto i = 2ul; i < 5; i++) {
-      MLOG_CSV(mlog::app, i, values1[i], values2[i]);
-    }
 
-    for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
-      MLOG_CSV(mlog::app, i, values1[i], values2[i]);
-    }
-*/
-
-    //test_multicast_max_size();
-    test_multicast_polling();
+    //test_multicast_both_sleep();
+    test_multicast_max_size();
+    //test_multicast_polling();
+    MLOG_ERROR(mlog::app, "End of all Benchmarks");
 }
 
 void TreeMulticastBenchmark::test_multicast_max_size() {
@@ -121,8 +112,42 @@ void TreeMulticastBenchmark::test_multicast_max_size() {
 	MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
 }
 
+void TreeMulticastBenchmark::test_multicast_polling() {
+  mythos::PortalLock pl(portal);
+  for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
+    mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+    ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
+    ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
+    manager.getThread(i)->signal();
+  }
+  pl.release();
+  mythos::delay(10000000);
+  MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
+  for (uint64_t i = 2; i < 5; i++) {
+    MLOG_CSV(mlog::app, i, test_multicast_gen(i));
+  }
+	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
+    MLOG_CSV(mlog::app, i, test_multicast_gen(i));
+	}
+
+	MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
+}
+
+void TreeMulticastBenchmark::test_multicast_both_sleep() {
+  test_multicast_no_deep_sleep();
+  test_multicast_always_deep_sleep();
+  MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles no deep sleep", "Cycles deep sleep");
+  for (auto i = 2ul; i < 5; i++) {
+    MLOG_CSV(mlog::app, i, values1[i], values2[i]);
+  }
+
+  for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
+    MLOG_CSV(mlog::app, i, values1[i], values2[i]);
+  }
+}
+
 void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
-	//MLOG_ERROR(mlog::app, "Start Tree Multicast tree test always deep sleep");
+	MLOG_ERROR(mlog::app, "Start Tree Multicast tree test always deep sleep");
   mythos::PortalLock pl(portal);
   for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
@@ -144,28 +169,7 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	  values2[i] = test_multicast_gen(i);
 	}
 
-	//MLOG_ERROR(mlog::app, "End Tree Multicast always deep sleep tree test");
-}
-
-void TreeMulticastBenchmark::test_multicast_polling() {
-  mythos::PortalLock pl(portal);
-  for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
-    mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
-    ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
-    ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
-    manager.getThread(i)->signal();
-  }
-  pl.release();
-  mythos::delay(10000000);
-  MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
-  for (uint64_t i = 2; i < 5; i++) {
-    MLOG_CSV(mlog::app, i, test_multicast_gen(i));
-  }
-	for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
-    MLOG_CSV(mlog::app, i, test_multicast_gen(i));
-	}
-
-	MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
+	MLOG_ERROR(mlog::app, "End Tree Multicast always deep sleep tree test");
 }
 
 void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
