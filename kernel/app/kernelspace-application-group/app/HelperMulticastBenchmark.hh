@@ -24,6 +24,7 @@ public:
     void test_multicast();
     void test_multicast_no_deep_sleep();
     void test_multicast_always_deep_sleep();
+    void test_multicast_polling();
     void test_multicast_gen(uint64_t);
 
 private:
@@ -33,18 +34,14 @@ private:
 };
 
 void HelperMulticastBenchmark::setup() {
-    counter.store(0);
     tc.init(manager.getNumThreads());
     manager.init([](void *data) -> void* {
         Thread *t = (Thread*) data;
         if (t->id >= 4 && t->id < manager.getNumThreads() - numHelper) {
           tc.dec(t->id - 4);
         }
-        counter.fetch_add(1);
     });
     manager.startAll();
-    //while (counter.load() != manager.getNumThreads() - 1) {}
-    counter.store(0);
 
     mythos::PortalLock pl(portal);
     for (uint64_t i = 0; i < numHelper; i++) {
@@ -59,6 +56,7 @@ void HelperMulticastBenchmark::test_multicast() {
   setup();
   test_multicast_no_deep_sleep();
   test_multicast_always_deep_sleep();
+  test_multicast_polling();
 }
 
 void HelperMulticastBenchmark::test_multicast_always_deep_sleep() {
@@ -82,7 +80,7 @@ void HelperMulticastBenchmark::test_multicast_always_deep_sleep() {
     for (uint64_t i = 2; i < 5; i++) {
         test_multicast_gen(i);
     }
-    for (uint64_t i = 5; i <= manager.getNumThreads() - numHelper; i += 5) {
+    for (uint64_t i = 5; i <= manager.getNumThreads() - numHelper - 4; i += 5) {
         test_multicast_gen(i);
     }
     MLOG_ERROR(mlog::app, "End Multicast Helper test");
@@ -109,12 +107,38 @@ void HelperMulticastBenchmark::test_multicast_no_deep_sleep() {
     for (uint64_t i = 2; i < 5; i++) {
         test_multicast_gen(i);
     }
-    for (uint64_t i = 5; i <= manager.getNumThreads() - numHelper; i += 5) {
+    for (uint64_t i = 5; i <= manager.getNumThreads() - numHelper - 4; i += 5) {
         test_multicast_gen(i);
     }
     MLOG_ERROR(mlog::app, "End Multicast Helper test");
 }
 
+void HelperMulticastBenchmark::test_multicast_polling() {
+    uint64_t num = numHelper; // else macro will result in undefined reference
+    MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and polling");
+
+    mythos::PortalLock pl(portal);
+    for (uint64_t i = 1; i < manager.getNumThreads() - numHelper; i++) {
+      mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+      ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
+      ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
+    }
+    pl.release();
+    // we have to wake up all used threads, so they can enter the configured
+    // sleep state
+    for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
+      manager.getThread(i)->signal();
+    }
+    mythos::delay(10000000);
+
+    for (uint64_t i = 2; i < 5; i++) {
+        test_multicast_gen(i);
+    }
+    for (uint64_t i = 5; i <= manager.getNumThreads() - numHelper - 4; i += 5) {
+        test_multicast_gen(i);
+    }
+    MLOG_ERROR(mlog::app, "End Multicast Helper test");
+}
 void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     if (numThreads + 4 > manager.getNumThreads()- numHelper) {
       MLOG_ERROR(mlog::app, "Cannot test with", DVAR(numThreads));
