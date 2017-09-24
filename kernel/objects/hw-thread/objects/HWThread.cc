@@ -169,7 +169,7 @@ void HWThread::runSpin() {
         localPlace->processTasks();
         tryRunUser();
         releaseKernel();
-        //preemption_point(); // allows interrupts even if polling only policy
+        preemption_point(); // allows interrupts even if polling only policy
     }
 }
 

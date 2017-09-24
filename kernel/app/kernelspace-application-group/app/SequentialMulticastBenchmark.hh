@@ -24,6 +24,7 @@ class SequentialMulticastBenchmark {
     void test_single_thread();
     void test_multicast_gen(uint64_t);
     void test_multicast_no_deep_sleep();
+    void test_multicast_polling();
     void test_multicast_always_deep_sleep();
 
   private:
@@ -32,23 +33,19 @@ class SequentialMulticastBenchmark {
 };
 
 void SequentialMulticastBenchmark::setup() {
-  counter.store(0);
   manager.init([](void *data) -> void* {
       Thread* t = (Thread*) data;
       if (t->id >= 4) tc.dec(t->id - 4);
-      //counter.fetch_add(1);
-      //MLOG_ERROR(mlog::app, "Here");
       });
   manager.startAll();
-  //while (counter.load() != manager.getNumThreads() - 1) {}
-  counter.store(0);
 }
 
 void SequentialMulticastBenchmark::test_multicast() {
   setup();
   test_single_thread();
   test_multicast_no_deep_sleep();
-  //test_multicast_always_deep_sleep();
+  test_multicast_always_deep_sleep();
+  test_multicast_polling();
 }
 
 void SequentialMulticastBenchmark::test_single_thread() {
@@ -87,10 +84,24 @@ void SequentialMulticastBenchmark::test_single_thread() {
     sum += t.end();
   }
   MLOG_ERROR(mlog::app, "Single Thread signal+acknowledge with polling", sum / REPETITIONS);
+
+  mythos::SignalGroup sg(caps());
+  mythos::PortalLock pl(portal);
+  ASSERT(sg.create(pl, kmem, 1).wait());
+  ASSERT(sg.addMember(pl, manager.getThread(4)->ec).wait());
+  sum = 0;
+  for (uint64_t i = 0; i < REPETITIONS; i++) {
+    tc.init(1);
+    t.start();
+    sg.signalAll(pl).wait();
+    while(not tc.isFinished()) {}
+    sum += t.end();
+  }
+  MLOG_ERROR(mlog::app, "Single Thread polling wrapped in SignalGroup", sum / REPETITIONS);
 }
 
 void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
-  MLOG_ERROR(mlog::app, "Start Sequential Multicast tree test always deep sleep");
+  MLOG_ERROR(mlog::app, "Start Sequential Multicast test always deep sleep");
   mythos::PortalLock pl(portal);
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
@@ -105,17 +116,18 @@ void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
     manager.getThread(i)->signal();
   }
   mythos::delay(10000000);
+  MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 2; i < 5; i++) { // does start with i+4th HWT
     test_multicast_gen(i);
   }
   for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
     test_multicast_gen(i);
   }
-  MLOG_ERROR(mlog::app, "End Sequential Multicast tree test");
+  MLOG_ERROR(mlog::app, "End Sequential Multicast test");
 }
 
 void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
-  MLOG_ERROR(mlog::app, "Start Sequential Multicast tree test no deep sleep");
+  MLOG_ERROR(mlog::app, "Start Sequential Multicast test no deep sleep");
   mythos::PortalLock pl(portal);
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
@@ -130,13 +142,41 @@ void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
     manager.getThread(i)->signal();
   }
   mythos::delay(10000000);
+  MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 2; i < 5; i++) {
     test_multicast_gen(i);
   }
   for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
     test_multicast_gen(i);
   }
-  MLOG_ERROR(mlog::app, "End Sequential Multicast tree test");
+  MLOG_ERROR(mlog::app, "End Sequential Multicast test");
+}
+
+void SequentialMulticastBenchmark::test_multicast_polling() {
+  MLOG_ERROR(mlog::app, "Start Sequential Multicast test polling");
+  mythos::PortalLock pl(portal);
+  for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
+    mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
+    ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
+    ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
+  }
+  pl.release();
+  // we have to wake up all used threads, so they can enter the configured
+  // sleep state
+  tc.init(manager.getNumThreads());
+  for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
+    manager.getThread(i)->signal();
+  }
+  mythos::delay(10000000);
+  MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
+  for (uint64_t i = 1; i < 5; i++) {
+    test_multicast_gen(i);
+  }
+  for (uint64_t i = 5; i < manager.getNumThreads(); i += 5) {
+    test_multicast_gen(i);
+  }
+  MLOG_ERROR(mlog::app, "End Sequential Multicast test");
+
 }
 
 void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
@@ -154,14 +194,12 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
   uint64_t sum = 0;
   for (uint64_t i = 0; i < REPETITIONS; i++) {
     tc.init(numThreads);
-    counter.store(0);
     t.start();
     group.signalAll(pl).wait();
-    //while (counter.load() != numThreads) { /*mythos::hwthread_pause();*/ }
-    while(not tc.isFinished()) { /*mythos::hwthread_pause();*/ }
+    while(not tc.isFinished()) {}
     sum += t.end();
-    mythos::delay(10000000);
+    mythos::delay(100000);
   }
-  MLOG_ERROR(mlog::app, numThreads,"; ", sum / REPETITIONS);
+  MLOG_CSV(mlog::app, numThreads, sum / REPETITIONS);
   caps.free(group, pl);
 }
