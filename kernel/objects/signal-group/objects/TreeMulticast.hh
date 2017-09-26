@@ -31,7 +31,7 @@ struct TreeCastStrategy {
     // higher latency better if threads are in deep sleep
     // could check everything for deep sleep and choose latency dynamically?
     // could skip deep sleep nodes and signal children from own context ->ok
-    static const uint64_t LATENCY = 2;
+    static const uint64_t LATENCY = 3;
     static const uint64_t RECURSIVE_SIZE = 25;
     static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
 
@@ -79,21 +79,21 @@ struct TreeCastStrategy {
         return sleepState;
     }
 
-    static void signalTo(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+    static void signalTo(SignalGroup *group, uint64_t idx, uint64_t to) {
         auto to_tmp = to;
         // Signal own EC, should be ready when leaving kernel
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
         while (true) {
-            uint64_t n = to_tmp - from + 1;
+            uint64_t n = to_tmp - idx + 1;
             if ( n < 2) {
                 break;
             }
             // calculates the split of the range depending on LATENCY
             // left range is handled by this, right by other node
             uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
-            auto destID = j + from;
+            auto destID = j + idx;
             if (destID < to_tmp) {
-                multicast(group, destID, destID, to_tmp);
+                multicast(group, destID, to_tmp);
             } else { // if leaf node, which does not forward, just signal it
                 TypedCap<ISignalable> dest(group->getMember(destID)->cap());
                 dest->signal(0);
@@ -103,7 +103,7 @@ struct TreeCastStrategy {
         own->signal(0);
     }
 
-    static void multicast(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+    static void multicast(SignalGroup *group, uint64_t idx, uint64_t to) {
         auto *t = group->getTasklet(idx);
         while (not t->isUnused()) {
           MLOG_ERROR(mlog::boot, "Tasklet in use!!");
@@ -111,13 +111,13 @@ struct TreeCastStrategy {
         }
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
         if (own && getSleepState(own->getHWThread()) < 2) { // child not in deep sleep send Tasklet
-            t->set([group, idx, from, to](TransparentTasklet*) {
-                signalTo(group, idx, from, to);
+            t->set([group, idx, to](TransparentTasklet*) {
+                signalTo(group, idx, to);
             });
             auto home = own->getHWThread()->getHome();
             home->run(t);
         } else { // Send to child yourself because is in deep sleep or own not valid anymore
-            signalTo(group, idx, from, to);
+            signalTo(group, idx, to);
         }
     }
 
@@ -204,7 +204,7 @@ class TreeMulticast
 public:
     static Error multicast(SignalGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
-        TreeCastStrategy::multicast(group, 0, 0, groupSize-1);
+        TreeCastStrategy::multicast(group, 0, groupSize-1);
         //NaryTree::multicast(group, 0, groupSize);
         return Error::SUCCESS;
     }
