@@ -90,6 +90,7 @@ void TreeCombining<MAX_LEAFS, FANOUT>::initNode(uint64_t idx) {
 
 template<size_t MAX_LEAFS, size_t FANOUT>
 void TreeCombining<MAX_LEAFS, FANOUT>::init(uint64_t maxLeafs_) {
+    //MLOG_ERROR(mlog::app, "init" , maxLeafs_);
     ASSERT(maxLeafs_ <= MAX_LEAFS);
     auto maxNodes_ = nodesFromLeaf(maxLeafs_);
     ASSERT(maxNodes_ <= nodes.size());
@@ -106,7 +107,11 @@ TreeCombining<MAX_LEAFS, FANOUT>::TreeCombining() {
 
 template<size_t MAX_LEAFS, size_t FANOUT>
 void TreeCombining<MAX_LEAFS, FANOUT>::dec(uint64_t id) {
-    ASSERT(id < maxLeafs);
+    if (id >= maxLeafs) {
+      MLOG_ERROR(mlog::app, DVAR(id), DVAR(maxLeafs));
+      ASSERT(id < maxLeafs);
+    }
+
     auto lastNode = nodesFromLeaf(maxLeafs) - 1;
     auto firstLeaf = (lastNode == 0)?0:parent(lastNode) + 1;
     auto realID = firstLeaf + id;

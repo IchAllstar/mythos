@@ -190,7 +190,7 @@ public:
     });
   }
 
-  static const uint64_t NARY = 4;
+  static const uint64_t NARY = 20;
   static void sendTo(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
       ASSERT(idx < size);
       ASSERT(group != nullptr);
@@ -202,7 +202,13 @@ public:
           if (child_idx >= size) {
               break;
           }
-          TreeStrategy::multicast(group, from, child_idx, size);
+          if (child_idx <= size / NARY) {
+            TreeStrategy::multicast(group, from, child_idx, size);
+          } else {
+            ISignalable *dest = group->getMember(child_idx);
+            dest->signal();
+          }
+
       }
       // Signal own EC, will be scheduled after kernel task handling
       //own->signal();
@@ -211,29 +217,20 @@ public:
   static void multicast(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
     //MLOG_ERROR(mlog::app, "multicast", DVAR(from), DVAR(idx));
     ISignalable *own = group->getMember(idx);
-    auto sleep = manager.getSleepState(group->getMember(from)->getID(), group->getMember(idx)->getID());
-    if (sleep < 0) {
-      auto *t = group->getTask(idx);
-      t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, idx, size); } );
-      own->addTask(&t->list_member);
-    } else {
-      TreeStrategy::sendTo(group, from, idx, size);
-    }
+    auto *t = group->getTask(idx);
+    while (not t->isUnused()) {}
+    t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, idx, size); } );
+    own->addTask(&t->list_member);
     own->signal();
-
   }
   static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
-      //TreeStrategy::prepareTask(group, 0, 0, size - 1);
-      //signalable->addTask(&group->getTask(0)->list_member);
-      //signalable->signal();
-      auto *t =group->getTask(0);
-      t->set([group, size](Task&) { multicast(group, 0, 0, size);  });
+      auto *t = group->getTask(0);
+      while (not t->isUnused()) {}
+      t->set([group, size](Task&) { sendTo(group, 0, 0, size);  });
       signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
     }
   }
 };
-
-

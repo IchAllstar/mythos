@@ -63,18 +63,13 @@ void HelperMulticastBenchmark::test_multicast_always_deep_sleep() {
     uint64_t num = numHelper; // else macro will result in undefined reference
     MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and always deep sleep");
     mythos::PortalLock pl(portal);
-    for (uint64_t i = 1; i < manager.getNumThreads() - numHelper; i++) {
+    for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, 0).wait());
       ASSERT(im.setLiteSleepDelay(pl, 0).wait());
-    }
-    pl.release();
-
-    // we have to wake up all used threads, so they can enter the configured
-    // sleep state
-    for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
       manager.getThread(i)->signal();
     }
+    pl.release();
     mythos::delay(10000000);
 
     for (uint64_t i = 2; i < 5; i++) {
@@ -91,17 +86,13 @@ void HelperMulticastBenchmark::test_multicast_no_deep_sleep() {
     MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and no deep sleep");
 
     mythos::PortalLock pl(portal);
-    for (uint64_t i = 1; i < manager.getNumThreads() - numHelper; i++) {
+    for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, 0).wait());
       ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
-    }
-    pl.release();
-    // we have to wake up all used threads, so they can enter the configured
-    // sleep state
-    for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
       manager.getThread(i)->signal();
     }
+    pl.release();
     mythos::delay(10000000);
 
     for (uint64_t i = 2; i < 5; i++) {
@@ -118,17 +109,13 @@ void HelperMulticastBenchmark::test_multicast_polling() {
     MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and polling");
 
     mythos::PortalLock pl(portal);
-    for (uint64_t i = 1; i < manager.getNumThreads() - numHelper; i++) {
+    for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
       ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
-    }
-    pl.release();
-    // we have to wake up all used threads, so they can enter the configured
-    // sleep state
-    for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
       manager.getThread(i)->signal();
     }
+    pl.release();
     mythos::delay(10000000);
 
     for (uint64_t i = 2; i < 5; i++) {
@@ -161,15 +148,13 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
     mythos::Timer t;
     for (int j = 0; j < REPETITIONS; j++) {
       tc.init(numThreads);
-      counter.store(0);
       t.start();
       group.signalAll(pl);
-      //while (counter.load() != numThreads) { mythos::hwthread_pause(); }
-      while(not tc.isFinished()) { mythos::hwthread_pause(); }
+      while(not tc.isFinished()) { /*mythos::hwthread_pause();*/ }
       sum += t.end();
       mythos::delay(1000000); // wait to let threads enter deep sleep
     }
 
-    MLOG_ERROR(mlog::app, numThreads,";", sum/REPETITIONS);
+    MLOG_CSV(mlog::app, numThreads, sum/REPETITIONS);
     ASSERT(caps.free(group, pl));
 }

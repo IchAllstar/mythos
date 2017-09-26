@@ -103,18 +103,14 @@ void SequentialMulticastBenchmark::test_single_thread() {
 void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
   MLOG_ERROR(mlog::app, "Start Sequential Multicast test always deep sleep");
   mythos::PortalLock pl(portal);
+  tc.init(manager.getNumThreads());
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl, 0).wait());
-  }
-  pl.release();
-  // we have to wake up all used threads, so they can enter the configured
-  // sleep state
-  tc.init(manager.getNumThreads());
-  for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
     manager.getThread(i)->signal();
   }
+  pl.release();
   mythos::delay(10000000);
   MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 2; i < 5; i++) { // does start with i+4th HWT
@@ -129,18 +125,14 @@ void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
 void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
   MLOG_ERROR(mlog::app, "Start Sequential Multicast test no deep sleep");
   mythos::PortalLock pl(portal);
+  tc.init(manager.getNumThreads());
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
-  }
-  pl.release();
-  // we have to wake up all used threads, so they can enter the configured
-  // sleep state
-  tc.init(manager.getNumThreads());
-  for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
     manager.getThread(i)->signal();
   }
+  pl.release();
   mythos::delay(10000000);
   MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 2; i < 5; i++) {
@@ -155,18 +147,14 @@ void SequentialMulticastBenchmark::test_multicast_no_deep_sleep() {
 void SequentialMulticastBenchmark::test_multicast_polling() {
   MLOG_ERROR(mlog::app, "Start Sequential Multicast test polling");
   mythos::PortalLock pl(portal);
+  tc.init(manager.getNumThreads());
   for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
     ASSERT(im.setLiteSleepDelay(pl, (uint32_t(-1))).wait());
-  }
-  pl.release();
-  // we have to wake up all used threads, so they can enter the configured
-  // sleep state
-  tc.init(manager.getNumThreads());
-  for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
     manager.getThread(i)->signal();
   }
+  pl.release();
   mythos::delay(10000000);
   MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 1; i < 5; i++) {

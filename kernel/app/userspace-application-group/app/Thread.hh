@@ -54,8 +54,5 @@ public: // ISignalable Interface
 	}
 
   uint64_t getID() override;
-
-  void addTask(Task::list_t::Queueable *q) override {
-		taskQueue.push(q);
-	}
+  void addTask(Task::list_t::Queueable *q) override;
 };
