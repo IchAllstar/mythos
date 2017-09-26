@@ -28,7 +28,7 @@ public:
     void test_multicast_gen(uint64_t);
 
 private:
-    static const uint64_t numHelper = 15;
+    static const uint64_t numHelper = 20;
     static const uint64_t HELPER = 2; // identifier for setStrategy of SignalGroup
     mythos::Portal &portal;
 };
@@ -54,8 +54,8 @@ void HelperMulticastBenchmark::setup() {
 
 void HelperMulticastBenchmark::test_multicast() {
   setup();
-  test_multicast_no_deep_sleep();
-  test_multicast_always_deep_sleep();
+  //test_multicast_no_deep_sleep();
+  //test_multicast_always_deep_sleep();
   test_multicast_polling();
 }
 
@@ -63,6 +63,7 @@ void HelperMulticastBenchmark::test_multicast_always_deep_sleep() {
     uint64_t num = numHelper; // else macro will result in undefined reference
     MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and always deep sleep");
     mythos::PortalLock pl(portal);
+    tc.init(manager.getNumThreads() - numHelper - 4);
     for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, 0).wait());
@@ -71,6 +72,7 @@ void HelperMulticastBenchmark::test_multicast_always_deep_sleep() {
     }
     pl.release();
     mythos::delay(10000000);
+    while (not tc.isFinished()) {}
 
     for (uint64_t i = 2; i < 5; i++) {
         test_multicast_gen(i);
@@ -86,6 +88,7 @@ void HelperMulticastBenchmark::test_multicast_no_deep_sleep() {
     MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and no deep sleep");
 
     mythos::PortalLock pl(portal);
+    tc.init(manager.getNumThreads() - numHelper - 4);
     for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, 0).wait());
@@ -94,6 +97,7 @@ void HelperMulticastBenchmark::test_multicast_no_deep_sleep() {
     }
     pl.release();
     mythos::delay(10000000);
+    while (not tc.isFinished()) {}
 
     for (uint64_t i = 2; i < 5; i++) {
         test_multicast_gen(i);
@@ -152,7 +156,7 @@ void HelperMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
       group.signalAll(pl);
       while(not tc.isFinished()) { /*mythos::hwthread_pause();*/ }
       sum += t.end();
-      mythos::delay(1000000); // wait to let threads enter deep sleep
+      mythos::delay(100000); // wait to let threads enter deep sleep
     }
 
     MLOG_CSV(mlog::app, numThreads, sum/REPETITIONS);

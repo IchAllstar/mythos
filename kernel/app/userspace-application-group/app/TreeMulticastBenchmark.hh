@@ -5,7 +5,7 @@
 
 extern ThreadManager manager;
 extern std::atomic<uint64_t> counter;
-extern mythos::TreeCombining<NUM_THREADS,5> tc;
+extern mythos::TreeCombining<NUM_THREADS,4> tc;
 
 class TreeMulticastBenchmark {
 public:

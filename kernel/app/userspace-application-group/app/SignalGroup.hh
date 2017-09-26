@@ -120,7 +120,7 @@ private:
  */
 class TreeStrategy {
 private:
-  static const uint64_t LATENCY = 3;
+  static const uint64_t LATENCY = 2;
 public:
   static const  uint64_t RECURSIVE_SIZE = 25;
   static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
@@ -190,7 +190,7 @@ public:
     });
   }
 
-  static const uint64_t NARY = 20;
+  static const uint64_t NARY = 3;
   static void sendTo(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
       ASSERT(idx < size);
       ASSERT(group != nullptr);
@@ -223,14 +223,22 @@ public:
     own->addTask(&t->list_member);
     own->signal();
   }
+
   static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
+
       auto *t = group->getTask(0);
       while (not t->isUnused()) {}
+
       t->set([group, size](Task&) { sendTo(group, 0, 0, size);  });
       signalable->addTask(&group->getTask(0)->list_member);
       signalable->signal();
+      /*
+      prepareTask(group, idx, 0, size-1);
+      signalable->addTask(&t->list_member);
+      signalable->signal();
+      */
     }
   }
 };

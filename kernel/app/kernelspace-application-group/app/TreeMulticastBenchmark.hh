@@ -130,7 +130,7 @@ void TreeMulticastBenchmark::test_multicast_polling() {
     MLOG_CSV(mlog::app, i, test_multicast_gen(i));
 	}
 
-	MLOG_ERROR(mlog::app, "End Tree Multicast no deep sleep tree test");
+	MLOG_ERROR(mlog::app, "End Tree Multicast polling sleep tree test");
 }
 
 void TreeMulticastBenchmark::test_multicast_both_sleep() {
@@ -219,7 +219,7 @@ uint64_t TreeMulticastBenchmark::test_multicast_gen(uint64_t numThreads, uint64_
     group.signalAll(pl).wait();
     while(not tc.isFinished()) {}
 		sum += t.end();
-    mythos::delay(1000000);
+    mythos::delay(100000);
 	}
 	caps.free(group, pl);
   return sum / repetitions;

@@ -101,7 +101,7 @@ Error HWThread::readSleepState(Tasklet*, Cap, IInvocation *msg) {
 // actual functionality
 
 void HWThread::runConfigurableDelays() {
-    if (idle->shouldDeepSleep()) {
+  if (idle->shouldDeepSleep()) {
         MLOG_DETAIL(mlog::boot, "Timer interrupt triggered and no new work so far");
         releaseKernel();
         idle->sleep();
@@ -116,7 +116,6 @@ void HWThread::runConfigurableDelays() {
         localPlace->processTasks();
         tryRunUser();
         //preemption_point(); // allows interrupts even if polling only policy
-        mythos::hwthread_pause();
       }
     }
     releaseKernel();

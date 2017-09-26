@@ -1,28 +1,3 @@
-/* -*- mode:C++; indent-tabs-mode:nil; -*- */
-/* MIT License -- MyThOS: The Many-Threads Operating System
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use, copy,
- * modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- * Copyright 2016 Randolf Rotta, Robert Kuban, and contributors, BTU Cottbus-Senftenberg
- */
 #pragma once
 
 
@@ -56,7 +31,7 @@ struct TreeCastStrategy {
     // higher latency better if threads are in deep sleep
     // could check everything for deep sleep and choose latency dynamically?
     // could skip deep sleep nodes and signal children from own context ->ok
-    static const uint64_t LATENCY = 3;
+    static const uint64_t LATENCY = 2;
     static const uint64_t RECURSIVE_SIZE = 25;
     static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
 
@@ -135,18 +110,12 @@ struct TreeCastStrategy {
           mythos::hwthread_pause(300);
         }
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
-        if (!own) {
-            MLOG_ERROR(mlog::boot, "Signalable not valid anymore", DVAR(idx));
-        }
-
         if (own && getSleepState(own->getHWThread()) < 2) { // child not in deep sleep send Tasklet
             t->set([group, idx, from, to](TransparentTasklet*) {
                 signalTo(group, idx, from, to);
             });
             auto home = own->getHWThread()->getHome();
-            if (home) {
-                home->run(t);
-            }
+            home->run(t);
         } else { // Send to child yourself because is in deep sleep or own not valid anymore
             signalTo(group, idx, from, to);
         }
@@ -159,14 +128,13 @@ struct TreeCastStrategy {
  * N-Ary tree for comparison with the Fibonacci Tree approach
  */
 struct NaryTree {
-    static const uint64_t N = 4;
+    static const uint64_t N = 3;
 
     static uint64_t getSleepState(HWThread *hwt) {
         if (!hwt) return 0;
         auto apicID = hwt->getApicID();
         auto sleepState = emu.getSleepState(apicID);
         return sleepState;
-      return 0;
     }
 
     static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
@@ -187,6 +155,7 @@ struct NaryTree {
                 break;
             }
             NaryTree::multicast(group, child_idx, size);
+
             //values[i] = t.end();
             //tasklets[i] = taskletValues[idx+4];
             //wakeups[i] = wakeupValues[idx+4];
@@ -206,22 +175,24 @@ struct NaryTree {
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
-      auto id = cpu::getThreadID();
       auto *t = group->getTasklet(idx); // 50 cycles
-      while (not t->isFree()) {
+
+      while (not t->isFree()) { // ~ 2000 Cycles for whole 235 gorup cast
         MLOG_ERROR(mlog::boot, "Tasklet in use!!");
-        mythos::hwthread_pause(200);
+        mythos::hwthread_pause(200); // to reduce cache contention if in use
       }
+
       TypedCap<ISignalable> own(group->getMember(idx)->cap()); // 500 - 1000 cycles
-      if (own && getSleepState(own->getHWThread()) < 2) {
+
+      if (own && idx <= (size-1)/N /* && getSleepState(own->getHWThread()) < 2*/) {
           //MLOG_ERROR(mlog::boot, DVAR(group), DVAR(idx), DVAR(size), DVAR(sleepState));
           auto *home = own->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
           t->set([group, idx, size](TransparentTasklet*) {
               NaryTree::sendTo(group, idx, size);
           });
-          wakeupTimer[id].start();
+          //wakeupTimer[id].start();
           home->run(t); // 500 -1000
-          wakeupValues[id] = wakeupTimer[id].end();
+          //wakeupValues[id] = wakeupTimer[id].end();
       } else {
           NaryTree::sendTo(group, idx, size);
       }
@@ -233,8 +204,8 @@ class TreeMulticast
 public:
     static Error multicast(SignalGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
-        //TreeCastStrategy::multicast(group, 0, 0, groupSize-1);
-        NaryTree::multicast(group, 0, groupSize);
+        TreeCastStrategy::multicast(group, 0, 0, groupSize-1);
+        //NaryTree::multicast(group, 0, groupSize);
         return Error::SUCCESS;
     }
 };

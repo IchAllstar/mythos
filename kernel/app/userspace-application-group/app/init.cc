@@ -64,7 +64,7 @@ mythos::SimpleCapAllocDel capAlloc(portal, myCS, mythos::init::APP_CAP_START,
 
 std::atomic<uint64_t> counter {0};
 ThreadManager manager(portal, myCS, myAS, kmem, capAlloc);
-mythos::TreeCombining<NUM_THREADS, 5> tc;
+mythos::TreeCombining<NUM_THREADS, 4> tc;
 
 namespace mythos {
   uint64_t tscdelay_MHz = 1000;
@@ -131,11 +131,11 @@ int main()
 {
   MLOG_ERROR(mlog::app, "START application");
 
- // HelperThreadBenchmark htb(portal);
- // htb.test_multicast();
+  HelperThreadBenchmark htb(portal);
+  htb.test_multicast();
 
-  TreeMulticastBenchmark tmb(portal);
-  tmb.test_multicast();
+  //TreeMulticastBenchmark tmb(portal);
+  //tmb.test_multicast();
 
   //SequentialMulticastBenchmark smb(portal);
   //smb.test_multicast();
