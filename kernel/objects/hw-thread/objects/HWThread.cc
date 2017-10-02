@@ -115,6 +115,7 @@ void HWThread::runConfigurableDelays() {
         localPlace->enterKernel();
         localPlace->processTasks();
         tryRunUser();
+        mythos::hwthread_pause(500);
         //preemption_point(); // allows interrupts even if polling only policy
       }
     }
@@ -169,6 +170,7 @@ void HWThread::runSpin() {
         tryRunUser();
         releaseKernel();
         preemption_point(); // allows interrupts even if polling only policy
+        mythos::hwthread_pause(500);
     }
 }
 

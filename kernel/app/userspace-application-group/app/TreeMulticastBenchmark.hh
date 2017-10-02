@@ -49,6 +49,7 @@ void TreeMulticastBenchmark::setup_polling() {
           tc.dec(thread->id - 4);
         }
       }
+      mythos::hwthread_pause(300);
     }
 	});
 	manager.startAll();
@@ -69,9 +70,9 @@ void TreeMulticastBenchmark::setup() {
 
 void TreeMulticastBenchmark::test_multicast() {
 
-  //setup();
-  //test_multicast_no_deep_sleep();
-	//test_multicast_always_deep_sleep();
+//  setup();
+//  test_multicast_no_deep_sleep();
+//	test_multicast_always_deep_sleep();
 
   setup_polling();
   test_multicast_polling();
@@ -79,6 +80,7 @@ void TreeMulticastBenchmark::test_multicast() {
 
 void TreeMulticastBenchmark::test_multicast_polling() {
 	mythos::PortalLock pl(portal);
+  tc.init(manager.getNumThreads() - 4);
 	for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, (uint32_t)(-1)).wait()); // polling
@@ -86,10 +88,10 @@ void TreeMulticastBenchmark::test_multicast_polling() {
     manager.getThread(i)->signal();
 	}
 	pl.release();
+	mythos::delay(400000);
+  while (not tc.isFinished()) {}
 	MLOG_ERROR(mlog::app, "Start tree polling  Signalable Group Test", DVAR(REPETITIONS));
-
   MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
-	mythos::delay(4000000);
 
 	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
@@ -134,14 +136,16 @@ void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	MLOG_ERROR(mlog::app, "Start always Deep Sleep Signalable Group Test", DVAR(REPETITIONS));
 	mythos::PortalLock pl(portal);
-	for (uint64_t i = 5; i < manager.getNumThreads(); i++) {
+  tc.init(manager.getNumThreads() - 4);
+	for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, 0).wait());
 		ASSERT(im.setLiteSleepDelay(pl, 0).wait()); // 0 == always deep sleep
-    //manager.getThread(i)->signal();
+    manager.getThread(i)->signal();
 	}
 	pl.release();
 	mythos::delay(400000);
+  while(not tc.isFinished()) {}
 
 	for (uint64_t i = 2; i < 5; i++) {
 		test_multicast_gen(i);
@@ -162,7 +166,7 @@ void TreeMulticastBenchmark::test_multicast_gen(uint64_t number) {
 	SignalGroup group;
   group.setStrat(SignalGroup::TREE);
 	for (int i = 4; i < number + 4; ++i) {
-		group.addMember(manager.getThread(i));
+		group.addMember(manager.getThread(number + 7 - i));
 	}
 
   mythos::Timer t;

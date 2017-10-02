@@ -28,7 +28,7 @@ class SignalGroup
     : public IKernelObject
 {
 public: // Constructor
-    SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *tasklets_, size_t groupSize_);
+    SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *tasklets_, TransparentTasklet *helperTasklets_, size_t groupSize_);
 
 public:
     enum CastStrategy {
@@ -61,7 +61,10 @@ public:
     CapRef<SignalGroup, ISignalable>* getMember(size_t idx) { ASSERT(idx < actualSize); return &member[idx].capref; }
     HWThread* getHelper(uint64_t i);
     uint64_t numHelper() { return actualHelper; }
+    HWThread* homes[250] {nullptr};
+    TransparentTasklet* getHelperTasklet(uint64_t idx) { ASSERT(idx < groupSize); return &helperTasklets[idx]; }
 private:
+
     IAsyncFree* _mem;
     /** list handle for the deletion procedure */
     LinkedList<IKernelObject*>::Queueable del_handle = {this};
@@ -71,6 +74,7 @@ private:
     //CapRef<SignalGroup, ISignalable> *member {nullptr};
     CapWrap *member;
     TransparentTasklet *tasklets;
+    TransparentTasklet *helperTasklets;
     size_t groupSize {0};
     size_t actualSize {0};
 

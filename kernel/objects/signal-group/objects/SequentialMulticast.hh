@@ -38,10 +38,62 @@ class SignalGroup;
 class SequentialMulticast
 {
 public:
+    static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
+        MLOG_DETAIL(mlog::boot, DVAR(group), DVAR(idx), DVAR(size));
+        ASSERT(idx < size);
+        ASSERT(group != nullptr); // TODO: parallel deletion of group?
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        ASSERT(own);
+        auto N = 240ul;
+        for (uint64_t i = 0; i < N; i++) {
+            //t.start();
+            auto child_idx = idx * N + i + 1;
+            if (child_idx >= size) {
+                break;
+            }
+            multicast(group, child_idx, size);
+        }
+        // Signal own EC, will be scheduled after kernel task handling
+        own->signal(0);
+    }
+
+    static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
+      TypedCap<ISignalable> own(group->getMember(idx)->cap()); // 500 - 1000 cycles
+      if (own /* && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2*/) {
+          auto *t = group->getTasklet(idx); // 50 cycles
+          auto *home = own->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
+          t->set([group, idx, size](TransparentTasklet*) {
+              sendTo(group, idx, size);
+          });
+          home->run(t);
+      } else {
+          sendTo(group, idx, size);
+      }
+    }
+
+    static void new_cast(SignalGroup *group, uint64_t size) {
+        for (uint64_t i = 0; i < size; i++) {
+            auto *tasklet = group->getTasklet(i);
+            TypedCap<ISignalable> signalable(group->getMember(i)->cap());
+            tasklet->set([group,i, size](TransparentTasklet*) {
+              TypedCap<ISignalable> own(group->getMember(i)->cap());
+              if (own) {
+                own->signal(0);
+              } else {
+                  PANIC("Signalable not valid anymore");
+              }
+            });
+            auto *home = signalable->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
+            home->run(tasklet);
+        }
+
+    }
     static Error multicast(SignalGroup *group, size_t groupSize) {
         ASSERT(group != nullptr);
 
+        SequentialMulticast::new_cast(group, groupSize);
         //uint64_t values[250];
+/*
         for (uint64_t i = 0; i < groupSize; i++) {
             //mythos::Timer t;
             //t.start();
@@ -54,15 +106,15 @@ public:
             }
            // values[i] = t.end();
         }
+*/
+        //for (auto i = 0ul; i < groupSize; i++) {
+        //  MLOG_ERROR(mlog::boot, values[i]);
+        //}
 
-        /*for (auto i = 0ul; i < groupSize; i++) {
-          MLOG_ERROR(mlog::boot, values[i]);
-        }*/
-        /*
-        for (auto i = 0ul; i < 250; i++) {
-          MLOG_ERROR(mlog::boot, i, taskletValues[i], wakeupValues[i]);
-        }
-        */
+        //for (auto i = 0ul; i < 250; i++) {
+        //  MLOG_ERROR(mlog::boot, i, taskletValues[i], wakeupValues[i]);
+        //}
+
         return Error::SUCCESS;
     }
 };

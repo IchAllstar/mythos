@@ -120,7 +120,7 @@ private:
  */
 class TreeStrategy {
 private:
-  static const uint64_t LATENCY = 2;
+  static const uint64_t LATENCY = 3;
 public:
   static const  uint64_t RECURSIVE_SIZE = 25;
   static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
@@ -160,85 +160,73 @@ public:
     }
   }
 
-  static void prepareTask(SignalGroup *group, uint64_t idx, uint64_t from, uint64_t to) {
+  static void prepareTask(SignalGroup *group, uint64_t idx, uint64_t to) {
     auto *group_ = group;
     auto idx_ = idx;
-    auto from_ = from;
     auto to_  = to;
-    group->getTask(idx)->set([group_, idx_, from_, to_](Task&) {
+    group->getTask(idx)->set([group_, idx_, to_](Task&) {
       ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
       ASSERT(to_ > 0);
       auto to_tmp = to_;
       while (true) {
-        uint64_t n = to_tmp - from_ + 1;
+        uint64_t n = to_tmp - idx_ + 1;
         if ( n < 2) {
           return;
         }
         uint64_t j = TreeStrategy::F(TreeStrategy::f(n) - 1);
-        auto child_idx = j + from_;
+        auto child_idx = j + idx_;
         //MLOG_ERROR(mlog::app, idx_, "sends to", j + from_);
         ISignalable* dest = group_->getMember(child_idx);
         if (dest) {
           if (child_idx < to_tmp) {
-            TreeStrategy::prepareTask(group_, child_idx, child_idx, to_tmp);
+            TreeStrategy::prepareTask(group_, child_idx, to_tmp);
             dest->addTask(&group_->getTask(child_idx)->list_member);
           }
           dest->signal();
         }
-        to_tmp = from_ + j - 1;
+        to_tmp = child_idx - 1;
       }
     });
   }
 
   static const uint64_t NARY = 3;
-  static void sendTo(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
+  static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
       ASSERT(idx < size);
       ASSERT(group != nullptr);
-      ISignalable *own = group->getMember(idx);
-      ASSERT(own);
-
       for (uint64_t i = 0; i < NARY; i++) {
           auto child_idx = idx * NARY + i + 1;
           if (child_idx >= size) {
               break;
           }
-          if (child_idx <= size / NARY) {
-            TreeStrategy::multicast(group, from, child_idx, size);
-          } else {
-            ISignalable *dest = group->getMember(child_idx);
-            dest->signal();
-          }
-
+          TreeStrategy::multicast(group, child_idx, size);
       }
-      // Signal own EC, will be scheduled after kernel task handling
-      //own->signal();
   }
 
-  static void multicast(SignalGroup *group,uint64_t from, uint64_t idx, uint64_t size) {
+  static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
     //MLOG_ERROR(mlog::app, "multicast", DVAR(from), DVAR(idx));
-    ISignalable *own = group->getMember(idx);
-    auto *t = group->getTask(idx);
-    while (not t->isUnused()) {}
-    t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, idx, size); } );
-    own->addTask(&t->list_member);
-    own->signal();
+    ISignalable *dest = group->getMember(idx);
+
+    if (idx <= (size-1) / NARY) {
+      auto *t = group->getTask(idx);
+      //while (not t->isUnused()) {}
+      t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, size); } );
+      dest->addTask(&t->list_member);
+    }
+    dest->signal();
   }
 
   static void cast(SignalGroup *group, uint64_t idx, uint64_t size) {
     auto *signalable = group->getMember(idx);
     if (signalable) {
-
       auto *t = group->getTask(0);
       while (not t->isUnused()) {}
+      //t->set([group, size](Task&) { sendTo(group, 0, size);  });
+      //signalable->addTask(&group->getTask(0)->list_member);
+      //signalable->signal();
 
-      t->set([group, size](Task&) { sendTo(group, 0, 0, size);  });
-      signalable->addTask(&group->getTask(0)->list_member);
-      signalable->signal();
-      /*
-      prepareTask(group, idx, 0, size-1);
+      prepareTask(group, idx, size-1);
       signalable->addTask(&t->list_member);
       signalable->signal();
-      */
     }
   }
 };

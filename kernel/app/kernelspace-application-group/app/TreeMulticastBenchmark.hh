@@ -56,9 +56,9 @@ void TreeMulticastBenchmark::test_multicast() {
     MLOG_ERROR(mlog::app, "Tree Multicast Benchmark. May take a while to complete ...");
 
 
-    //test_multicast_both_sleep();
+    test_multicast_both_sleep();
     //test_multicast_max_size();
-    test_multicast_polling();
+    //test_multicast_polling();
     MLOG_ERROR(mlog::app, "End of all Benchmarks");
 }
 
@@ -91,13 +91,15 @@ void TreeMulticastBenchmark::test_multicast_max_size() {
 
   //DEEP SLEEP
   mythos::PortalLock pl2(portal);
+  tc.init(manager.getNumThreads() - 4);
   for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl2, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl2, 0).wait());
   }
   pl2.release();
-  mythos::delay(10000000);
+  mythos::delay(1000000);
+  while (not tc.isFinished()) {}
 
   for (auto i = 0ul; i < REPETITIONS; i++) {
     values4[i] = test_multicast_gen(230,1);

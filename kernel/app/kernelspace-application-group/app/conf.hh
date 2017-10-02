@@ -7,4 +7,4 @@ static const size_t STACK_SIZE = 1 * PAGE_SIZE;
 
 
 //static const uint64_t REPETITIONS = 1;
-static const uint64_t REPETITIONS = 1000;
+static const uint64_t REPETITIONS = 100;

@@ -12,8 +12,8 @@ Timer wakeupTimer[250];
 uint64_t taskletValues[250] {0};
 uint64_t wakeupValues[250] {0};
 
-SignalGroup::SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *tasklets_, size_t groupSize_)
-    : _mem(mem), member(arr), tasklets(tasklets_), groupSize(groupSize_)
+SignalGroup::SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *tasklets_, TransparentTasklet *helperTasklets_, size_t groupSize_)
+    : _mem(mem), member(arr), tasklets(tasklets_), helperTasklets(helperTasklets_), groupSize(groupSize_)
 {
     MLOG_DETAIL(mlog::boot, "Create Group with size", groupSize);
 
@@ -26,6 +26,7 @@ SignalGroup::SignalGroup(IAsyncFree* mem, CapWrap *arr, TransparentTasklet *task
     TransparentTasklet* tasklet IGNORE_UNUSED;
     for (uint64_t i = 0; i < groupSize; i++) {
         tasklet = new (&tasklets[i]) TransparentTasklet();
+        tasklet = new (&helperTasklets[i]) TransparentTasklet();
     }
 }
 
@@ -93,13 +94,15 @@ SignalGroupFactory::factory(CapEntry* dstEntry, CapEntry* memEntry, Cap memCap,
     auto size = align.round_up(sizeof(CapWrap) * data->groupSize);
     size += align.round_up(sizeof(TransparentTasklet) * data->groupSize);
     size += align.round_up(sizeof(SignalGroup));
+    size += align.round_up(sizeof(TransparentTasklet) * data->groupSize); // helper tasklets
     auto ptr = mem->alloc(size, 64);
     if (not ptr) RETHROW(ptr);
     memset(*ptr, 0, size);
     uint64_t point = (uint64_t) (*ptr);
     auto *group = (CapWrap*)(point + align.round_up(sizeof(SignalGroup)));
     auto *tasklets = (TransparentTasklet*)(point + align.round_up(sizeof(SignalGroup)) + align.round_up(sizeof(CapWrap) * data->groupSize));
-    auto obj = new(*ptr) SignalGroup(mem, group, tasklets, data->groupSize);
+    auto *helperTasklets =  (TransparentTasklet*)(point + align.round_up(sizeof(SignalGroup)) + align.round_up(sizeof(CapWrap) * data->groupSize) + align.round_up(sizeof(TransparentTasklet) * data->groupSize));
+    auto obj = new(*ptr) SignalGroup(mem, group, tasklets, helperTasklets, data->groupSize);
     auto cap = Cap(obj);
     auto res = cap::inherit(*memEntry, *dstEntry, memCap, cap);
     if (not res) {

@@ -34,18 +34,18 @@ class SequentialMulticastBenchmark {
 
 void SequentialMulticastBenchmark::setup() {
   manager.init([](void *data) -> void* {
-      Thread* t = (Thread*) data;
-      if (t->id >= 4) tc.dec(t->id - 4);
+        Thread* t = (Thread*) data;
+        if (t->id >= 4) tc.dec(t->id - 4);
       });
   manager.startAll();
 }
 
 void SequentialMulticastBenchmark::test_multicast() {
   setup();
-  test_single_thread();
+  //test_single_thread();
   test_multicast_no_deep_sleep();
   test_multicast_always_deep_sleep();
-  test_multicast_polling();
+  //test_multicast_polling();
 }
 
 void SequentialMulticastBenchmark::test_single_thread() {
@@ -103,15 +103,16 @@ void SequentialMulticastBenchmark::test_single_thread() {
 void SequentialMulticastBenchmark::test_multicast_always_deep_sleep() {
   MLOG_ERROR(mlog::app, "Start Sequential Multicast test always deep sleep");
   mythos::PortalLock pl(portal);
-  tc.init(manager.getNumThreads());
-  for (uint64_t i = 0; i < manager.getNumThreads(); i++) {
+  tc.init(manager.getNumThreads() - 4);
+  for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl, 0).wait());
     manager.getThread(i)->signal();
   }
   pl.release();
-  mythos::delay(10000000);
+  mythos::delay(1000000);
+  while (not tc.isFinished()) {}
   MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 2; i < 5; i++) { // does start with i+4th HWT
     test_multicast_gen(i);
@@ -180,12 +181,15 @@ void SequentialMulticastBenchmark::test_multicast_gen(uint64_t numThreads) {
   }
   mythos::Timer t;
   uint64_t sum = 0;
+  uint64_t min = (uint64_t)-1;
   for (uint64_t i = 0; i < REPETITIONS; i++) {
     tc.init(numThreads);
     t.start();
     group.signalAll(pl).wait();
     while(not tc.isFinished()) {}
-    sum += t.end();
+    auto val = t.end();
+    sum += val;
+    if (min > val) min = val;
     mythos::delay(100000);
   }
   MLOG_CSV(mlog::app, numThreads, sum / REPETITIONS);
