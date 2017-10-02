@@ -27,6 +27,7 @@
 
 #include "async/NestedMonitorDelegating.hh"
 #include "cpu/CoreLocal.hh"
+#include "objects/IdleManagement.hh"
 #include "objects/ISchedulable.hh"
 #include "objects/IKernelObject.hh"
 #include "objects/IFactory.hh"
