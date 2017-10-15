@@ -25,5 +25,7 @@ void SignalGroup::signalAll() {
     case HELPER:
       HelperStrategy::cast(this, 0, size);
       break;
+    default:
+      SequentialStrategy::cast(this, 0, size);
   }
 }

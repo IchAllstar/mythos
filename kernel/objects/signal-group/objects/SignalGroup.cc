@@ -124,10 +124,23 @@ Error SignalGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
         case TREE:
             return TreeMulticast::multicast(this, actualSize);
         case HELPER:
-            return HelperMulticast::multicast(this, actualSize);
+            return HelperMulticast::simple_multicast(this, actualSize);
+        case HYBRID:
+            return signalHybrid();
         default:
             return SequentialMulticast::multicast(this, actualSize);
     }
+}
+
+Error SignalGroup::signalHybrid() {
+ // MLOG_ERROR(mlog::boot, "Signal Hybrid", actualSize);
+  if (actualSize < 10) {
+    return SequentialMulticast::multicast(this, actualSize);
+  } else if (actualSize < 100) {
+    return HelperMulticast::multicast(this, actualSize);
+  } else {
+    return TreeMulticast::multicast(this, actualSize);
+  }
 }
 
 Error SignalGroup::setCastStrategy(Tasklet*, Cap, IInvocation *msg) {

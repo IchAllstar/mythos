@@ -35,6 +35,7 @@ public:
         SEQUENTIAL = 0,
         TREE,
         HELPER,
+        HYBRID,
 
         SIZE,
     };
@@ -52,6 +53,8 @@ public: // protocol
     Error addMember(Tasklet *t, Cap self, IInvocation *msg);
     Error setCastStrategy(Tasklet *t, Cap self, IInvocation *msg);
     Error addHelper(Tasklet *t, Cap self, IInvocation *msg);
+private:
+    Error signalHybrid();
 public:
     void bind(optional<ISignalable*>);
     void unbind(optional<ISignalable*>);

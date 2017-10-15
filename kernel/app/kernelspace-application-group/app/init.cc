@@ -51,6 +51,7 @@
 #include "runtime/HWThread.hh"
 #include "app/conf.hh"
 #include "util/Logger.hh"
+#include "app/HybridMulticastBenchmark.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -65,7 +66,7 @@ mythos::CapMap cs(mythos::init::CSPACE);
 mythos::PageMap as(mythos::init::PML4);
 mythos::KernelMemory kmem(mythos::init::KM);
 mythos::SimpleCapAllocDel caps(portal, cs, mythos::init::APP_CAP_START,
-                               mythos::init::SIZE - mythos::init::APP_CAP_START);
+    mythos::init::SIZE - mythos::init::APP_CAP_START);
 
 mythos::TreeCombining<NUM_THREADS, 5> tc;
 std::atomic<uint64_t> counter {0};
@@ -80,13 +81,16 @@ uint64_t values4[REPETITIONS];
 
 int main()
 {
-    //TreeMulticastBenchmark tmb(portal);
-    //tmb.test_multicast();
+  //TreeMulticastBenchmark tmb(portal);
+  //tmb.test_multicast();
 
-    HelperMulticastBenchmark hmb(portal);
-    hmb.test_multicast();
+  HelperMulticastBenchmark hmb(portal);
+  hmb.test_multicast();
 
-    //SequentialMulticastBenchmark smb(portal);
-    //smb.test_multicast();
-    return 0;
+  //SequentialMulticastBenchmark smb(portal);
+  //smb.test_multicast();
+
+  //HybridMulticastBenchmark hymb(portal);
+  //hymb.test_multicast();
+  return 0;
 }

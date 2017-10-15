@@ -31,7 +31,7 @@
 
 namespace mythos {
 
-extern  uint64_t tscdelay_MHz;
+extern uint64_t tscdelay_MHz;
 
 // Requires a compiler flag in order to make test-compilation outside
 // of KNC toolchain possible.  Done in this strange way to remove the

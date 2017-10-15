@@ -132,7 +132,7 @@ struct TreeCastStrategy {
  * N-Ary tree for comparison with the Fibonacci Tree approach
  */
 struct NaryTree {
-    static const uint64_t N = 240;
+    static const uint64_t N = 7;
 
     static uint64_t getSleepState(HWThread *hwt) {
         if (!hwt) return 0;
@@ -187,10 +187,10 @@ struct NaryTree {
       if (own /* && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2*/) {
           auto *t = group->getTasklet(idx); // 50 cycles
 
-          //while (not t->isFree()) { // ~ 2000 Cycles for whole 235 gorup cast
+          while (not t->isFree()) { // ~ 2000 Cycles for whole 235 gorup cast
           //  MLOG_ERROR(mlog::boot, "Tasklet in use!!");
-          //  mythos::hwthread_pause(300); // to reduce cache contention if in use
-          //}
+            mythos::hwthread_pause(300); // to reduce cache contention if in use
+          }
 
           //if (group->homes[idx] == nullptr) {
           //  group->homes[idx] = own->getHWThread()/*->getHome()*/; //800 - 1600 cycles and up to 2000

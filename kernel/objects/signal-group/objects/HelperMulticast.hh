@@ -100,7 +100,7 @@ class HelperMulticast
       uint64_t current = 0;
       uint64_t diff = diffThreads / usedHelper;
       uint64_t mod = diffThreads % usedHelper;
-      //     MLOG_ERROR(mlog::boot, DVAR(usedHelper), DVAR(availableHelper),DVAR(optimalHelper), DVAR(groupSize));
+           MLOG_ERROR(mlog::boot, DVAR(usedHelper), DVAR(availableHelper),DVAR(optimalHelper), DVAR(groupSize));
       for (uint64_t i = 0; i < usedHelper; i++) {
         auto *sched = group->getHelper(i);
         uint64_t base = usedHelper - i;
@@ -140,7 +140,7 @@ class HelperMulticast
         sched->getHome()->run(tasklet);
         current += base;
       }
-
+      //MLOG_ERROR(mlog::boot,"GroupSize:", threads, "Used Helper", usedHelper, "available", availableHelper);
       return Error::SUCCESS;
     }
 
