@@ -151,18 +151,17 @@ void TreeMulticastBenchmark::test_multicast_both_sleep() {
 void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	MLOG_ERROR(mlog::app, "Start Tree Multicast tree test always deep sleep");
   mythos::PortalLock pl(portal);
+  tc.init(manager.getNumThreads() - 4);
   for (uint64_t i = 4; i < manager.getNumThreads(); i++) {
     mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
     ASSERT(im.setPollingDelay(pl, 0).wait());
     ASSERT(im.setLiteSleepDelay(pl, 0).wait());
-  }
-  pl.release();
-  // we have to wake up all used threads, so they can enter the configured
-  // sleep state
-  for (uint64_t i = 1; i < manager.getNumThreads(); i++) {
     manager.getThread(i)->signal();
   }
-  mythos::delay(10000000);
+  pl.release();
+  while (not tc.isFinished()) {}
+  mythos::delay(100000);
+
   //MLOG_CSV(mlog::app, "SignalGroup Size", "Cycles");
   for (uint64_t i = 2; i < 5; i++) {
     values2[i] = test_multicast_gen(i);

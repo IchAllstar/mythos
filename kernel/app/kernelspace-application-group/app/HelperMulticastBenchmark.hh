@@ -69,7 +69,7 @@ void HelperMulticastBenchmark::test_multicast_different_helper() {
     tc.init(manager.getNumThreads() - numHelper - 4);
     for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
-      ASSERT(im.setPollingDelay(pl, 0).wait());
+      ASSERT(im.setPollingDelay(pl, ((uint32_t)-1)).wait());
       ASSERT(im.setLiteSleepDelay(pl, ((uint32_t)-1)).wait());
       manager.getThread(i)->signal();
     }
@@ -191,6 +191,7 @@ void HelperMulticastBenchmark::test_multicast_polling() {
     MLOG_ERROR(mlog::app, "Start Multicast Helper test with", num, "helpers and polling");
 
     mythos::PortalLock pl(portal);
+    tc.init(manager.getNumThreads() - 4 - numHelper);
     for (uint64_t i = 4; i < manager.getNumThreads() - numHelper; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
       ASSERT(im.setPollingDelay(pl, (uint32_t(-1))).wait());
@@ -198,6 +199,7 @@ void HelperMulticastBenchmark::test_multicast_polling() {
       manager.getThread(i)->signal();
     }
     pl.release();
+    while (not tc.isFinished()) {}
     mythos::delay(10000000);
 
     for (uint64_t i = 2; i < 5; i++) {

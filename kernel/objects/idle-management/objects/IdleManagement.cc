@@ -66,16 +66,6 @@ void IdleManagement::enteredFromInterrupt(uint8_t irq) {
 	MLOG_DETAIL(mlog::boot, "enteredFromInterrupt", DVAR(irq));
 }
 
-void IdleManagement::sleepIntention(uint8_t depth) {
-	MLOG_DETAIL(mlog::boot, "received sleep intention", DVAR(depth));
-	if (depth == 1 && getDelayLiteSleep() != MAX_UINT32) {
-    auto hwt = cpu::getThreadID() % 4;
-		MLOG_DETAIL(mlog::boot, "set timer interrupt", DVAR(getDelayLiteSleep()));
-		timer[hwt].store(true);
-		mythos::lapic.enableOneshotTimer(0x22, getDelayLiteSleep());
-	}
-}
-
 void IdleManagement::sleep() {
   if (alwaysDeepSleep() || shouldDeepSleep()) {
     mythos::idle::sleep(6);

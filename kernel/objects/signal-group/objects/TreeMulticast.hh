@@ -31,7 +31,7 @@ struct TreeCastStrategy {
     // higher latency better if threads are in deep sleep
     // could check everything for deep sleep and choose latency dynamically?
     // could skip deep sleep nodes and signal children from own context ->ok
-    static const uint64_t LATENCY = 3;
+    static const uint64_t LATENCY = 4;
     static const uint64_t RECURSIVE_SIZE = 25;
     static int64_t tmp[RECURSIVE_SIZE]; //recursive memory
 
@@ -92,12 +92,12 @@ struct TreeCastStrategy {
             // left range is handled by this, right by other node
             uint64_t j = TreeCastStrategy::F(TreeCastStrategy::f(n) - 1);
             auto destID = j + idx;
-            //if (destID < to_tmp) {
+            if (destID < to_tmp) {
                 multicast(group, destID, to_tmp);
-            //} else { // if leaf node, which does not forward, just signal it
-            //    TypedCap<ISignalable> dest(group->getMember(destID)->cap());
-            //    dest->signal(0);
-            //}
+            } else { // if leaf node, which does not forward, just signal it
+                TypedCap<ISignalable> dest(group->getMember(destID)->cap());
+                dest->signal(0);
+            }
             to_tmp = destID - 1;
         }
         own->signal(0);
@@ -110,16 +110,17 @@ struct TreeCastStrategy {
         //  mythos::hwthread_pause(300);
         //}
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
-        if (own/* && getSleepState(own->getHWThread()) < 2*/) { // child not in deep sleep send Tasklet
+        if (own && getSleepState(own->getHWThread()) < 2) { // child not in deep sleep send Tasklet
             auto *t = group->getTasklet(idx);
             t->set([group, idx, to](TransparentTasklet*) {
                 signalTo(group, idx, to);
             });
-            if (group->homes[idx] == nullptr) {
-              group->homes[idx] = own->getHWThread()/*->getHome()*/;
-            }
-            //auto home = own->getHWThread()->getHome();
-            group->homes[idx]->getHome()->run(t);
+            //if (group->homes[idx] == nullptr) {
+            //  group->homes[idx] = own->getHWThread()/*->getHome()*/;
+            //}
+            auto home = own->getHWThread()->getHome();
+            home->run(t);
+            //group->homes[idx]->getHome()->run(t);
         } else { // Send to child yourself because is in deep sleep or own not valid anymore
             signalTo(group, idx, to);
         }
@@ -139,6 +140,21 @@ struct NaryTree {
         auto apicID = hwt->getApicID();
         auto sleepState = emu.getSleepState(apicID);
         return sleepState;
+    }
+
+
+    static void sendToWithoutSignal(SignalGroup *group, uint64_t idx, uint64_t size) {
+        ASSERT(idx < size);
+        ASSERT(group != nullptr); // TODO: parallel deletion of group?
+        TypedCap<ISignalable> own(group->getMember(idx)->cap());
+        ASSERT(own);
+        for (uint64_t i = 0; i < N; i++) {
+            auto child_idx = idx * N + i + 1;
+            if (child_idx >= size) {
+                break;
+            }
+            NaryTree::multicast(group, child_idx, size);
+        }
     }
 
     static void sendTo(SignalGroup *group, uint64_t idx, uint64_t size) {
@@ -179,34 +195,41 @@ struct NaryTree {
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
-
-
       TypedCap<ISignalable> own(group->getMember(idx)->cap()); // 500 - 1000 cycles
 
+      //if (group->homes[idx] == nullptr) {
+      //  group->homes[idx] = own->getHWThread()/*->getHome()*/; //800 - 1600 cycles and up to 2000
+      //}
 
-      if (own /* && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2*/) {
-          auto *t = group->getTasklet(idx); // 50 cycles
+      //if (own  && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2) {
+      auto *hw = own->getHWThread(); //800 - 1600 cycles and up to 2000
+      auto *t = group->getTasklet(idx); // 50 cycles
+      if (own   && idx <= (size-2)/N  && getSleepState(own->getHWThread()) < 2) {
+          //auto *t = group->getTasklet(idx); // 50 cycles
 
-          while (not t->isFree()) { // ~ 2000 Cycles for whole 235 gorup cast
+          //while (not t->isFree()) { // ~ 2000 Cycles for whole 235 gorup cast
           //  MLOG_ERROR(mlog::boot, "Tasklet in use!!");
-            mythos::hwthread_pause(300); // to reduce cache contention if in use
-          }
-
-          //if (group->homes[idx] == nullptr) {
-          //  group->homes[idx] = own->getHWThread()/*->getHome()*/; //800 - 1600 cycles and up to 2000
+          //  mythos::hwthread_pause(300); // to reduce cache contention if in use
           //}
-          auto *home = own->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
+
+
+          //auto *home = own->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
 
           t->set([group, idx, size](TransparentTasklet*) {
               NaryTree::sendTo(group, idx, size);
           });
           //wakeupTimer[id].start();
           //group->homes[idx]->getHome()->run(t); // 500 -1000
-          home->run(t);
+          hw->getHome()->run(t);
           //wakeupValues[id] = wakeupTimer[id].end();
       } else {
-          NaryTree::sendTo(group, idx, size);
+          NaryTree::sendToWithoutSignal(group, idx, size);
+          t->set([own](TransparentTasklet*) {
+            own->signal(0);
+          });
+          hw->getHome()->run(t);
       }
+
     }
 };
 

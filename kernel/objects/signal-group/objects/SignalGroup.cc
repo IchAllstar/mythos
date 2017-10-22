@@ -124,7 +124,7 @@ Error SignalGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
         case TREE:
             return TreeMulticast::multicast(this, actualSize);
         case HELPER:
-            return HelperMulticast::simple_multicast(this, actualSize);
+            return HelperMulticast::multicast(this, actualSize);
         case HYBRID:
             return signalHybrid();
         default:

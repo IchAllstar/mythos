@@ -13,11 +13,12 @@
 namespace mythos {
 
 class IIdleManagement {
+public:
 	virtual void wokeup(size_t reason) = 0; //wokeup from CC6 as side effect of other HWT wakeup
 	virtual void wokeupFromInterrupt(uint8_t irq) = 0; // callback when wokeup from interrupt
 	virtual void enteredFromSyscall() = 0; // callback when entered from syscall
 	virtual void enteredFromInterrupt(uint8_t irq) = 0; // callback when entered from interrupt
-	virtual void sleepIntention(uint8_t depth) = 0; // callback when HWT goes to sleep
+  NORETURN virtual void sleep();
 };
 
 constexpr uint32_t MAX_UINT32 = (uint32_t) - 1;
@@ -53,8 +54,7 @@ public: // IIdleManagement Interface
 	void wokeupFromInterrupt(uint8_t irq) override;
 	void enteredFromSyscall() override;
 	void enteredFromInterrupt(uint8_t irq) override;
-	void sleepIntention(uint8_t depth) override;
-  NORETURN void sleep();
+  NORETURN void sleep() override;
 public:
 	Error setPollingDelay(Tasklet*, Cap self, IInvocation* msg);
 	Error setLiteSleepDelay(Tasklet*, Cap self, IInvocation* msg);

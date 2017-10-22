@@ -59,7 +59,7 @@ void HelperThreadBenchmark::init() {
 void HelperThreadBenchmark::init_polling() {
 	// init helper
 	mythos::PortalLock pl(portal);
-	for (uint64_t i = manager.getNumThreads() - NUM_HELPER; i < manager.getNumThreads(); i++) {
+	for (uint64_t i = manager.getNumThreads()/* - NUM_HELPER*/; i < manager.getNumThreads(); i++) {
 		mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
 		ASSERT(im.setPollingDelay(pl, (uint32_t)(-1)).wait()); // max delay == polling only
 		ASSERT(im.setLiteSleepDelay(pl, (uint32_t)(-1)).wait()); // max delay == no deep sleep
@@ -86,7 +86,7 @@ void HelperThreadBenchmark::init_polling() {
 }
 
 void HelperThreadBenchmark::test_multicast() {
-	init();
+	init_polling();
 	//test_multicast_no_deep_sleep();
 	//test_multicast_always_deep_sleep();
 
@@ -102,13 +102,13 @@ void HelperThreadBenchmark::test_multicast_different_helper() {
     tc.init(manager.getNumThreads() - NUM_HELPER - 4);
     for (uint64_t i = 4; i < manager.getNumThreads() - NUM_HELPER; i++) {
       mythos::IdleManagement im(mythos::init::IDLE_MANAGEMENT_START + i);
-      ASSERT(im.setPollingDelay(pl, 0).wait());
+      ASSERT(im.setPollingDelay(pl, ((uint32_t)-1)).wait());
       ASSERT(im.setLiteSleepDelay(pl, ((uint32_t)-1)).wait());
       manager.getThread(i)->signal();
     }
     pl.release();
-    mythos::delay(1000000);
     while (not tc.isFinished()) {}
+    mythos::delay(1000000);
 
     MLOG_CSV(mlog::app,"GroupSize","Helper","Cycles");
     for (auto i = 5ul; i <= 215; i += 5) {

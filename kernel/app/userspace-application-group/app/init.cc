@@ -131,14 +131,14 @@ int main()
 {
   MLOG_ERROR(mlog::app, "START application");
 
-  HelperThreadBenchmark htb(portal);
-  htb.test_multicast();
+  //HelperThreadBenchmark htb(portal);
+  //htb.test_multicast();
 
   //TreeMulticastBenchmark tmb(portal);
   //tmb.test_multicast();
 
-  //SequentialMulticastBenchmark smb(portal);
-  //smb.test_multicast();
+  SequentialMulticastBenchmark smb(portal);
+  smb.test_multicast();
 
   //test_raw();
   //test_invocation_latency();

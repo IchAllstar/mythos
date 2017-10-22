@@ -116,7 +116,7 @@ void HWThread::runConfigurableDelays() {
         localPlace->processTasks();
         tryRunUser();
         mythos::hwthread_pause(500);
-        //preemption_point(); // allows interrupts even if polling only policy
+        preemption_point(); // allows interrupts even if polling only policy
       }
     }
     releaseKernel();
@@ -154,6 +154,7 @@ void HWThread::runConfigurableDelays() {
     mythos::idle::sleep(1);
 }
 */
+
 void HWThread::runSleep() {
     localPlace->enterKernel();
     localPlace->processTasks(); // executes all available kernel tasks

@@ -51,7 +51,6 @@
 #include "runtime/HWThread.hh"
 #include "app/conf.hh"
 #include "util/Logger.hh"
-#include "app/HybridMulticastBenchmark.hh"
 
 
 mythos::InvocationBuf* msg_ptr asm("msg_ptr");
@@ -89,8 +88,5 @@ int main()
 
   //SequentialMulticastBenchmark smb(portal);
   //smb.test_multicast();
-
-  //HybridMulticastBenchmark hymb(portal);
-  //hymb.test_multicast();
   return 0;
 }

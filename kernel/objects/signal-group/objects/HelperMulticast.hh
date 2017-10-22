@@ -52,7 +52,6 @@ class HelperMulticast
       auto perHelper = groupSize / availableHelper;
       auto rest      = groupSize % availableHelper;
       auto current   = 0ul;
-
       for (uint64_t i = 0; i < availableHelper; i++) {
         auto *sched = group->getHelper(i);
 
@@ -100,7 +99,6 @@ class HelperMulticast
       uint64_t current = 0;
       uint64_t diff = diffThreads / usedHelper;
       uint64_t mod = diffThreads % usedHelper;
-           MLOG_ERROR(mlog::boot, DVAR(usedHelper), DVAR(availableHelper),DVAR(optimalHelper), DVAR(groupSize));
       for (uint64_t i = 0; i < usedHelper; i++) {
         auto *sched = group->getHelper(i);
         uint64_t base = usedHelper - i;

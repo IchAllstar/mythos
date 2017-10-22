@@ -90,11 +90,11 @@ void wokeupFromInterrupt(uint8_t irq)
     }
 }
 
-void enteredFromSyscall() {}
-//void enteredFromSyscall() { boot::getLocalIdleManagement().enteredFromSyscall(); }
+//void enteredFromSyscall() {}
+void enteredFromSyscall() { boot::getLocalIdleManagement().enteredFromSyscall(); }
 
-void enteredFromInterrupt(uint8_t irq) {}
-//void enteredFromInterrupt(uint8_t irq) { boot::getLocalIdleManagement().enteredFromInterrupt(irq); }
+//void enteredFromInterrupt(uint8_t irq) {}
+void enteredFromInterrupt(uint8_t irq) { boot::getLocalIdleManagement().enteredFromInterrupt(irq); }
 
 
 } // namespace idle

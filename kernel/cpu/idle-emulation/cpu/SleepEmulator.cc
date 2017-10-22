@@ -29,7 +29,7 @@ void SleepEmulator::sleep(uint64_t threadID, uint64_t depth) {
 }
 
 void SleepEmulator::wakeup(uint64_t threadID) {
-	auto core = SleepEmulator::getCore(threadID);
+  auto core = SleepEmulator::getCore(threadID);
 	states[core].lock();
   auto min = minState(core);
 	auto prev = setState(threadID, 0);
@@ -37,19 +37,23 @@ void SleepEmulator::wakeup(uint64_t threadID) {
   if (prev > 1) {
     if (min > 1) {
           states[core].unlock();
-          //MLOG_DETAIL(mlog::boot, "Wakeup from sleep state",DVAR(core), DVAR(min));
+          //MLOG_ERROR(mlog::boot, "Wakeup from sleep state",DVAR(core), DVAR(min));
           delay(min);
           states[core].sleep.store(false);
           return;
       }
 	}
 	states[core].unlock();
-	while(states[core].sleep.load() == true) {}
+	while(states[core].sleep.load() == true) { }
 }
 
 uint64_t SleepEmulator::getSleepState(uint64_t threadID) {
     auto core = SleepEmulator::getCore(threadID);
     states[core].lock();
+    if (states[core].sleep.load() == true) {
+      states[core].unlock();
+      return 6;
+    }
     auto min = minState(core);
     states[core].unlock();
     return min;
