@@ -59,7 +59,7 @@ public:
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
       TypedCap<ISignalable> own(group->getMember(idx)->cap()); // 500 - 1000 cycles
-      if (own /* && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2*/) {
+      if (own /* && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2*/) { // node skipping on / off
           auto *t = group->getTasklet(idx); // 50 cycles
           auto *home = own->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
           t->set([group, idx, size](TransparentTasklet*) {
@@ -92,29 +92,6 @@ public:
         ASSERT(group != nullptr);
 
         SequentialMulticast::new_cast(group, groupSize);
-        //uint64_t values[250];
-/*
-        for (uint64_t i = 0; i < groupSize; i++) {
-            //mythos::Timer t;
-            //t.start();
-
-            TypedCap<ISignalable> signalable(group->getMember(i)->cap());
-            if (signalable) {
-              signalable->signal(0);
-            } else {
-                PANIC("Signalable not valid anymore");
-            }
-           // values[i] = t.end();
-        }
-*/
-        //for (auto i = 0ul; i < groupSize; i++) {
-        //  MLOG_ERROR(mlog::boot, values[i]);
-        //}
-
-        //for (auto i = 0ul; i < 250; i++) {
-        //  MLOG_ERROR(mlog::boot, i, taskletValues[i], wakeupValues[i]);
-        //}
-
         return Error::SUCCESS;
     }
 };

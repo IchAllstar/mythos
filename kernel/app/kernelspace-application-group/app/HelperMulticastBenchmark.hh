@@ -89,7 +89,6 @@ void HelperMulticastBenchmark::test_multicast_different_helper() {
           min_h = h;
         }
       }
-      //MLOG_ERROR(mlog::app,"GroupSize:", i, "Helper:", min_h, "Cycles", min);
       MLOG_CSV(mlog::app, i, min_h, min);
     }
 
@@ -275,7 +274,6 @@ uint64_t HelperMulticastBenchmark::test_multicast_ret(uint64_t numThreads, uint6
       mythos::delay(100000); // wait to let threads enter deep sleep
     }
 
-    //ASSERT(caps.free(group, pl));
     return sum/REPETITIONS;
     //return min;
 }

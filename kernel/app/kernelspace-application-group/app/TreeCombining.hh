@@ -15,10 +15,7 @@ struct ALIGNED(cpu::CACHELINESIZE) combine_node {
     void dec() {
         if (--value == 0) {
             if (parent != nullptr) {
-                //MLOG_ERROR(mlog::app, "Dec Parent");
                 parent->dec();
-            } else {
-              //MLOG_ERROR(mlog::app, "Finished");
             }
         }
     }
@@ -85,7 +82,6 @@ void TreeCombining<MAX_LEAFS, FANOUT>::initNode(uint64_t idx) {
         nodes[child].parent = &nodes[idx];
         initNode(child);
     }
-    //MLOG_DETAIL(mlog::app, "init", idx, "children", nodes[idx].value.load());
 }
 
 template<size_t MAX_LEAFS, size_t FANOUT>
@@ -95,7 +91,6 @@ void TreeCombining<MAX_LEAFS, FANOUT>::init(uint64_t maxLeafs_) {
     ASSERT(maxNodes_ <= nodes.size());
     maxNodes = maxNodes_;
     maxLeafs = maxLeafs_;
-    //MLOG_ERROR(mlog::app, DVAR(maxNodes), DVAR(maxLeafs));
     initNode(0);
 }
 
@@ -111,7 +106,6 @@ void TreeCombining<MAX_LEAFS, FANOUT>::dec(uint64_t id) {
     auto firstLeaf = (lastNode == 0)?0:parent(lastNode) + 1;
     auto realID = firstLeaf + id;
     if (maxLeafs == 1) realID = 0;
-    //MLOG_ERROR(mlog::app, "Dec", DVAR(realID), DVAR(id), DVAR(lastNode), DVAR(firstLeaf));
     nodes[realID].dec();
 }
 

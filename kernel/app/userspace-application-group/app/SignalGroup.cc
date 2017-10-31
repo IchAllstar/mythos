@@ -4,7 +4,6 @@ int64_t TreeStrategy::tmp[TreeStrategy::RECURSIVE_SIZE] = {0};
 
 void SignalGroup::addMember(ISignalable *t) {
   for (int i = 0; i < MAX; i++) {
-    //MLOG_ERROR(mlog::app, "Add ", i);
     if (member[i] == nullptr) {
       member[i] = t;
       size++;

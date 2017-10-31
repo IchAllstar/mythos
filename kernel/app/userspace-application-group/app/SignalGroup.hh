@@ -47,7 +47,7 @@ extern const size_t NUM_HELPER;
 extern ThreadManager manager;
 class HelperStrategy {
   public:
-
+    /// simple cast which evenly distributes destinations to helpers
     static void simple_cast(SignalGroup *group, uint64_t idx, uint64_t size) {
       ASSERT(group != nullptr);
       uint64_t availableHelper = group->getAvailableHelper();
@@ -63,19 +63,17 @@ class HelperStrategy {
         if (i == 0) toHandle += rest; // first helper gets rest
         if (toHandle == 0) break;
         auto *tasklet = group->getTask(i);
-        //MLOG_ERROR(mlog::boot,availableHelper, "send to Helper Thread:", i, "from", current, "to",current + toHandle);
         tasklet->set([group, current, toHandle](Task&) {
-            ASSERT(group != nullptr);
-            //MLOG_ERROR(mlog::boot, "Signal from", current, current+toHandle);
-            for (uint64_t j = current; j < current + toHandle; j++) {
-              ISignalable* dest = group->getMember(j);
-              if (dest) {
-                dest->signal();
-              } else {
-                PANIC("Could not reach signalable.");
-              }
+          ASSERT(group != nullptr);
+          for (uint64_t j = current; j < current + toHandle; j++) {
+            ISignalable* dest = group->getMember(j);
+            if (dest) {
+              dest->signal();
+            } else {
+              PANIC("Could not reach signalable.");
             }
-          });
+          }
+        });
         auto helper = manager.getThread(manager.getNumThreads() - i - 1);
         helper->addTask(&tasklet->list_member);
         helper->signal();
@@ -114,21 +112,18 @@ class HelperStrategy {
         }
 
         auto *tasklet = group->getTask(i); // use a tasklet from SignalingGroup, should not be in use
-        //MLOG_ERROR(mlog::boot, "send to Helper Thread:", DVAR(current), DVAR(current + base-1));
         tasklet->set([group, i, current, base](Task&) {
-            ASSERT(group != nullptr);
-            for (uint64_t i = current; i < current + base; i++) {
-            //MLOG_ERROR(mlog::app, "In Helper",i, DVAR(current), DVAR(base));
+          ASSERT(group != nullptr);
+          for (uint64_t i = current; i < current + base; i++) {
             ISignalable* dest = group->getMember(i);
             if (dest) {
-            dest->signal();
+              dest->signal();
             } else {
-            PANIC("Could not reach signalable.");
+              PANIC("Could not reach signalable.");
             }
-            }
-            });
+          }
+        });
 
-        //MLOG_ERROR(mlog::app, "Helper", manager.getNumThreads() - i - 1, "from", current, "to", current + base);
         auto helper = manager.getThread(manager.getNumThreads() - i - 1);
         helper->addTask(&tasklet->list_member);
         helper->signal();
@@ -199,26 +194,26 @@ class TreeStrategy {
       auto idx_ = idx;
       auto to_  = to;
       group->getTask(idx)->set([group_, idx_, to_](Task&) {
-          ASSERT(group_ != nullptr); // TODO: handle case when group is not valid anymore
+          ASSERT(group_ != nullptr);
           ASSERT(to_ > 0);
           auto to_tmp = to_;
           while (true) {
-          uint64_t n = to_tmp - idx_ + 1;
-          if ( n < 2) {
-          return;
-          }
-          uint64_t j = TreeStrategy::F(TreeStrategy::f(n) - 1);
-          auto child_idx = j + idx_;
-          //MLOG_ERROR(mlog::app, idx_, "sends to", j + from_);
-          ISignalable* dest = group_->getMember(child_idx);
-          if (dest) {
-          if (child_idx < to_tmp) {
-          TreeStrategy::prepareTask(group_, child_idx, to_tmp);
-          dest->addTask(&group_->getTask(child_idx)->list_member);
-          }
-          dest->signal();
-          }
-          to_tmp = child_idx - 1;
+            uint64_t n = to_tmp - idx_ + 1;
+            if ( n < 2) {
+              return;
+            }
+            uint64_t j = TreeStrategy::F(TreeStrategy::f(n) - 1);
+            auto child_idx = j + idx_;
+            //MLOG_ERROR(mlog::app, idx_, "sends to", j + from_);
+            ISignalable* dest = group_->getMember(child_idx);
+            if (dest) {
+              if (child_idx < to_tmp) {
+                TreeStrategy::prepareTask(group_, child_idx, to_tmp);
+                dest->addTask(&group_->getTask(child_idx)->list_member);
+              }
+              dest->signal();
+            }
+            to_tmp = child_idx - 1;
           }
       });
     }
@@ -237,12 +232,11 @@ class TreeStrategy {
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
-      //MLOG_ERROR(mlog::app, "multicast", DVAR(from), DVAR(idx));
       ISignalable *dest = group->getMember(idx);
 
       if (idx <= (size-1) / NARY) {
         auto *t = group->getTask(idx);
-        //while (not t->isUnused()) {}
+        while (not t->isUnused()) { mythos::hwthread_pause(); }
         t->set([group, idx, size](Task&) { TreeStrategy::sendTo(group, idx, size); } );
         dest->addTask(&t->list_member);
       }
@@ -253,11 +247,14 @@ class TreeStrategy {
       auto *signalable = group->getMember(idx);
       if (signalable) {
         auto *t = group->getTask(0);
-        while (not t->isUnused()) {}
+        while (not t->isUnused()) { mythos::hwthread_pause(); }
+
+        // N-ary tree
         //t->set([group, size](Task&) { sendTo(group, 0, size);  });
         //signalable->addTask(&group->getTask(0)->list_member);
         //signalable->signal();
 
+        // optimal broadcast tree
         prepareTask(group, idx, size-1);
         signalable->addTask(&t->list_member);
         signalable->signal();

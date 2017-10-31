@@ -48,8 +48,6 @@ public:
 
 public: // ISignalable Interface
 	void signal() override {
-    // Fixes the Deadlock situation
-    //LockGuard<SpinMutex> g(global);
 		signal(*this);
 	}
 

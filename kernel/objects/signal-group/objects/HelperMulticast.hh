@@ -59,10 +59,8 @@ class HelperMulticast
         if (i == 0) toHandle += rest; // first helper gets rest
         if (toHandle == 0) break;
         auto *tasklet = group->getHelperTasklet(i);
-        //MLOG_ERROR(mlog::boot,availableHelper, "send to Helper Thread:", i, "from", current, "to",current + toHandle);
         tasklet->set([group,current, toHandle](TransparentTasklet*) {
             ASSERT(group != nullptr);
-            //MLOG_ERROR(mlog::boot, "Signal from", current, current+toHandle);
             for (uint64_t j = current; j < current + toHandle; j++) {
               TypedCap<ISignalable> dest(group->getMember(j)->cap());
               auto *tasklet = group->getTasklet(j);
@@ -87,7 +85,7 @@ class HelperMulticast
 
     static Error multicast(SignalGroup *group, size_t groupSize) {
       ASSERT(group != nullptr);
-      uint64_t threads = groupSize/* - 1*/;
+      uint64_t threads = groupSize;
       uint64_t availableHelper = group->numHelper();
       if (availableHelper == 0) {
         return Error::INSUFFICIENT_RESOURCES;
@@ -113,7 +111,6 @@ class HelperMulticast
         }
 
         auto *tasklet = group->getHelperTasklet(i);
-        //MLOG_ERROR(mlog::boot, "send to Helper Thread:", "from", current, "to",current + base-1);
         tasklet->set([group,current, base](TransparentTasklet*) {
             ASSERT(group != nullptr);
             for (uint64_t j = current; j < current + base; j++) {
@@ -128,17 +125,12 @@ class HelperMulticast
 
               });
               dest->getHWThread()->getHome()->run(tasklet);
-
-           //if (dest) {
-           //  dest->signal(0);
-           //}
             }
          });
 
         sched->getHome()->run(tasklet);
         current += base;
       }
-      //MLOG_ERROR(mlog::boot,"GroupSize:", threads, "Used Helper", usedHelper, "available", availableHelper);
       return Error::SUCCESS;
     }
 

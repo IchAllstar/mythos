@@ -164,64 +164,32 @@ struct NaryTree {
         TypedCap<ISignalable> own(group->getMember(idx)->cap());
         ASSERT(own);
 
-        //uint64_t values[N] {0};
-        //uint64_t tasklets[N] {0};
-        //uint64_t wakeups[N] {0};
-        //mythos::Timer t;
         for (uint64_t i = 0; i < N; i++) {
-            //t.start();
             auto child_idx = idx * N + i + 1;
             if (child_idx >= size) {
                 break;
             }
             NaryTree::multicast(group, child_idx, size);
-
-            //values[i] = t.end();
-            //tasklets[i] = taskletValues[idx+4];
-            //wakeups[i] = wakeupValues[idx+4];
         }
         // Signal own EC, will be scheduled after kernel task handling
         own->signal(0);
-        //for (auto i = 0ul; i < N && idx*N+i+1 < size; i++)
-        //   MLOG_ERROR(mlog::boot, idx +4,idx*N+i+5, values[i]);
-
-/*
-        for (auto i = 0ul; i < N; i++) {
-          if (idx*N+i+1 < size)
-            MLOG_ERROR(mlog::boot, idx + 4, idx * N + i + 5, tasklets[i], values[i], wakeups[i]);
-        }
-*/
-
     }
 
     static void multicast(SignalGroup *group, uint64_t idx, uint64_t size) {
       TypedCap<ISignalable> own(group->getMember(idx)->cap()); // 500 - 1000 cycles
 
-      //if (group->homes[idx] == nullptr) {
-      //  group->homes[idx] = own->getHWThread()/*->getHome()*/; //800 - 1600 cycles and up to 2000
-      //}
-
-      //if (own  && idx <= (size-2)/N && getSleepState(own->getHWThread()) < 2) {
       auto *hw = own->getHWThread(); //800 - 1600 cycles and up to 2000
       auto *t = group->getTasklet(idx); // 50 cycles
       if (own   && idx <= (size-2)/N  && getSleepState(own->getHWThread()) < 2) {
-          //auto *t = group->getTasklet(idx); // 50 cycles
 
-          //while (not t->isFree()) { // ~ 2000 Cycles for whole 235 gorup cast
-          //  MLOG_ERROR(mlog::boot, "Tasklet in use!!");
-          //  mythos::hwthread_pause(300); // to reduce cache contention if in use
-          //}
-
-
-          //auto *home = own->getHWThread()->getHome(); //800 - 1600 cycles and up to 2000
+          while (not t->isFree()) {
+            mythos::hwthread_pause(300); // to reduce cache contention if in use
+          }
 
           t->set([group, idx, size](TransparentTasklet*) {
               NaryTree::sendTo(group, idx, size);
           });
-          //wakeupTimer[id].start();
-          //group->homes[idx]->getHome()->run(t); // 500 -1000
           hw->getHome()->run(t);
-          //wakeupValues[id] = wakeupTimer[id].end();
       } else {
           NaryTree::sendToWithoutSignal(group, idx, size);
           t->set([own](TransparentTasklet*) {

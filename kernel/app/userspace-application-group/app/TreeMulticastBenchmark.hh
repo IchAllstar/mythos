@@ -39,7 +39,6 @@ void TreeMulticastBenchmark::setup_polling() {
       tc.dec(thread->id - 4);
     }
     while (true) {
-      //MLOG_ERROR(mlog::app, "Thread loop", DVAR(thread->id));
       while (!thread->taskQueue.empty()) {
         auto *t = thread->taskQueue.pull();
         t->get()->run();
@@ -99,11 +98,6 @@ void TreeMulticastBenchmark::test_multicast_polling() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
 		test_multicast_gen(i);
 	}
-  /*
-  for (auto i = manager.getNumThreads() - 5; i >= 5 && i <=manager.getNumThreads(); i-=5) {
-    test_multicast_gen(i);
-  }
-*/
 	MLOG_ERROR(mlog::app, "End Polling Signalable Group Test");
 }
 
@@ -125,11 +119,6 @@ void TreeMulticastBenchmark::test_multicast_no_deep_sleep() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
 		test_multicast_gen(i);
 	}
-  /*
-  for (auto i = manager.getNumThreads() - 5; i >= 5 && i <=manager.getNumThreads(); i-=5) {
-    test_multicast_gen(i);
-  }
-  */
 	MLOG_ERROR(mlog::app, "End No Deep Sleep Signalable Group Test");
 }
 
@@ -153,11 +142,6 @@ void TreeMulticastBenchmark::test_multicast_always_deep_sleep() {
 	for (uint64_t i = 5; i < manager.getNumThreads(); i+=5) {
 		test_multicast_gen(i);
 	}
-  /*
-  for (auto i = manager.getNumThreads() - 5; i >= 5 && i <=manager.getNumThreads(); i-=5) {
-    test_multicast_gen(i);
-  }
-  */
 	MLOG_ERROR(mlog::app, "End always Deep Sleep Signalable Group Test");
 }
 

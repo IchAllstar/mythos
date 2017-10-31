@@ -74,7 +74,6 @@ private:
     async::NestedMonitorDelegating monitor;
 
     // allocate when max group size is known
-    //CapRef<SignalGroup, ISignalable> *member {nullptr};
     CapWrap *member;
     TransparentTasklet *tasklets;
     TransparentTasklet *helperTasklets;

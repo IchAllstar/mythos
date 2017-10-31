@@ -121,7 +121,6 @@ void HelperThreadBenchmark::test_multicast_different_helper() {
           min_h = h;
         }
       }
-      //MLOG_ERROR(mlog::app,"GroupSize:", i, "Helper:", min_h, "Cycles", min);
       MLOG_CSV(mlog::app, i, min_h, min);
     }
 

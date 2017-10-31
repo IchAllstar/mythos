@@ -22,7 +22,6 @@ void SleepEmulator::sleep(uint64_t threadID, uint64_t depth) {
   uint64_t min = minState(core);
 	MLOG_DETAIL(mlog::boot, "Sleep", DVAR(threadID), DVAR(prev), DVAR(depth), DVAR(min));
 	if (min > 0) { // every hw thread wants to join a sleep state
-	   //MLOG_ERROR(mlog::boot, "Go to sleep state",DVAR(core), DVAR(min));
 	   states[core].sleep.store(true);
 	}
 	states[core].unlock();
@@ -37,7 +36,6 @@ void SleepEmulator::wakeup(uint64_t threadID) {
   if (prev > 1) {
     if (min > 1) {
           states[core].unlock();
-          //MLOG_ERROR(mlog::boot, "Wakeup from sleep state",DVAR(core), DVAR(min));
           delay(min);
           states[core].sleep.store(false);
           return;
@@ -64,12 +62,11 @@ uint64_t SleepEmulator::setState(uint64_t threadID, uint64_t depth) {
 	uint64_t core = SleepEmulator::getCore(threadID);
 	uint64_t hwthread = threadID % HWTHREADS;
 	auto prev = states[core].cstate[hwthread];
-    states[core].cstate[hwthread]  = depth;
+  states[core].cstate[hwthread]  = depth;
 	return prev;
 }
 
 uint64_t SleepEmulator::getState(uint64_t threadID) {
-
 	uint64_t core = SleepEmulator::getCore(threadID);
 	uint64_t hwthread = threadID % HWTHREADS;
 	auto state = states[core].cstate[hwthread];

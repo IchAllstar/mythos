@@ -133,7 +133,6 @@ Error SignalGroup::signalAll(Tasklet *t, Cap self, IInvocation *msg) {
 }
 
 Error SignalGroup::signalHybrid() {
- // MLOG_ERROR(mlog::boot, "Signal Hybrid", actualSize);
   if (actualSize < 10) {
     return SequentialMulticast::multicast(this, actualSize);
   } else if (actualSize < 100) {
